@@ -21,8 +21,16 @@ export default function SignUpPage() {
     setLoading(true); setError('');
     try {
       const result = await apiRequest('/auth/signup', { method: 'POST', body: { username: form.username, email: form.email, password: form.password } });
-      setStep(2);
-      setSuccess('Account created! Check your email for a verification code.');
+      if (result.auto_verified) {
+        // SMTP not configured on server — user is already verified, log in directly
+        const login = await apiRequest('/auth/login', { method: 'POST', body: { identifier: form.email, password: form.password } });
+        saveToken(login.access_token);
+        setStep(3);
+        setSuccess('Account created! Complete your profile.');
+      } else {
+        setStep(2);
+        setSuccess('Account created! Check your email for a verification code.');
+      }
     } catch (err) {
       const msg = (err?.message || '').toLowerCase();
       if (err?.status === 400 && msg.includes('email already registered')) {

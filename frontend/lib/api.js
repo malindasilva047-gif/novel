@@ -1,7 +1,7 @@
-const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const RAW_API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").trim();
 
 function normalizeApiBaseUrl(rawUrl) {
-  const sanitized = rawUrl.replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
+  const sanitized = rawUrl.trim().replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
   if (!sanitized.startsWith("http://")) {
     return sanitized;
   }
@@ -21,6 +21,24 @@ function normalizeApiBaseUrl(rawUrl) {
 
 const API_BASE_URL = normalizeApiBaseUrl(RAW_API_BASE_URL);
 
+function ensureSecureApiUrl(url) {
+  if (!url.startsWith("http://")) {
+    return url;
+  }
+
+  try {
+    const parsed = new URL(url);
+    const isLocalHost = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+    if (isLocalHost) {
+      return url;
+    }
+    parsed.protocol = "https:";
+    return parsed.toString();
+  } catch {
+    return url.replace(/^http:\/\//, "https://");
+  }
+}
+
 function buildApiUrl(path) {
   const safePath = path.startsWith("/") ? path : `/${path}`;
   const normalizedPath = safePath.startsWith("/api/v1/") || safePath === "/api/v1"
@@ -28,7 +46,7 @@ function buildApiUrl(path) {
     : safePath.startsWith("/api/")
       ? safePath
       : `/api/v1${safePath}`;
-  return `${API_BASE_URL}${normalizedPath}`;
+  return ensureSecureApiUrl(`${API_BASE_URL}${normalizedPath}`);
 }
 
 function normalizeApiError(detail) {

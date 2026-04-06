@@ -1,23 +1,25 @@
-const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://lakmasachith-novel-backend.hf.space";
-const API_BASE_URL = RAW_API_BASE_URL.replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
+const RAW_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
-function enforceHttpsForBrowser(url) {
-  if (typeof window === "undefined") {
-    return url;
+function normalizeApiBaseUrl(rawUrl) {
+  const sanitized = rawUrl.replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
+  if (!sanitized.startsWith("http://")) {
+    return sanitized;
   }
 
-  // Avoid mixed-content requests when the app is loaded over HTTPS.
-  if (window.location.protocol !== "https:" || !url.startsWith("http://")) {
-    return url;
+  try {
+    const parsed = new URL(sanitized);
+    const isLocalHost = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+    if (isLocalHost) {
+      return sanitized;
+    }
+    parsed.protocol = "https:";
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return sanitized.replace(/^http:\/\//, "https://");
   }
-
-  // Keep localhost/dev URLs on HTTP for local development.
-  if (url.includes("localhost") || url.includes("127.0.0.1")) {
-    return url;
-  }
-
-  return url.replace(/^http:\/\//, "https://");
 }
+
+const API_BASE_URL = normalizeApiBaseUrl(RAW_API_BASE_URL);
 
 function buildApiUrl(path) {
   const safePath = path.startsWith("/") ? path : `/${path}`;
@@ -26,8 +28,7 @@ function buildApiUrl(path) {
     : safePath.startsWith("/api/")
       ? safePath
       : `/api/v1${safePath}`;
-  const url = `${API_BASE_URL}${normalizedPath}`;
-  return enforceHttpsForBrowser(url);
+  return `${API_BASE_URL}${normalizedPath}`;
 }
 
 function normalizeApiError(detail) {

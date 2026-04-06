@@ -1,0 +1,21 @@
+# Node
+frontend/node_modules
+frontend/.next
+frontend/.vercel
+
+# Python
+backend/.venv
+backend/__pycache__
+backend/.pytest_cache
+
+# Environment
+**/.env
+**/.env.*
+
+# Local workspace
+.vscode
+uploads
+
+# OS
+.DS_Store
+Thumbs.db

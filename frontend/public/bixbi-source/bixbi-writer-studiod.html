@@ -1,0 +1,1741 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bixbi – Writer Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js"></script>
+<style>
+/* ══════════════════════════════════════
+   BIXBI GLOBAL VARIABLES
+══════════════════════════════════════ */
+:root {
+  --gold: #c9a96e;
+  --gold-soft: rgba(201,169,110,0.15);
+  --gold-light: #e8c98a;
+  --teal: #2dd4c0;
+  --teal-soft: rgba(45,212,192,0.12);
+  --rose: #e8748a;
+  --tr: 0.22s ease;
+  /* App accent */
+  --accent: #c8522a;
+  --accent-d: #a83f1c;
+  --accent-l: rgba(200,82,42,0.1);
+  --green: #2d6a4f;
+  --amber: #d97706;
+}
+[data-theme="light"] {
+  --bg: #f5f0e8;
+  --bg2: #ede8de;
+  --surface: #ffffff;
+  --surface2: #faf7f2;
+  --border: rgba(0,0,0,0.09);
+  --border2: rgba(0,0,0,0.14);
+  --text: #1c1810;
+  --text2: #3d3020;
+  --muted: rgba(0,0,0,0.45);
+  --muted2: rgba(0,0,0,0.3);
+  --hbg: rgba(255,255,255,0.95);
+  --shadow: rgba(0,0,0,0.08);
+  --shadow-deep: rgba(0,0,0,0.16);
+  --ink: #f5f0e8;
+}
+[data-theme="dark"] {
+  --bg: #0e0b08;
+  --bg2: #14110d;
+  --surface: #1c1712;
+  --surface2: #231e18;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: rgba(255,255,255,0.9);
+  --text2: rgba(255,255,255,0.7);
+  --muted: rgba(255,255,255,0.4);
+  --muted2: rgba(255,255,255,0.25);
+  --hbg: rgba(14,11,8,0.95);
+  --shadow: rgba(0,0,0,0.5);
+  --shadow-deep: rgba(0,0,0,0.7);
+  --ink: #0e0b08;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  transition: background var(--tr), color var(--tr);
+  overflow-x: hidden;
+}
+
+/* ══════════════════════════════════════
+   PAGE SYSTEM
+══════════════════════════════════════ */
+.page { display: none; min-height: calc(100vh - 56px); }
+.page.active { display: block; }
+#p-writer.active { display: flex; flex-direction: column; }
+
+/* ══════════════════════════════════════
+   BIXBI HEADER
+══════════════════════════════════════ */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 400;
+  background: var(--hbg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 8px;
+  transition: background var(--tr), border-color var(--tr);
+  flex-shrink: 0;
+}
+@media(min-width:640px) { header { padding: 0 24px; gap: 10px; } }
+
+/* Logo */
+.logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.logo span { color: var(--gold); }
+@media(min-width:400px) { .logo { font-size: 24px; } }
+
+/* Bixbi owl icon */
+.logo-owl {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 5px rgba(200,82,42,0.22));
+}
+@media(min-width:480px) { .logo-owl { width: 34px; height: 34px; } }
+
+/* Nav pills (desktop only) */
+.hdr-nav {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  margin-left: 8px;
+}
+@media(min-width:720px) { .hdr-nav { display: flex; } }
+.hnl {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  padding: 6px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--tr);
+  white-space: nowrap;
+}
+.hnl:hover { background: var(--accent-l); color: var(--accent); }
+.hnl.active { background: var(--accent-l); color: var(--accent); font-weight: 600; }
+
+/* Search */
+.hdr-search {
+  flex: 1;
+  max-width: 300px;
+  position: relative;
+  display: none;
+}
+@media(min-width:560px) { .hdr-search { display: block; } }
+.hdr-search input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 14px 7px 34px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+  transition: border-color 0.2s, background var(--tr);
+}
+.hdr-search input::placeholder { color: var(--muted); }
+.hdr-search input:focus { border-color: rgba(200,82,42,0.45); background: var(--surface); }
+.hsr { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.hsr svg { width: 13px; height: 13px; display: block; }
+
+/* Right section */
+.hdr-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+@media(min-width:400px) { .hdr-right { gap: 5px; } }
+
+/* Icon buttons */
+.hico {
+  background: none;
+  border: none;
+  color: var(--muted);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  flex-shrink: 0;
+}
+.hico:hover { color: var(--text); background: var(--surface2); }
+.hico svg { width: 17px; height: 17px; }
+.ndot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--rose);
+  border: 2px solid var(--bg);
+}
+
+/* Theme toggle */
+.theme-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.theme-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+/* Write button */
+.btn-write {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--gold);
+  color: #0d0d12;
+  border: none;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  white-space: nowrap;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+@media(min-width:400px) { .btn-write { padding: 7px 13px; font-size: 13px; } }
+.btn-write:hover { background: #dfc082; }
+.btn-write svg { width: 12px; height: 12px; }
+.btn-write .chv { width: 10px; height: 10px; opacity: 0.7; }
+.btn-write .wlbl { display: none; }
+@media(min-width:480px) { .btn-write .wlbl { display: inline; } }
+
+/* Profile avatar */
+.pna {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--amber));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(200,82,42,0.3);
+}
+@media(min-width:400px) { .pna { width: 34px; height: 34px; font-size: 13px; } }
+.pna:hover { border-color: var(--gold); transform: scale(1.06); }
+
+/* ── DROPDOWN SYSTEM ── */
+.dd-wrap { position: relative; }
+.dd {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  min-width: 190px;
+  box-shadow: 0 10px 36px var(--shadow-deep);
+  z-index: 600;
+  overflow: hidden;
+  transition: background var(--tr);
+}
+.dd.open { display: block; animation: dIn 0.15s ease; }
+@keyframes dIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+.dd-sec { padding: 5px 0; border-bottom: 1px solid var(--border); }
+.dd-sec:last-child { border-bottom: none; }
+.dd-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.dd-row:hover { background: rgba(128,128,128,0.08); }
+.dd-row svg { width: 14px; height: 14px; color: var(--muted); flex-shrink: 0; }
+.dd-row.hi { color: var(--teal); } .dd-row.hi svg { color: var(--teal); }
+.dd-row.danger { color: var(--rose); } .dd-row.danger svg { color: var(--rose); }
+.pnd-user { display: flex; align-items: center; gap: 10px; padding: 14px; border-bottom: 1px solid var(--border); }
+.pnd-av { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg,var(--accent),var(--amber)); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; }
+.pnd-name { font-size: 13.5px; font-weight: 500; color: var(--text); }
+.pnd-handle { font-size: 11px; color: var(--muted); }
+
+/* ══════════════════════════════════════
+   SHARED COMPONENTS
+══════════════════════════════════════ */
+.btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all var(--tr);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.btn-ghost { background: transparent; border-color: var(--border2); color: var(--muted); }
+.btn-ghost:hover { background: var(--surface2); color: var(--text); }
+.btn-save { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+.btn-save:hover { background: var(--bg2); }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 2px 10px rgba(200,82,42,0.3); }
+.btn-primary:hover { background: var(--accent-d); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(200,82,42,0.4); }
+.btn-green { background: var(--green); color: #fff; border-color: var(--green); }
+.btn-green:hover { background: #235c3d; transform: translateY(-1px); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+/* Form */
+input[type=text], textarea, select {
+  width: 100%;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px;
+  padding: 9px 12px;
+  border: 1.5px solid var(--border2);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--tr), box-shadow var(--tr), background var(--tr);
+  appearance: none;
+}
+input[type=text]:focus, textarea:focus, select:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(200,82,42,0.1);
+}
+input::placeholder, textarea::placeholder { color: var(--muted); }
+textarea { resize: vertical; line-height: 1.65; }
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a89880' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 34px;
+}
+.field { margin-bottom: 16px; }
+.field label { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+.field label .req { color: var(--accent); }
+.field label .hint { font-size: 11px; font-weight: 400; color: var(--muted); }
+.field-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media(max-width:560px) { .grid2 { grid-template-columns: 1fr; } }
+
+/* Tags */
+.tw {
+  border: 1.5px solid var(--border2);
+  border-radius: 8px;
+  background: var(--surface2);
+  padding: 5px 7px;
+  min-height: 42px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  cursor: text;
+  transition: border-color var(--tr), box-shadow var(--tr);
+}
+.tw:focus-within { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px rgba(200,82,42,0.1); }
+.tchip {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--accent-l); color: var(--accent);
+  border: 1px solid rgba(200,82,42,0.2);
+  border-radius: 20px; padding: 2px 8px;
+  font-size: 12px; font-weight: 500;
+  animation: popIn 0.15s ease;
+}
+.tchip button { border: none; background: none; cursor: pointer; color: rgba(200,82,42,0.6); font-size: 14px; line-height: 1; padding: 0; }
+.tw input { border: none!important; background: transparent!important; box-shadow: none!important; padding: 2px 4px!important; font-size: 12.5px; min-width: 80px; flex: 1; outline: none; color: var(--text); }
+
+/* Character chips */
+.cchip {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 20px; padding: 3px 10px;
+  font-size: 12px; font-weight: 500; color: var(--text);
+  animation: popIn 0.15s ease;
+}
+.cchip button { border: none; background: none; cursor: pointer; color: var(--muted); font-size: 13px; line-height: 1; padding: 0; }
+.cchip button:hover { color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+@keyframes popIn { from { transform:scale(0.7); opacity:0; } to { transform:scale(1); opacity:1; } }
+@keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+
+/* Toggle */
+.tl-track { width: 42px; height: 23px; background: var(--border2); border-radius: 12px; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; }
+.tl-track.on { background: var(--accent); }
+.tl-track::after { content:''; width:17px; height:17px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,0.2); position:absolute; top:3px; left:3px; transition:transform 0.2s; }
+.tl-track.on::after { transform: translateX(19px); }
+
+/* Section head */
+.sh { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+.sh h2 { font-family: 'Lora', serif; font-size: 15px; font-weight: 600; color: var(--text); }
+.sh-line { flex: 1; height: 1px; background: var(--border); }
+.sh-icon { width: 28px; height: 28px; border-radius: 7px; background: var(--accent-l); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+
+/* Card */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 4px 24px var(--shadow); transition: background var(--tr); }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+  background: var(--text); color: var(--bg);
+  padding: 10px 18px; border-radius: 10px;
+  font-size: 13px; font-weight: 500;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: 0 8px 24px var(--shadow-deep);
+  transform: translateY(10px); opacity: 0;
+  transition: all 0.25s; pointer-events: none;
+  font-family: 'DM Sans', sans-serif;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.green { background: var(--green); color: #fff; }
+.toast.orange { background: var(--amber); color: #fff; }
+
+/* ══════════════════════════════════════
+   PAGE 1 — STORY DETAILS
+══════════════════════════════════════ */
+#p-details { background: var(--bg); }
+.details-wrap { max-width: 1080px; margin: 0 auto; padding: 24px 16px 60px; }
+@media(min-width:640px) { .details-wrap { padding: 28px 24px 60px; } }
+@media(min-width:1024px) { .details-wrap { padding: 32px 32px 60px; } }
+
+.details-hero { padding: 0 0 22px; display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.details-hero h1 { font-family: 'Lora', serif; font-size: 24px; font-weight: 700; letter-spacing: -0.03em; color: var(--text); }
+@media(min-width:640px) { .details-hero h1 { font-size: 28px; } }
+.details-hero h1 span { color: var(--accent); }
+.details-hero p { color: var(--muted); font-size: 13.5px; margin-top: 4px; }
+
+.badge-pill {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(217,119,6,0.12); color: var(--amber);
+  border: 1px solid rgba(217,119,6,0.25);
+  border-radius: 20px; padding: 5px 13px;
+  font-size: 12px; font-weight: 600; white-space: nowrap; flex-shrink: 0;
+}
+
+/* Form layout */
+.df {
+  display: flex;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 4px 24px var(--shadow);
+  transition: background var(--tr);
+}
+@media(max-width:820px) { .df { flex-direction: column; } }
+
+/* Cover panel */
+.dp-left {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--surface2);
+  border-right: 1px solid var(--border);
+  padding: 24px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  transition: background var(--tr);
+}
+@media(max-width:820px) {
+  .dp-left {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    padding: 20px 18px;
+  }
+}
+.cl { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); align-self: flex-start; }
+
+.dz {
+  width: 100%;
+  aspect-ratio: 2/3;
+  border: 2px dashed var(--border2);
+  border-radius: 10px;
+  background: var(--bg2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  text-align: center;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--tr);
+}
+@media(max-width:820px) { .dz { width: 120px; height: 180px; flex-shrink: 0; } }
+.dz:hover, .dz.ov { border-color: var(--accent); background: var(--accent-l); }
+.dz-ic { width: 44px; height: 44px; background: var(--border); border-radius: 9px; display: flex; align-items: center; justify-content: center; transition: all var(--tr); }
+.dz:hover .dz-ic { background: rgba(200,82,42,0.2); }
+.dz-ic svg { width: 22px; height: 22px; color: var(--muted); }
+.dz:hover .dz-ic svg { color: var(--accent); }
+.dz-t { font-size: 12px; font-weight: 600; color: var(--muted); }
+.dz-s { font-size: 11px; color: var(--muted2); line-height: 1.5; }
+.cp { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; border-radius: 8px; }
+.ca { display: none; gap: 7px; width: 100%; }
+.ci-info { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.7; }
+.ci-info strong { color: var(--text2); font-weight: 600; }
+
+.cover-tips {
+  width: 100%;
+  background: var(--accent-l);
+  border: 1px solid rgba(200,82,42,0.15);
+  border-radius: 8px;
+  padding: 12px;
+}
+.cover-tips .ct-head { font-size: 10px; font-weight: 700; color: var(--accent); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+.cover-tips li { font-size: 11px; color: var(--muted); line-height: 1.65; list-style: none; padding-left: 12px; position: relative; }
+.cover-tips li::before { content: '✦'; color: rgba(200,82,42,0.5); position: absolute; left: 0; font-size: 9px; top: 3px; }
+@media(max-width:820px) { .cover-tips { flex: 1; min-width: 180px; } }
+
+/* Form right */
+.dp-right { flex: 1; padding: 26px 28px; min-width: 0; }
+@media(max-width:640px) { .dp-right { padding: 20px 16px; } }
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.form-actions-note { font-size: 12px; color: var(--muted); }
+.form-actions-note strong { color: var(--green); }
+.form-actions-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+@media(max-width:520px) {
+  .form-actions { flex-direction: column; }
+  .form-actions-btns { width: 100%; }
+  .form-actions-btns .btn { flex: 1; justify-content: center; }
+}
+
+/* Toggle row */
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 13px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: background var(--tr);
+}
+.toggle-row-info .tr-label { font-size: 13.5px; font-weight: 600; }
+.toggle-row-info .tr-sub { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+.toggle-switch { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.toggle-label { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; min-width: 22px; text-align: right; }
+.char-row { display: flex; gap: 8px; }
+
+/* ══════════════════════════════════════
+   PAGE 2 — CHAPTER WRITER
+══════════════════════════════════════ */
+#p-writer {
+  background: #1a1714;
+  min-height: calc(100vh - 56px);
+}
+#p-writer header {
+  background: rgba(26,23,20,0.97);
+  border-bottom-color: #2e2824;
+}
+#p-writer header .logo { color: #f0ece6; }
+#p-writer header .hnl { color: #9a8e82; }
+#p-writer header .hnl:hover,
+#p-writer header .hnl.active { background: rgba(200,82,42,0.15); color: #e8a88e; }
+#p-writer header .hdr-search input { background: #231e18; border-color: #2e2824; color: #d0c8bc; }
+#p-writer header .hdr-search input::placeholder { color: #5a4f45; }
+#p-writer header .hico { color: #5a4f45; }
+#p-writer header .hico:hover { color: #9a8e82; background: #231e18; }
+#p-writer header .theme-btn { border-color: #2e2824; color: #5a4f45; }
+#p-writer header .ndot { border-color: #1a1714; }
+
+.writer-layout {
+  display: flex;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+}
+
+/* Writer sidebar */
+.w-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: #111009;
+  border-right: 1px solid #2e2824;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+@media(max-width:860px) { .w-sidebar { display: none; } }
+
+.ws-top { padding: 14px 14px 10px; border-bottom: 1px solid #2e2824; flex-shrink: 0; }
+.ws-story { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.ws-cover {
+  width: 34px; height: 50px; border-radius: 4px;
+  background: linear-gradient(135deg, #c8522a, #a83f1c);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; overflow: hidden;
+}
+.ws-cover img { width: 100%; height: 100%; object-fit: cover; }
+.ws-title { font-family: 'Lora', serif; font-size: 12px; font-weight: 600; color: #f0ece6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ws-status { font-size: 10px; color: #5a4f45; margin-top: 2px; }
+
+.ws-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #3a3530; padding: 10px 14px 4px; }
+.ws-scroll { flex: 1; overflow-y: auto; padding: 6px 0; scrollbar-width: thin; scrollbar-color: #2e2824 transparent; }
+.ws-scroll::-webkit-scrollbar { width: 3px; }
+.ws-scroll::-webkit-scrollbar-thumb { background: #2e2824; border-radius: 2px; }
+
+.ch-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background var(--tr);
+  border-left: 3px solid transparent;
+}
+.ch-item:hover { background: #1e1b17; }
+.ch-item.active { background: #1e1b17; border-left-color: #c8522a; }
+.ch-drag { color: #2e2824; font-size: 12px; cursor: grab; flex-shrink: 0; }
+.ch-num { font-size: 10px; font-weight: 700; color: #3a3530; min-width: 18px; }
+.ch-item.active .ch-num { color: #c8522a; }
+.ch-ttext { flex: 1; font-size: 12px; color: #6b5f54; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ch-item.active .ch-ttext { color: #e0d8ce; font-weight: 500; }
+.ch-st { font-size: 9.5px; padding: 2px 6px; border-radius: 10px; background: #2e2824; color: #3a3530; flex-shrink: 0; }
+.ch-st.pub { background: rgba(45,106,79,0.25); color: #6fcf97; }
+
+.add-ch {
+  display: flex; align-items: center; gap: 7px;
+  width: calc(100% - 20px); margin: 6px 10px;
+  padding: 7px 12px;
+  border: 1px dashed #2e2824; border-radius: 6px;
+  background: transparent; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; color: #3a3530;
+  transition: all var(--tr);
+}
+.add-ch:hover { border-color: #c8522a; color: #e8a88e; background: rgba(200,82,42,0.08); }
+
+/* Writer main */
+.w-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #1a1714; min-width: 0; }
+
+.w-topbar {
+  padding: 10px 20px;
+  border-bottom: 1px solid #2e2824;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.ch-title-input {
+  font-family: 'Lora', serif;
+  font-size: 15px; font-weight: 600;
+  background: transparent; border: none;
+  color: #f0ece6; outline: none; flex: 1;
+  border-bottom: 2px solid #2e2824;
+  padding: 4px 0;
+  transition: border-color var(--tr);
+  min-width: 0;
+}
+.ch-title-input:focus { border-bottom-color: #c8522a; }
+.ch-title-input::placeholder { color: #2e2824; font-style: italic; }
+
+#editor-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+/* Quill dark theme */
+.ql-toolbar.ql-snow {
+  background: #111009!important;
+  border: none!important;
+  border-bottom: 1px solid #2e2824!important;
+  padding: 7px 16px!important;
+  flex-shrink: 0;
+}
+.ql-toolbar.ql-snow .ql-stroke { stroke: #4a4038!important; }
+.ql-toolbar.ql-snow .ql-fill { fill: #4a4038!important; }
+.ql-toolbar.ql-snow button:hover .ql-stroke,
+.ql-toolbar.ql-snow button.ql-active .ql-stroke { stroke: #e8a88e!important; }
+.ql-toolbar.ql-snow button:hover .ql-fill,
+.ql-toolbar.ql-snow button.ql-active .ql-fill { fill: #e8a88e!important; }
+.ql-toolbar.ql-snow .ql-picker-label { color: #4a4038!important; }
+.ql-toolbar.ql-snow .ql-picker-label:hover { color: #e8a88e!important; }
+.ql-container.ql-snow { border: none!important; flex: 1; overflow-y: auto; background: #1a1714; }
+.ql-editor {
+  font-family: 'Lora', serif!important;
+  font-size: 17px!important;
+  line-height: 1.9!important;
+  color: #d0c8bc!important;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 28px 20px 80px!important;
+  min-height: 100%;
+}
+@media(min-width:640px) { .ql-editor { padding: 36px 32px 80px!important; } }
+.ql-editor::before { color: #2e2824!important; font-style: italic!important; }
+.ql-editor p { margin-bottom: 0.6em; }
+.ql-editor h1, .ql-editor h2, .ql-editor h3 { font-family: 'Lora', serif!important; color: #f0ece6!important; }
+.ql-editor blockquote { border-left: 3px solid #c8522a!important; color: #9a8e82!important; font-style: italic!important; }
+
+/* Bottom bar */
+.w-bottom {
+  padding: 8px 16px;
+  background: #111009;
+  border-top: 1px solid #2e2824;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.w-stat { font-size: 11.5px; color: #3a3530; }
+.w-stat strong { color: #6b5f54; font-weight: 600; }
+.w-bottom-btns { display: flex; gap: 7px; margin-left: auto; }
+
+.btn-dark {
+  background: #1e1b17; border: 1px solid #2e2824; color: #6b5f54;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500;
+  padding: 6px 12px; border-radius: 6px; cursor: pointer;
+  transition: all var(--tr);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.btn-dark:hover { border-color: #4a4038; color: #9a8e82; }
+.btn-publish {
+  background: #c8522a; border: none; color: #fff;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+  padding: 6px 14px; border-radius: 6px; cursor: pointer;
+  transition: all var(--tr);
+  display: inline-flex; align-items: center; gap: 5px;
+  box-shadow: 0 2px 8px rgba(200,82,42,0.35);
+}
+.btn-publish:hover { background: #a83f1c; }
+
+/* Autosave */
+.autosave { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #3a3530; flex-shrink: 0; }
+.asdot { width: 6px; height: 6px; border-radius: 50%; background: #2e2824; transition: background 0.3s; }
+.asdot.saving { background: #d97706; animation: pulse 1s infinite; }
+.asdot.saved { background: #2d6a4f; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ══════════════════════════════════════
+   PAGE 3 — PROFILE / MY STORIES
+══════════════════════════════════════ */
+#p-profile { background: var(--bg); }
+.prof-wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px 80px; }
+@media(min-width:640px) { .prof-wrap { padding: 0 24px 80px; } }
+
+.prof-hero {
+  background: linear-gradient(135deg, #1c1810 0%, #2d2015 50%, #1a1410 100%);
+  border-radius: 14px;
+  padding: 28px 24px 24px;
+  margin-top: 20px;
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+  box-shadow: 0 8px 36px rgba(0,0,0,0.2);
+  position: relative;
+  overflow: hidden;
+  animation: fadeUp 0.4s ease both;
+  flex-wrap: wrap;
+}
+@media(min-width:640px) { .prof-hero { padding: 32px 32px 26px; gap: 24px; } }
+.prof-hero::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,82,42,0.12) 0%, transparent 70%);
+}
+.prof-av {
+  width: 72px; height: 72px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--accent), var(--amber));
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Sans', sans-serif; font-size: 22px; font-weight: 700; color: #fff;
+  border: 3px solid rgba(255,255,255,0.12);
+  box-shadow: 0 4px 20px rgba(200,82,42,0.4);
+}
+@media(min-width:640px) { .prof-av { width: 84px; height: 84px; font-size: 26px; } }
+.prof-info { flex: 1; min-width: 200px; }
+.prof-name { font-family: 'Lora', serif; font-size: 20px; font-weight: 700; color: #f0ece6; letter-spacing: -0.02em; }
+@media(min-width:640px) { .prof-name { font-size: 24px; } }
+.prof-handle { font-size: 12.5px; color: #6b5f54; margin-top: 3px; }
+.prof-bio { font-size: 13px; color: #5a4f45; margin-top: 7px; line-height: 1.6; }
+.prof-stats { display: flex; gap: 20px; margin-top: 14px; flex-wrap: wrap; }
+.pstat .pn { font-family: 'Lora', serif; font-size: 20px; font-weight: 700; color: #f0ece6; }
+.pstat .pl { font-size: 10px; color: #3a3530; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 1px; }
+.prof-actions { display: flex; gap: 8px; align-self: flex-start; margin-left: auto; flex-wrap: wrap; }
+
+.btn-outline-dark {
+  background: transparent; border: 1.5px solid #3a3530; color: #6b5f54;
+  font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 500;
+  padding: 7px 13px; border-radius: 7px; cursor: pointer;
+  transition: all var(--tr);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.btn-outline-dark:hover { border-color: #c8522a; color: #e8a88e; }
+
+/* Tabs */
+.prof-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-top: 24px; overflow-x: auto; scrollbar-width: none; }
+.prof-tabs::-webkit-scrollbar { display: none; }
+.ptab {
+  padding: 10px 18px; font-size: 13px; font-weight: 500; color: var(--muted);
+  cursor: pointer; border-bottom: 2px solid transparent; transition: all var(--tr);
+  background: none; border-top: none; border-left: none; border-right: none;
+  font-family: 'DM Sans', sans-serif; white-space: nowrap;
+}
+.ptab:hover { color: var(--text); }
+.ptab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+/* Stories grid */
+.stories-header { display: flex; align-items: center; justify-content: space-between; margin: 22px 0 16px; flex-wrap: wrap; gap: 10px; }
+.stories-header h3 { font-family: 'Lora', serif; font-size: 16px; font-weight: 600; color: var(--text); }
+
+.sg { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+@media(min-width:640px) { .sg { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); } }
+
+.sc {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  transition: all var(--tr); cursor: pointer;
+  animation: fadeUp 0.4s ease both;
+}
+.sc:hover { box-shadow: 0 8px 28px var(--shadow-deep); transform: translateY(-3px); }
+.sc-cover {
+  width: 100%; aspect-ratio: 2/3;
+  background: linear-gradient(135deg, var(--bg2), var(--border));
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px;
+}
+.sc-cover img { width: 100%; height: 100%; object-fit: cover; }
+.sc-status {
+  position: absolute; top: 8px; right: 8px;
+  font-size: 10px; font-weight: 700;
+  padding: 3px 7px; border-radius: 10px;
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.sc-status.draft { background: rgba(0,0,0,0.6); color: #d0c8bc; }
+.sc-status.published { background: rgba(45,106,79,0.85); color: #6fcf97; }
+.sc-body { padding: 12px 14px; }
+.sc-title { font-family: 'Lora', serif; font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; color: var(--text); }
+.sc-genre { font-size: 11px; color: var(--muted); margin-bottom: 7px; }
+.sc-meta { display: flex; gap: 10px; font-size: 11px; color: var(--muted); flex-wrap: wrap; }
+.sc-actions { display: flex; gap: 6px; padding: 0 14px 12px; }
+.sc-btn {
+  flex: 1; text-align: center; padding: 6px; border-radius: 6px;
+  font-size: 12px; font-weight: 500;
+  border: 1px solid var(--border); background: var(--surface2); color: var(--muted);
+  cursor: pointer; transition: all var(--tr); font-family: 'DM Sans', sans-serif;
+}
+.sc-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-l); }
+.sc-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.sc-btn.primary:hover { background: var(--accent-d); }
+
+/* Empty state */
+.empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+.empty-icon { font-size: 48px; margin-bottom: 14px; opacity: 0.4; }
+.empty h3 { font-family: 'Lora', serif; font-size: 16px; margin-bottom: 8px; color: var(--text); }
+.empty p { font-size: 13px; color: var(--muted); line-height: 1.7; }
+
+/* ══════════════════════════════════════
+   PREVIEW MODAL
+══════════════════════════════════════ */
+.preview-modal {
+  display: none; position: fixed; inset: 0; z-index: 700;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(6px);
+  align-items: center; justify-content: center;
+  padding: 16px;
+}
+.preview-modal.open { display: flex; }
+.preview-box {
+  background: #1a1714; border-radius: 14px;
+  width: 100%; max-width: 660px; max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  animation: fadeUp 0.25s ease;
+}
+.preview-head {
+  padding: 16px 24px; border-bottom: 1px solid #2e2824;
+  display: flex; justify-content: space-between; align-items: center;
+  position: sticky; top: 0; background: #1a1714; z-index: 1;
+}
+.preview-title { font-family: 'Lora', serif; font-size: 15px; color: #f0ece6; }
+.preview-close {
+  background: none; border: 1px solid #2e2824; color: #6b5f54;
+  border-radius: 6px; padding: 5px 12px; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; transition: all var(--tr);
+}
+.preview-close:hover { border-color: #5a4f45; color: #9a8e82; }
+.preview-body {
+  padding: 28px 32px 40px;
+  font-family: 'Lora', serif; font-size: 16px; line-height: 1.9; color: #d0c8bc;
+}
+@media(min-width:640px) { .preview-body { padding: 36px 48px 48px; font-size: 17px; } }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     BIXBI HEADER
+══════════════════════════════════════ -->
+<header id="mainHeader">
+  <div class="logo" onclick="showPage('p-details')">
+    <svg class="logo-owl" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="50" cy="53" rx="34" ry="35" fill="#1a1714"/>
+      <ellipse cx="18" cy="41" rx="9.5" ry="13" fill="#1a1714"/>
+      <ellipse cx="82" cy="41" rx="9.5" ry="13" fill="#1a1714"/>
+      <ellipse cx="18" cy="41" rx="5.5" ry="8.5" fill="#c8522a"/>
+      <ellipse cx="82" cy="41" rx="5.5" ry="8.5" fill="#c8522a"/>
+      <ellipse cx="50" cy="56" rx="28" ry="29" fill="#2d2520"/>
+      <ellipse cx="37" cy="47" rx="7.5" ry="7.5" fill="#fff"/>
+      <ellipse cx="63" cy="47" rx="7.5" ry="7.5" fill="#fff"/>
+      <ellipse cx="38.5" cy="47" rx="4.8" ry="4.8" fill="#c8522a"/>
+      <ellipse cx="64.5" cy="47" rx="4.8" ry="4.8" fill="#c8522a"/>
+      <circle cx="39.5" cy="46.5" r="2.2" fill="#1a1714"/>
+      <circle cx="65.5" cy="46.5" r="2.2" fill="#1a1714"/>
+      <circle cx="38.5" cy="45" r="1.1" fill="#fff" opacity=".9"/>
+      <circle cx="64.5" cy="45" r="1.1" fill="#fff" opacity=".9"/>
+      <ellipse cx="50" cy="59" rx="5.5" ry="3.8" fill="#c8522a"/>
+      <path d="M 43 64 Q 50 70 57 64" stroke="#1a1714" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <line x1="20" y1="60" x2="38" y2="62" stroke="#5a4a3a" stroke-width="1" opacity=".5"/>
+      <line x1="20" y1="64" x2="38" y2="64" stroke="#5a4a3a" stroke-width="1" opacity=".5"/>
+      <line x1="80" y1="60" x2="62" y2="62" stroke="#5a4a3a" stroke-width="1" opacity=".5"/>
+      <line x1="80" y1="64" x2="62" y2="64" stroke="#5a4a3a" stroke-width="1" opacity=".5"/>
+    </svg>
+    Bi<span>x</span>bi
+  </div>
+
+  <!-- Desktop nav -->
+  <nav class="hdr-nav">
+    <button class="hnl active" onclick="showPage('p-details');setNav(this)">My Stories</button>
+    <button class="hnl" onclick="showToast('Reading List coming soon…')">Reading List</button>
+    <button class="hnl" onclick="showToast('Explore coming soon…')">Explore</button>
+    <button class="hnl" onclick="showToast('Community coming soon…')">Community</button>
+  </nav>
+
+  <!-- Search -->
+  <div class="hdr-search">
+    <div class="hsr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
+    <input type="text" placeholder="Search stories, authors…">
+  </div>
+
+  <div class="hdr-right">
+    <!-- Theme toggle -->
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+
+    <!-- Bell -->
+    <button class="hico" title="Notifications">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      <div class="ndot"></div>
+    </button>
+
+    <!-- Write dropdown -->
+    <div class="dd-wrap">
+      <button class="btn-write" onclick="toggleDD('wdd')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <span class="wlbl">Write</span>
+        <svg class="chv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="dd" id="wdd">
+        <div class="dd-sec">
+          <div class="dd-row hi" onclick="closeDD('wdd');showPage('p-details')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            Create Story
+          </div>
+          <div class="dd-row" onclick="closeDD('wdd');showPage('p-writer')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Chapter Editor
+          </div>
+          <div class="dd-row" onclick="closeDD('wdd');showToast('Drafts coming soon…')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>
+            Drafts
+          </div>
+          <div class="dd-row" onclick="closeDD('wdd');showToast('Stats coming soon…')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            Stats
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile dropdown -->
+    <div class="dd-wrap">
+      <div class="pna" onclick="toggleDD('pdd')">SW</div>
+      <div class="dd" id="pdd" style="min-width:200px;">
+        <div class="pnd-user">
+          <div class="pnd-av">SW</div>
+          <div>
+            <div class="pnd-name">Supun Wijerathna</div>
+            <div class="pnd-handle">@supun_writes</div>
+          </div>
+        </div>
+        <div class="dd-sec">
+          <div class="dd-row" onclick="closeDD('pdd');showPage('p-profile')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Profile
+          </div>
+          <div class="dd-row" onclick="closeDD('pdd');showPage('p-details')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>
+            My Stories
+          </div>
+          <div class="dd-row" onclick="closeDD('pdd');showPage('p-writer')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Chapter Editor
+          </div>
+          <div class="dd-row" onclick="closeDD('pdd')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            Stats
+          </div>
+        </div>
+        <div class="dd-sec">
+          <div class="dd-row" onclick="closeDD('pdd')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M1 12h2M21 12h2M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M12 1v2M12 21v2"/></svg>
+            Settings
+          </div>
+          <div class="dd-row danger" onclick="closeDD('pdd')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Logout
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════
+     PAGE 1 — STORY DETAILS
+══════════════════════════════════════ -->
+<div id="p-details" class="page active">
+  <div class="details-wrap">
+    <div class="details-hero">
+      <div>
+        <h1>Story <span>Details</span></h1>
+        <p>Fill in your story info. Readers discover stories through these details.</p>
+      </div>
+      <div class="badge-pill">✍️ Draft — Not published yet</div>
+    </div>
+
+    <div class="df">
+      <!-- Cover -->
+      <div class="dp-left">
+        <div class="cl">Story Cover</div>
+        <div class="dz" id="dz" onclick="document.getElementById('coverInput').click()"
+          ondragover="dzEv(event,'over')" ondragleave="dzEv(event,'leave')" ondrop="dzEv(event,'drop')">
+          <img class="cp" id="cprev" src="" alt="">
+          <div class="dz-ic" id="dzIc">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 20.25h18M21 7.5H3M12 3v4.5"/>
+            </svg>
+          </div>
+          <div class="dz-t" id="dzT">Add a cover</div>
+          <div class="dz-s" id="dzS">Drag & drop or click</div>
+        </div>
+        <input type="file" id="coverInput" accept="image/*" style="display:none" onchange="loadCover(event)">
+        <div class="ca" id="ca">
+          <button class="btn btn-save btn-sm" style="flex:1;justify-content:center" onclick="document.getElementById('coverInput').click()">🔄 Change</button>
+          <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;color:var(--rose)" onclick="removeCover()">✕ Remove</button>
+        </div>
+        <div class="ci-info">
+          <strong>600×900px</strong> recommended<br>JPG, PNG, WEBP · Max 2MB
+        </div>
+        <div class="cover-tips">
+          <div class="ct-head">Cover Tips</div>
+          <ul>
+            <li>Eye-catching images get more clicks</li>
+            <li>Use portrait orientation</li>
+            <li>High contrast works best</li>
+            <li>Minimal text on cover</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <div class="dp-right">
+        <div class="sh"><div class="sh-icon">📖</div><h2>Story Information</h2><div class="sh-line"></div></div>
+
+        <div class="field">
+          <label>Title <span class="req">*</span><span class="hint" id="th">0/100</span></label>
+          <input type="text" id="st" maxlength="100" placeholder="Give your story an unforgettable title…" oninput="cc(this,'th',100)">
+        </div>
+
+        <div class="field">
+          <label>Description <span class="req">*</span><span class="hint" id="dh">0/500</span></label>
+          <textarea id="sd" rows="4" maxlength="500" placeholder="Tell readers what your story is about. Make it irresistible…" oninput="cc(this,'dh',500)"></textarea>
+        </div>
+
+        <div class="field">
+          <label>Main Characters</label>
+          <div class="char-row">
+            <input type="text" id="charIn" placeholder="Character name…" onkeydown="if(event.key==='Enter'){event.preventDefault();addChar()}">
+            <button type="button" class="btn btn-save btn-sm" onclick="addChar()" style="flex-shrink:0">+ Add</button>
+          </div>
+          <div class="chips" id="charChips"></div>
+        </div>
+
+        <div class="grid2">
+          <div class="field" style="margin-bottom:0">
+            <label>Category <span class="req">*</span></label>
+            <select id="scat">
+              <option value="">Select category</option>
+              <option>Romance</option><option>Fantasy</option><option>Sci-Fi</option>
+              <option>Mystery</option><option>Horror</option><option>Drama</option>
+              <option>Action</option><option>Adventure</option><option>Comedy</option>
+              <option>Thriller</option><option>Historical Fiction</option>
+              <option>Sinhala Fiction</option><option>Tamil Fiction</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Tags <span class="hint" id="tagH">0/10</span></label>
+            <div class="tw" id="tw" onclick="document.getElementById('tagIn').focus()">
+              <input type="text" id="tagIn" placeholder="Type & Enter…" onkeydown="handleTag(event)" maxlength="20">
+            </div>
+          </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--border);margin:18px 0">
+
+        <div class="sh" style="margin-top:0"><div class="sh-icon">⚙️</div><h2>Settings</h2><div class="sh-line"></div></div>
+
+        <div class="grid2">
+          <div class="field">
+            <label>Target Audience</label>
+            <select><option>Everyone</option><option>Young Adults (13+)</option><option>Adults (18+)</option><option>Children</option></select>
+          </div>
+          <div class="field">
+            <label>Language</label>
+            <select id="slang">
+              <option value="en">English</option><option value="si">Sinhala</option>
+              <option value="ta">Tamil</option><option value="ja">Japanese</option><option value="es">Spanish</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Copyright</label>
+          <select><option>All Rights Reserved</option><option>Creative Commons (CC BY)</option><option>Public Domain</option></select>
+          <div class="field-sub">You retain full ownership of your work.</div>
+        </div>
+
+        <div class="field">
+          <div class="toggle-row">
+            <div class="toggle-row-info">
+              <div class="tr-label">🔞 Mature Content</div>
+              <div class="tr-sub">Adult themes / 18+ readers</div>
+            </div>
+            <div class="toggle-switch">
+              <span class="toggle-label" id="mLabel">OFF</span>
+              <div class="tl-track" id="mTrack" onclick="toggleMature()"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <div class="form-actions-note">Saves as <strong>Draft</strong> · Publish after adding chapters</div>
+          <div class="form-actions-btns">
+            <button class="btn btn-ghost" onclick="saveDraftGoProfile()">💾 Save Draft</button>
+            <button class="btn btn-primary" onclick="saveGoWriter()">Continue to Editor →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 2 — CHAPTER WRITER
+══════════════════════════════════════ -->
+<div id="p-writer" class="page">
+  <div class="writer-layout">
+    <!-- Sidebar -->
+    <div class="w-sidebar">
+      <div class="ws-top">
+        <div class="ws-story">
+          <div class="ws-cover" id="wsCover">📚</div>
+          <div>
+            <div class="ws-title" id="wsTitle">My Story</div>
+            <div class="ws-status">Draft · 0 chapters</div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center" onclick="showPage('p-details')">← Story Details</button>
+      </div>
+      <div class="ws-label">Chapters</div>
+      <div class="ws-scroll" id="chList"></div>
+      <div style="padding:4px 0 10px">
+        <button class="add-ch" onclick="addChapter()">+ Add Chapter</button>
+      </div>
+    </div>
+
+    <!-- Editor main -->
+    <div class="w-main">
+      <div class="w-topbar">
+        <input type="text" class="ch-title-input" id="chTitle" placeholder="Chapter title…" oninput="updateChMeta()">
+        <div class="autosave"><div class="asdot" id="asDot"></div><span id="asText">Not saved</span></div>
+        <button class="btn-dark" onclick="openPreview()">👁 Preview</button>
+      </div>
+
+      <div id="editor-wrap">
+        <div id="toolbar-writer">
+          <span class="ql-formats">
+            <select class="ql-header"><option selected></option><option value="1">H1</option><option value="2">H2</option><option value="3">H3</option></select>
+          </span>
+          <span class="ql-formats">
+            <button class="ql-bold"></button><button class="ql-italic"></button><button class="ql-underline"></button>
+          </span>
+          <span class="ql-formats">
+            <select class="ql-align"></select>
+          </span>
+          <span class="ql-formats">
+            <button class="ql-list" value="ordered"></button><button class="ql-list" value="bullet"></button>
+          </span>
+          <span class="ql-formats">
+            <button class="ql-blockquote"></button><button class="ql-link"></button><button class="ql-image"></button>
+          </span>
+          <span class="ql-formats"><button class="ql-clean"></button></span>
+        </div>
+        <div id="quill-editor"></div>
+      </div>
+
+      <div class="w-bottom">
+        <div class="w-stat">Words: <strong id="wc">0</strong></div>
+        <div class="w-stat">Read time: <strong id="rt">~1 min</strong></div>
+        <div class="w-stat" id="lastSaved"></div>
+        <div class="w-bottom-btns">
+          <button class="btn-dark" onclick="saveDraftFromWriter()">💾 Save</button>
+          <button class="btn-dark" onclick="showPage('p-profile')">👤 Stories</button>
+          <button class="btn-publish" onclick="publishChapter()">🚀 Publish</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PAGE 3 — PROFILE
+══════════════════════════════════════ -->
+<div id="p-profile" class="page">
+  <div class="prof-wrap">
+    <div class="prof-hero">
+      <div class="prof-av">SW</div>
+      <div class="prof-info">
+        <div class="prof-name">Supun Wijerathna</div>
+        <div class="prof-handle">@supun_writes · Bixbi Writer</div>
+        <div class="prof-bio">Storyteller from Sri Lanka 🇱🇰 · Writing fantasy & Sinhala fiction</div>
+        <div class="prof-stats">
+          <div class="pstat"><div class="pn" id="pStories">0</div><div class="pl">Stories</div></div>
+          <div class="pstat"><div class="pn" id="pChapters">0</div><div class="pl">Chapters</div></div>
+          <div class="pstat"><div class="pn">0</div><div class="pl">Followers</div></div>
+          <div class="pstat"><div class="pn">0</div><div class="pl">Reads</div></div>
+        </div>
+      </div>
+      <div class="prof-actions">
+        <button class="btn-outline-dark" onclick="showPage('p-details')">✏️ Edit Profile</button>
+        <button class="btn btn-primary btn-sm" onclick="showPage('p-details')">+ New Story</button>
+      </div>
+    </div>
+
+    <div class="prof-tabs">
+      <button class="ptab active">My Stories</button>
+      <button class="ptab">Reading List</button>
+      <button class="ptab">Following</button>
+    </div>
+
+    <div class="stories-header">
+      <h3>My Stories</h3>
+      <button class="btn btn-primary btn-sm" onclick="showPage('p-details')">+ Create Story</button>
+    </div>
+
+    <div class="sg" id="storiesGrid"></div>
+    <div class="empty" id="emptyState" style="display:none">
+      <div class="empty-icon">📚</div>
+      <h3>No stories yet</h3>
+      <p>Start your first story and share it with the world.<br>Every great author began with a single chapter.</p>
+      <button class="btn btn-primary" style="margin-top:18px" onclick="showPage('p-details')">✨ Create My First Story</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toastEl"></div>
+
+<!-- PREVIEW MODAL -->
+<div class="preview-modal" id="previewModal" onclick="if(event.target===this)closePreview()">
+  <div class="preview-box">
+    <div class="preview-head">
+      <div class="preview-title" id="pvTitle">Chapter Preview</div>
+      <button class="preview-close" onclick="closePreview()">✕ Close</button>
+    </div>
+    <div class="preview-body" id="pvBody"></div>
+  </div>
+</div>
+
+<script>
+/* ══════ STATE ══════ */
+let stories = [];
+let currentStoryId = null;
+let chapters = [{id:1,title:'Chapter 1',content:'',status:'draft',wc:0}];
+let currentChId = 1;
+let nextChId = 2;
+let tags = [];
+let chars = [];
+let mature = false;
+let quillEditor = null;
+let asTimer = null;
+
+/* ══════ DROPDOWN SYSTEM ══════ */
+function toggleDD(id) {
+  const el = document.getElementById(id);
+  const open = el.classList.contains('open');
+  document.querySelectorAll('.dd').forEach(d => d.classList.remove('open'));
+  if (!open) el.classList.add('open');
+}
+function closeDD(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('click', e => {
+  if (!e.target.closest('.dd-wrap')) document.querySelectorAll('.dd').forEach(d => d.classList.remove('open'));
+});
+
+/* ══════ THEME ══════ */
+function toggleTheme() {
+  const d = document.documentElement;
+  const dark = d.getAttribute('data-theme') === 'dark';
+  d.setAttribute('data-theme', dark ? 'light' : 'dark');
+  document.getElementById('themeBtn').textContent = dark ? '🌙' : '☀️';
+}
+
+/* ══════ NAV ══════ */
+function setNav(btn) {
+  document.querySelectorAll('.hnl').forEach(n => n.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+/* ══════ PAGE NAVIGATION ══════ */
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+
+  const hdr = document.getElementById('mainHeader');
+  if (id === 'p-writer') {
+    hdr.setAttribute('data-page', 'writer');
+    document.body.style.background = '#1a1714';
+  } else {
+    hdr.removeAttribute('data-page');
+    document.body.style.background = '';
+  }
+
+  if (id === 'p-profile') renderProfile();
+  if (id === 'p-writer') { renderChList(); syncWriterSidebar(); }
+  window.scrollTo(0, 0);
+}
+
+/* ══════ COVER UPLOAD ══════ */
+function dzEv(e, t) {
+  e.preventDefault();
+  const dz = document.getElementById('dz');
+  if (t === 'over') dz.classList.add('ov');
+  if (t === 'leave') dz.classList.remove('ov');
+  if (t === 'drop') { dz.classList.remove('ov'); const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('image/')) applyCover(f); }
+}
+function loadCover(e) { const f = e.target.files[0]; if (f) applyCover(f); }
+function applyCover(file) {
+  if (file.size > 2 * 1024 * 1024) { showToast('⚠️ Image must be under 2MB'); return; }
+  const r = new FileReader();
+  r.onload = ev => {
+    document.getElementById('cprev').src = ev.target.result;
+    document.getElementById('cprev').style.display = 'block';
+    ['dzIc','dzT','dzS'].forEach(i => document.getElementById(i).style.display = 'none');
+    document.getElementById('ca').style.display = 'flex';
+    document.getElementById('wsCover').innerHTML = `<img src="${ev.target.result}" alt="">`;
+  };
+  r.readAsDataURL(file);
+}
+function removeCover() {
+  document.getElementById('cprev').style.display = 'none';
+  ['dzIc','dzT','dzS'].forEach(i => document.getElementById(i).style.display = '');
+  document.getElementById('ca').style.display = 'none';
+  document.getElementById('coverInput').value = '';
+  document.getElementById('wsCover').innerHTML = '📚';
+}
+
+/* ══════ FORM HELPERS ══════ */
+function cc(el, hintId, max) { document.getElementById(hintId).textContent = `${el.value.length}/${max}`; }
+
+function addChar() {
+  const v = document.getElementById('charIn').value.trim();
+  if (v && !chars.includes(v) && chars.length < 10) { chars.push(v); renderChars(); document.getElementById('charIn').value = ''; }
+}
+function removeChar(n) { chars = chars.filter(c => c !== n); renderChars(); }
+function renderChars() {
+  document.getElementById('charChips').innerHTML = chars.map(c =>
+    `<div class="cchip">${esc(c)}<button onclick="removeChar('${esc(c)}')">×</button></div>`
+  ).join('');
+}
+
+function handleTag(e) {
+  if ((e.key === 'Enter' || e.key === ',') && tags.length < 10) {
+    e.preventDefault();
+    const v = e.target.value.trim().replace(',', '');
+    if (v && !tags.includes(v)) { tags.push(v); renderTags(); }
+    e.target.value = '';
+  } else if (e.key === 'Backspace' && !e.target.value && tags.length) { tags.pop(); renderTags(); }
+}
+function removeTag(t) { tags = tags.filter(x => x !== t); renderTags(); }
+function renderTags() {
+  const w = document.getElementById('tw'), inp = document.getElementById('tagIn');
+  w.innerHTML = '';
+  tags.forEach(t => {
+    const s = document.createElement('div'); s.className = 'tchip';
+    s.innerHTML = `${esc(t)}<button onclick="removeTag('${esc(t)}')">×</button>`;
+    w.appendChild(s);
+  });
+  w.appendChild(inp);
+  inp.placeholder = tags.length >= 10 ? 'Max 10' : 'Type & Enter…';
+  inp.disabled = tags.length >= 10;
+  document.getElementById('tagH').textContent = `${tags.length}/10`;
+}
+
+function toggleMature() {
+  mature = !mature;
+  document.getElementById('mTrack').classList.toggle('on', mature);
+  document.getElementById('mLabel').textContent = mature ? 'ON' : 'OFF';
+}
+
+/* ══════ STORY DATA ══════ */
+function collectStory() {
+  return {
+    id: currentStoryId || Date.now(),
+    title: document.getElementById('st').value.trim(),
+    description: document.getElementById('sd').value.trim(),
+    category: document.getElementById('scat').value,
+    language: document.getElementById('slang').value,
+    characters: chars, tags, mature,
+    cover: document.getElementById('cprev').src || '',
+    status: 'draft', chapters: [],
+    savedAt: new Date().toISOString()
+  };
+}
+
+function validateStory() {
+  const t = document.getElementById('st').value.trim();
+  const d = document.getElementById('sd').value.trim();
+  const c = document.getElementById('scat').value;
+  if (!t || t.length < 3) { showToast('⚠️ Please enter a story title (min 3 chars)', 'orange'); return false; }
+  if (!d) { showToast('⚠️ Please add a description', 'orange'); return false; }
+  if (!c) { showToast('⚠️ Please select a category', 'orange'); return false; }
+  return true;
+}
+
+function saveDraftGoProfile() {
+  const data = collectStory(); data.status = 'draft';
+  saveStoryToList(data);
+  showToast('💾 Saved to My Stories!');
+  setTimeout(() => showPage('p-profile'), 700);
+}
+
+function saveGoWriter() {
+  if (!validateStory()) return;
+  const data = collectStory();
+  currentStoryId = data.id;
+  saveStoryToList(data);
+  syncWriterSidebar();
+  showToast('✅ Story saved! Opening editor…');
+  setTimeout(() => showPage('p-writer'), 600);
+}
+
+function saveStoryToList(data) {
+  const idx = stories.findIndex(s => s.id === data.id);
+  if (idx > -1) stories[idx] = {...stories[idx], ...data};
+  else stories.unshift(data);
+  try { localStorage.setItem('bixbi_stories', JSON.stringify(stories)); } catch(e) {}
+}
+
+function syncWriterSidebar() {
+  const story = stories.find(s => s.id === currentStoryId);
+  if (!story) return;
+  document.getElementById('wsTitle').textContent = story.title || 'Untitled';
+  if (story.cover) document.getElementById('wsCover').innerHTML = `<img src="${story.cover}" alt="">`;
+}
+
+/* ══════ CHAPTERS ══════ */
+function renderChList() {
+  const list = document.getElementById('chList');
+  list.innerHTML = '';
+  chapters.forEach((ch, i) => {
+    const d = document.createElement('div');
+    d.className = `ch-item${ch.id === currentChId ? ' active' : ''}`;
+    d.innerHTML = `
+      <span class="ch-drag">⠿</span>
+      <span class="ch-num">${i+1}</span>
+      <span class="ch-ttext">${ch.title || 'Untitled'}</span>
+      <span class="ch-st${ch.status === 'published' ? ' pub' : ''}">${ch.status}</span>`;
+    d.addEventListener('click', () => switchChapter(ch.id));
+    list.appendChild(d);
+  });
+}
+
+function switchChapter(id) {
+  saveCurrentChContent();
+  currentChId = id;
+  const ch = chapters.find(c => c.id === id);
+  if (!ch) return;
+  document.getElementById('chTitle').value = ch.title || '';
+  if (quillEditor) quillEditor.root.innerHTML = ch.content || '';
+  updateWordCount();
+  renderChList();
+}
+
+function addChapter() {
+  saveCurrentChContent();
+  const ch = {id: nextChId++, title: `Chapter ${chapters.length + 1}`, content: '', status: 'draft', wc: 0};
+  chapters.push(ch);
+  switchChapter(ch.id);
+  showToast('📝 New chapter added');
+}
+
+function saveCurrentChContent() {
+  const ch = chapters.find(c => c.id === currentChId);
+  if (ch && quillEditor) {
+    ch.content = quillEditor.root.innerHTML;
+    ch.title = document.getElementById('chTitle').value || 'Untitled';
+    ch.wc = countWords(quillEditor.getText());
+  }
+}
+
+function updateChMeta() {
+  const ch = chapters.find(c => c.id === currentChId);
+  if (ch) ch.title = document.getElementById('chTitle').value || 'Untitled';
+  renderChList();
+  scheduleAS();
+}
+
+/* ══════ QUILL ══════ */
+function initQuill() {
+  if (quillEditor) return;
+  quillEditor = new Quill('#quill-editor', {
+    theme: 'snow',
+    modules: { toolbar: '#toolbar-writer' },
+    placeholder: 'Start writing your chapter here… Let the words flow.'
+  });
+  quillEditor.on('text-change', () => { updateWordCount(); scheduleAS(); saveCurrentChContent(); });
+}
+
+function updateWordCount() {
+  if (!quillEditor) return;
+  const wc = countWords(quillEditor.getText());
+  const rt = Math.max(1, Math.ceil(wc / 200));
+  document.getElementById('wc').textContent = wc.toLocaleString();
+  document.getElementById('rt').textContent = `~${rt} min`;
+}
+
+function countWords(txt) { return txt.trim() ? txt.trim().split(/\s+/).filter(w => w).length : 0; }
+
+/* ══════ AUTOSAVE ══════ */
+function scheduleAS() {
+  clearTimeout(asTimer);
+  setAS('saving', 'Saving…');
+  asTimer = setTimeout(doAS, 6000);
+}
+function doAS() {
+  saveCurrentChContent();
+  try { localStorage.setItem('bixbi_ch_' + currentStoryId, JSON.stringify(chapters)); } catch(e) {}
+  setAS('saved', 'Saved');
+  document.getElementById('lastSaved').textContent = `Saved ${new Date().toLocaleTimeString()}`;
+}
+function setAS(state, txt) {
+  document.getElementById('asDot').className = `asdot ${state}`;
+  document.getElementById('asText').textContent = txt;
+}
+
+function saveDraftFromWriter() {
+  saveCurrentChContent(); doAS();
+  const story = stories.find(s => s.id === currentStoryId);
+  if (story) { story.chapters = chapters; saveStoryToList(story); }
+  showToast('💾 Draft saved!');
+}
+
+function publishChapter() {
+  saveCurrentChContent();
+  const ch = chapters.find(c => c.id === currentChId);
+  if (ch) ch.status = 'published';
+  doAS(); renderChList();
+  showToast('🚀 Chapter published!', 'green');
+}
+
+/* ══════ PREVIEW ══════ */
+function openPreview() {
+  saveCurrentChContent();
+  const ch = chapters.find(c => c.id === currentChId);
+  const idx = chapters.findIndex(c => c.id === currentChId);
+  document.getElementById('pvTitle').textContent = `Chapter ${idx+1}: ${ch.title || 'Untitled'}`;
+  document.getElementById('pvBody').innerHTML = ch.content || '<em style="color:#3a3530">No content yet.</em>';
+  document.getElementById('previewModal').classList.add('open');
+}
+function closePreview() { document.getElementById('previewModal').classList.remove('open'); }
+
+/* ══════ PROFILE ══════ */
+function renderProfile() {
+  try { const raw = localStorage.getItem('bixbi_stories'); if (raw) stories = JSON.parse(raw); } catch(e) {}
+  document.getElementById('pStories').textContent = stories.length;
+  const totalCh = stories.reduce((a, s) => (s.chapters ? a + s.chapters.length : a), 0);
+  document.getElementById('pChapters').textContent = totalCh;
+  renderStoriesGrid();
+}
+
+function renderStoriesGrid() {
+  const grid = document.getElementById('storiesGrid');
+  const empty = document.getElementById('emptyState');
+  if (stories.length === 0) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = stories.map((s, i) => {
+    const chs = (s.chapters || []).length;
+    const cover = s.cover ? `<img src="${s.cover}" alt="">` : `<span>${genEmoji(s.category)}</span>`;
+    return `
+    <div class="sc" style="animation-delay:${i*0.05}s">
+      <div class="sc-cover">${cover}<span class="sc-status ${s.status}">${s.status}</span></div>
+      <div class="sc-body">
+        <div class="sc-title">${esc(s.title || 'Untitled')}</div>
+        <div class="sc-genre">${s.category || 'No category'} · ${langLabel(s.language)}</div>
+        <div class="sc-meta"><span>📖 ${chs} ch</span><span>🏷️ ${(s.tags||[]).length} tags</span></div>
+      </div>
+      <div class="sc-actions">
+        <button class="sc-btn" onclick="editStory(${s.id})">✏️ Edit</button>
+        <button class="sc-btn primary" onclick="openStoryWriter(${s.id})">📝 Write</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function genEmoji(cat) {
+  const m = {Romance:'💕',Fantasy:'🧙',Sci:'🚀',Mystery:'🔍',Horror:'👻',Drama:'🎭',Action:'⚔️',Comedy:'😄',Thriller:'🌑',Sinhala:'🇱🇰',Tamil:'📜'};
+  for (const k in m) { if ((cat||'').includes(k)) return m[k]; }
+  return '📚';
+}
+function langLabel(l) { return {en:'English',si:'Sinhala',ta:'Tamil',ja:'Japanese',es:'Spanish'}[l] || l || 'English'; }
+
+function editStory(id) {
+  const s = stories.find(x => x.id === id);
+  if (!s) return;
+  currentStoryId = id;
+  document.getElementById('st').value = s.title || '';
+  document.getElementById('sd').value = s.description || '';
+  document.getElementById('scat').value = s.category || '';
+  document.getElementById('slang').value = s.language || 'en';
+  cc(document.getElementById('st'), 'th', 100);
+  cc(document.getElementById('sd'), 'dh', 500);
+  chars = s.characters || []; renderChars();
+  tags = s.tags || []; renderTags();
+  if (s.mature && !mature) toggleMature();
+  if (s.cover) {
+    document.getElementById('cprev').src = s.cover;
+    document.getElementById('cprev').style.display = 'block';
+    ['dzIc','dzT','dzS'].forEach(i2 => document.getElementById(i2).style.display = 'none');
+    document.getElementById('ca').style.display = 'flex';
+  }
+  showPage('p-details');
+}
+
+function openStoryWriter(id) {
+  currentStoryId = id;
+  const s = stories.find(x => x.id === id);
+  if (s && s.chapters && s.chapters.length > 0) { chapters = s.chapters; currentChId = chapters[0].id; }
+  showPage('p-writer');
+}
+
+/* ══════ TOAST ══════ */
+let tTimer;
+function showToast(msg, type = '') {
+  clearTimeout(tTimer);
+  const el = document.getElementById('toastEl');
+  el.textContent = msg; el.className = `toast ${type} show`;
+  tTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+/* ══════ UTIL ══════ */
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ══════ INIT ══════ */
+window.addEventListener('load', () => {
+  try { const raw = localStorage.getItem('bixbi_stories'); if (raw) stories = JSON.parse(raw); } catch(e) {}
+
+  const obs = new MutationObserver(() => {
+    if (document.getElementById('p-writer').classList.contains('active') && !quillEditor) {
+      initQuill(); renderChList();
+    }
+  });
+  obs.observe(document.getElementById('p-writer'), {attributes: true, attributeFilter: ['class']});
+
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      if (document.getElementById('p-writer').classList.contains('active')) saveDraftFromWriter();
+      else saveDraftGoProfile();
+    }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.getElementById('previewModal').classList.remove('open');
+  });
+});
+</script>
+</body>
+</html>

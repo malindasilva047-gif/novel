@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiRequest, saveToken } from '@/lib/api';
+import GoogleSignInButton from '@/components/GoogleSignInButton';
 
 const STEPS = ['Account', 'Verify', 'Profile'];
 
@@ -13,8 +14,47 @@ export default function SignUpPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const GENRES = ['Fantasy','Romance','Mystery','Sci-Fi','Horror','Adventure','Drama','Teen Fiction'];
+
+  async function hydrateUser(accessToken) {
+    saveToken(accessToken);
+    try {
+      const me = await apiRequest('/users/me', { token: accessToken });
+      localStorage.setItem('user', JSON.stringify(me));
+      setForm((current) => ({
+        ...current,
+        email: me.email || current.email,
+        pen_name: me.full_name || current.pen_name,
+        bio: me.bio || current.bio,
+        fav_genres: Array.isArray(me.favorite_genres) ? me.favorite_genres : current.fav_genres,
+      }));
+    } catch {
+      localStorage.removeItem('user');
+    }
+  }
+
+  async function handleGoogleSignup(credential) {
+    setGoogleLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      const data = await apiRequest('/auth/google', { method: 'POST', body: { credential } });
+      await hydrateUser(data.access_token);
+      if (data.is_new_user) {
+        setSuccess('Google account connected. Complete your profile to finish setup.');
+        setStep(3);
+      } else {
+        setSuccess('Welcome back. Signed in with Google successfully.');
+        router.push('/discover');
+      }
+    } catch (err) {
+      setError(err.message || 'Google sign-up failed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  }
 
   async function handleStep1(e) {
     e.preventDefault();
@@ -112,6 +152,8 @@ export default function SignUpPage() {
               </div>
               <button type="submit" className="bx-auth-submit" disabled={loading}>{loading ? 'Creating…' : 'Create Account'}</button>
             </form>
+            <div className="bx-auth-divider"><span>Or continue with</span></div>
+            <GoogleSignInButton onCredential={handleGoogleSignup} disabled={loading || googleLoading} text="signup_with" />
             <div className="bx-auth-divider"><span>Already have an account?</span></div>
             <p className="bx-auth-link"><Link href="/auth/signin">Sign in ?</Link></p>
           </>

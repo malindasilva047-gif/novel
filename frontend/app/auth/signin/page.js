@@ -3,32 +3,51 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiRequest, saveToken } from '@/lib/api';
+import GoogleSignInButton from '@/components/GoogleSignInButton';
 
 export default function SignInPage() {
   const router = useRouter();
   const [form, setForm] = useState({ identifier: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [needsVerif, setNeedsVerif] = useState(false);
+
+  async function finishLogin(accessToken) {
+    saveToken(accessToken);
+    try {
+      const me = await apiRequest('/users/me', { token: accessToken });
+      localStorage.setItem('user', JSON.stringify(me));
+    } catch {
+      localStorage.removeItem('user');
+    }
+    router.push('/discover');
+  }
 
   async function onSubmit(e) {
     e.preventDefault();
     setLoading(true); setError(''); setNeedsVerif(false);
     try {
       const data = await apiRequest('/auth/login', { method: 'POST', body: form });
-      saveToken(data.access_token);
-      try {
-        const me = await apiRequest('/users/me', { token: data.access_token });
-        localStorage.setItem('user', JSON.stringify(me));
-      } catch {
-        localStorage.removeItem('user');
-      }
-      router.push('/discover');
+      await finishLogin(data.access_token);
     } catch (err) {
       if (err.status === 403) { setNeedsVerif(true); setError('Your email is not verified yet. Please complete sign up Step 2.'); }
       else if (err.status === 401) setError('Invalid username/email or password.');
       else setError(err.message || 'Sign in failed. Please try again.');
     } finally { setLoading(false); }
+  }
+
+  async function handleGoogleSignIn(credential) {
+    setGoogleLoading(true);
+    setError('');
+    setNeedsVerif(false);
+    try {
+      const data = await apiRequest('/auth/google', { method: 'POST', body: { credential } });
+      await finishLogin(data.access_token);
+    } catch (err) {
+      setError(err.message || 'Google sign-in failed. Please try again.');
+      setGoogleLoading(false);
+    }
   }
 
   return (
@@ -74,6 +93,9 @@ export default function SignInPage() {
             {loading ? 'Signing in…' : 'Sign In'}
           </button>
         </form>
+
+        <div className="bx-auth-divider"><span>Or continue with</span></div>
+        <GoogleSignInButton onCredential={handleGoogleSignIn} disabled={loading || googleLoading} />
 
         <div className="bx-auth-divider"><span>New to Bixbi?</span></div>
         <p className="bx-auth-link">

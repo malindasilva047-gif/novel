@@ -46,20 +46,23 @@ function ensureSecureApiUrl(url) {
     const parsed = new URL(url);
     if (isLocalOrPrivateHost(parsed.hostname)) {
       parsed.protocol = "http:";
-      return parsed.toString();
+      const result = parsed.toString().replace(/\/$/, "");
+      return result;
     }
     if (parsed.protocol === "http:") {
       parsed.protocol = "https:";
-      return parsed.toString();
+      const result = parsed.toString().replace(/\/$/, "");
+      return result;
     }
-    return parsed.toString();
+    const result = parsed.toString().replace(/\/$/, "");
+    return result;
   }
   catch {
     // Safety fallback: if parsing fails but URL is clearly http and not local, still force https.
     if (/^http:\/\//i.test(url) && !/^http:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)/i.test(url)) {
-      return url.replace(/^http:\/\//i, "https://");
+      return url.replace(/^http:\/\//i, "https://").replace(/\/$/, "");
     }
-    return url;
+    return url.replace(/\/$/, "");
   }
 }
 
@@ -70,7 +73,10 @@ function buildApiUrl(path) {
     : safePath.startsWith("/api/")
       ? safePath
       : `/api/v1${safePath}`;
-  const combined = `${API_BASE_URL}${normalizedPath}`;
+  
+  // Ensure API_BASE_URL has no trailing slash, path has leading slash
+  const baseNoTrailingSlash = API_BASE_URL.replace(/\/$/, "");
+  const combined = `${baseNoTrailingSlash}${normalizedPath}`;
 
   // Extra runtime guard for browser https pages.
   if (typeof window !== "undefined" && window.location.protocol === "https:" && /^http:\/\//i.test(combined)) {

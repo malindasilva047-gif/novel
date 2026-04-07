@@ -37,7 +37,7 @@ function normalizeApiBaseUrl(rawUrl) {
   }
 }
 
-const API_BASE_URL = normalizeApiBaseUrl(RAW_API_BASE_URL);
+const API_BASE_URL = ensureSecureApiUrl(normalizeApiBaseUrl(RAW_API_BASE_URL));
 
 function ensureSecureApiUrl(url) {
   try {

@@ -15,8 +15,34 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [branding, setBranding] = useState({ site_name: 'Wingsaga', logo_url: '' });
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const userRef = useRef(null);
   const writeRef = useRef(null);
+  const notifRef = useRef(null);
+
+  const refreshNotifications = async (markRead = false) => {
+    const token = readToken();
+    if (!token) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
+    try {
+      const payload = await apiRequest('/users/notifications?limit=8', { token });
+      setNotifications(Array.isArray(payload?.items) ? payload.items : []);
+      setUnreadCount(Number(payload?.unread_count || 0));
+      if (markRead && Number(payload?.unread_count || 0) > 0) {
+        await apiRequest('/users/notifications/mark-read', { method: 'POST', token });
+        setUnreadCount(0);
+        setNotifications((prev) => prev.map((item) => ({ ...item, is_read: true })));
+      }
+    } catch {
+      setNotifications([]);
+      setUnreadCount(0);
+    }
+  };
 
   useEffect(() => {
     fetchSiteSettings().then(setBranding).catch(() => {});
@@ -39,13 +65,25 @@ export default function Navbar() {
       .then((profile) => {
         localStorage.setItem('user', JSON.stringify(profile));
         setUser(profile);
+        refreshNotifications().catch(() => {});
       })
       .catch(() => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
+        setNotifications([]);
+        setUnreadCount(0);
       });
   }, [pathname]);
+
+  useEffect(() => {
+    if (!user) return undefined;
+    refreshNotifications().catch(() => {});
+    const timer = setInterval(() => {
+      refreshNotifications().catch(() => {});
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [user]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -57,6 +95,7 @@ export default function Navbar() {
     const handler = (e) => {
       if (userRef.current && !userRef.current.contains(e.target)) setUserDd(false);
       if (writeRef.current && !writeRef.current.contains(e.target)) setWriteDd(false);
+      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -72,6 +111,9 @@ export default function Navbar() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    setNotifications([]);
+    setUnreadCount(0);
+    setNotifOpen(false);
     setUserDd(false);
     router.push('/');
   };
@@ -176,13 +218,51 @@ export default function Navbar() {
 
           {user ? (
             <>
-              <button className="bx-btn-icon" style={{position:'relative'}} aria-label="Notifications">
-                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                  <path d="M13.73 21a2 2 0 01-3.46 0"/>
-                </svg>
-                <span className="bx-ndot" />
-              </button>
+              <div className="bx-dd-wrap" ref={notifRef}>
+                <button
+                  className="bx-btn-icon"
+                  style={{position:'relative'}}
+                  aria-label="Notifications"
+                  onClick={() => {
+                    const next = !notifOpen;
+                    setNotifOpen(next);
+                    if (next) refreshNotifications(true).catch(() => {});
+                  }}
+                >
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 01-3.46 0"/>
+                  </svg>
+                  {unreadCount > 0 && <span className="bx-ndot" />}
+                </button>
+                <div className={`bx-dd${notifOpen ? ' open' : ''}`} style={{minWidth:'260px',right:0}}>
+                  <div className="bx-dd-sec">
+                    <div className="bx-dd-row" style={{cursor:'default',fontWeight:600}}>Notifications</div>
+                  </div>
+                  <div className="bx-dd-sec">
+                    {notifications.length === 0 ? (
+                      <div className="bx-dd-row" style={{cursor:'default',color:'var(--muted)'}}>No new notifications</div>
+                    ) : (
+                      notifications.map((item) => (
+                        <div
+                          key={item.id}
+                          className="bx-dd-row"
+                          onClick={() => {
+                            setNotifOpen(false);
+                            if (item.story_id) router.push(`/read/${item.story_id}`);
+                          }}
+                          style={{alignItems:'flex-start'}}
+                        >
+                          <div style={{display:'flex',flexDirection:'column',gap:'3px'}}>
+                            <span style={{fontSize:'12px',color:'var(--text)'}}>{item.message}</span>
+                            <span style={{fontSize:'10px',color:'var(--muted)'}}>{item.created_at ? new Date(item.created_at).toLocaleString() : ''}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
 
               <div className="bx-dd-wrap" ref={userRef}>
                 <div className="bx-pna" onClick={() => setUserDd(v => !v)} title={user.username}>

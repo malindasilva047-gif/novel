@@ -10,7 +10,23 @@ const STEPS = ['Account', 'Verify', 'Profile'];
 export default function SignUpPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ username: '', email: '', password: '', token: '', pen_name: '', bio: '', fav_genres: [] });
+  const [form, setForm] = useState({
+    username: '',
+    email: '',
+    password: '',
+    token: '',
+    pen_name: '',
+    bio: '',
+    fav_genres: [],
+    location: '',
+    country: '',
+    phone: '',
+    date_of_birth: '',
+    gender: '',
+    website: '',
+    reading_goal: '',
+    preferred_language: 'English',
+  });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,9 +45,19 @@ export default function SignUpPage() {
         pen_name: me.full_name || current.pen_name,
         bio: me.bio || current.bio,
         fav_genres: Array.isArray(me.favorite_genres) ? me.favorite_genres : current.fav_genres,
+        location: me.location || current.location,
+        country: me.country || current.country,
+        phone: me.phone || current.phone,
+        date_of_birth: me.date_of_birth || current.date_of_birth,
+        gender: me.gender || current.gender,
+        website: me.website || current.website,
+        reading_goal: me.reading_goal || current.reading_goal,
+        preferred_language: me.preferred_language || current.preferred_language,
       }));
+      return me;
     } catch {
       localStorage.removeItem('user');
+      return null;
     }
   }
 
@@ -41,13 +67,12 @@ export default function SignUpPage() {
     setSuccess('');
     try {
       const data = await apiRequest('/auth/google', { method: 'POST', body: { credential } });
-      await hydrateUser(data.access_token);
-      if (data.is_new_user) {
-        setSuccess('Google account connected. Complete your profile to finish setup.');
-        setStep(3);
+      const me = await hydrateUser(data.access_token);
+      if (data.is_new_user || !me?.profile_completed) {
+        router.push('/auth/onboarding?next=%2F');
       } else {
         setSuccess('Welcome back. Signed in with Google successfully.');
-        router.push('/discover');
+        router.push('/');
       }
     } catch (err) {
       setError(err.message || 'Google sign-up failed. Please try again.');
@@ -62,11 +87,8 @@ export default function SignUpPage() {
     try {
       const result = await apiRequest('/auth/signup', { method: 'POST', body: { username: form.username, email: form.email, password: form.password } });
       if (result.auto_verified) {
-        // SMTP not configured on server — user is already verified, log in directly
-        const login = await apiRequest('/auth/login', { method: 'POST', body: { identifier: form.email, password: form.password } });
-        saveToken(login.access_token);
-        setStep(3);
-        setSuccess('Account created! Complete your profile.');
+        setSuccess('Account created! Please sign in to complete your profile setup.');
+        setTimeout(() => router.push('/auth/signin?next=%2Fauth%2Fonboarding'), 900);
       } else {
         setStep(2);
         setSuccess('Account created! Check your email for a verification code.');
@@ -96,9 +118,10 @@ export default function SignUpPage() {
     setLoading(true); setError('');
     try {
       await apiRequest('/auth/verify-email', { method: 'POST', body: { email: form.email, token: form.token } });
-      const login = await apiRequest('/auth/login', { method: 'POST', body: { identifier: form.email, password: form.password } });
-      saveToken(login.access_token);
-      setStep(3); setSuccess('Email verified! Complete your profile.');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setSuccess('Email verified! Please login to continue profile setup.');
+      setTimeout(() => router.push('/auth/signin?next=%2Fauth%2Fonboarding'), 1200);
     } catch (err) { setError(err.message || 'Verification failed. Check the code.'); }
     finally { setLoading(false); }
   }
@@ -107,7 +130,24 @@ export default function SignUpPage() {
     e.preventDefault();
     setLoading(true); setError('');
     try {
-      await apiRequest('/users/me', { method: 'PATCH', body: { full_name: form.pen_name, bio: form.bio, favorite_genres: form.fav_genres } }).catch(() => {});
+      await apiRequest('/users/me', {
+        method: 'PATCH',
+        body: {
+          full_name: form.pen_name,
+          bio: form.bio,
+          location: form.location,
+          country: form.country,
+          phone: form.phone,
+          date_of_birth: form.date_of_birth,
+          gender: form.gender,
+          website: form.website,
+          favorite_genres: form.fav_genres,
+          reading_goal: form.reading_goal,
+          preferred_language: form.preferred_language,
+        }
+      }).catch(() => {});
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       setSuccess('Profile complete! Welcome to Bixbi!');
       setTimeout(() => router.push('/auth/signin'), 1500);
     } catch { router.push('/auth/signin'); }
@@ -189,6 +229,30 @@ export default function SignUpPage() {
               <div className="bx-auth-field">
                 <label className="bx-auth-label">Bio</label>
                 <textarea className="bx-auth-input" placeholder="Tell readers about yourself…" value={form.bio} onChange={e => setForm({...form, bio: e.target.value})} rows={3} style={{resize:'none',fontFamily:'DM Sans, sans-serif'}} />
+              </div>
+              <div className="bx-auth-field">
+                <label className="bx-auth-label">Location (City)</label>
+                <input className="bx-auth-input" value={form.location} onChange={e => setForm({...form, location: e.target.value})} required />
+              </div>
+              <div className="bx-auth-field">
+                <label className="bx-auth-label">Country</label>
+                <input className="bx-auth-input" value={form.country} onChange={e => setForm({...form, country: e.target.value})} required />
+              </div>
+              <div className="bx-auth-field">
+                <label className="bx-auth-label">Phone</label>
+                <input className="bx-auth-input" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+              </div>
+              <div className="bx-auth-field">
+                <label className="bx-auth-label">Date of Birth</label>
+                <input type="date" className="bx-auth-input" value={form.date_of_birth} onChange={e => setForm({...form, date_of_birth: e.target.value})} />
+              </div>
+              <div className="bx-auth-field">
+                <label className="bx-auth-label">Preferred Language</label>
+                <input className="bx-auth-input" value={form.preferred_language} onChange={e => setForm({...form, preferred_language: e.target.value})} required />
+              </div>
+              <div className="bx-auth-field">
+                <label className="bx-auth-label">Reading Goal</label>
+                <input className="bx-auth-input" value={form.reading_goal} onChange={e => setForm({...form, reading_goal: e.target.value})} />
               </div>
               <div className="bx-auth-field">
                 <label className="bx-auth-label">Favourite Genres</label>

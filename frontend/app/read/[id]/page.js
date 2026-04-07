@@ -30,7 +30,7 @@ export default function ReadPage() {
   const [commentText, setCommentText] = useState('');
   const [chapterIndex, setChapterIndex] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState('light');
   const [fontSize, setFontSize] = useState(18);
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
@@ -38,6 +38,7 @@ export default function ReadPage() {
   const [loading, setLoading] = useState(true);
   const [accessChecked, setAccessChecked] = useState(false);
   const [hasPremiumAccess, setHasPremiumAccess] = useState(false);
+  const lastHistoryWriteRef = useRef({ chapterId: '', progressBucket: -1 });
 
   useEffect(() => {
     if (!storyId) return;
@@ -121,9 +122,24 @@ export default function ReadPage() {
 
   useEffect(() => {
     if (!storyId || !chapters.length) return;
+    const token = readToken();
+    if (!token) return;
+
     const chapterId = chapters[chapterIndex]?._id || chapters[chapterIndex]?.id || null;
+    const progressBucket = Math.floor(Number(progress || 0) / 10);
+    const lastWrite = lastHistoryWriteRef.current;
+    if (lastWrite.chapterId === String(chapterId || '') && lastWrite.progressBucket === progressBucket) {
+      return;
+    }
+
+    lastHistoryWriteRef.current = {
+      chapterId: String(chapterId || ''),
+      progressBucket,
+    };
+
     apiRequest('/reader/history', {
       method: 'POST',
+      token,
       body: {
         story_id: String(storyId),
         chapter_id: chapterId,

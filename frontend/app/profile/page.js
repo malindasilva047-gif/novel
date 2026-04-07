@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiRequest } from '@/lib/api';
+import { apiRequest, readToken } from '@/lib/api';
 
 const PALETTES = [
   'linear-gradient(160deg,#1a0a2e,#3d1a5e)',
@@ -39,12 +39,18 @@ export default function ProfilePage() {
       } catch {}
     }
 
+    const token = readToken();
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
     Promise.all([
-      apiRequest('/users/me').catch(() => null),
-      apiRequest('/stories/mine').catch(() => []),
-      apiRequest('/reader/badges').catch(() => []),
-      apiRequest('/reader/history').catch(() => []),
-      apiRequest('/reader/bookmarks').catch(() => []),
+      apiRequest('/users/me', { token }).catch(() => null),
+      apiRequest('/stories/mine', { token }).catch(() => []),
+      apiRequest('/reader/badges', { token }).catch(() => []),
+      apiRequest('/reader/history', { token }).catch(() => []),
+      apiRequest('/reader/bookmarks', { token }).catch(() => []),
     ]).then(([me, mine, badgeData, historyData, bookmarkData]) => {
       if (me) {
         setUser(me);
@@ -91,6 +97,7 @@ export default function ProfilePage() {
 
         <div className="bx-profile-meta">
           <span className="bx-pmi">Location: {user?.location || 'Earth'}</span>
+          <span className="bx-pmi">Country: {user?.country || 'Not set'}</span>
           <span className="bx-pmi">Joined: {user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently'}</span>
           <span className="bx-pmi">Email: {user?.email}</span>
         </div>
@@ -196,6 +203,10 @@ export default function ProfilePage() {
                   </div>
                 </>
               )}
+              <div style={{ height: '1px', background: 'var(--border)', margin: '20px 0' }} />
+              <p style={{ fontSize: '13px', color: 'var(--muted)' }}>Preferred language: {user?.preferred_language || 'Not set'}</p>
+              <p style={{ fontSize: '13px', color: 'var(--muted)' }}>Reading goal: {user?.reading_goal || 'Not set'}</p>
+              <p style={{ fontSize: '13px', color: 'var(--muted)' }}>Phone: {user?.phone || 'Not set'}</p>
             </div>
           </div>
         )}

@@ -1,7 +1,7 @@
 'use client';
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { apiRequest } from '@/lib/api';
+import { apiRequest, readToken } from '@/lib/api';
 
 const PALETTES = [
   'linear-gradient(160deg,#1a0a2e,#3d1a5e)',
@@ -43,9 +43,16 @@ function LibraryPageContent() {
   }, [requestedTab]);
 
   useEffect(() => {
+    const token = readToken();
+    if (!token) {
+      setBooks(MOCK);
+      setLoading(false);
+      return;
+    }
+
     Promise.all([
-      apiRequest('/reader/history').catch(() => []),
-      apiRequest('/reader/bookmarks').catch(() => []),
+      apiRequest('/reader/history', { token }).catch(() => []),
+      apiRequest('/reader/bookmarks', { token }).catch(() => []),
     ])
       .then(([historyData, bookmarksData]) => {
         const history = Array.isArray(historyData)

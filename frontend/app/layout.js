@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Suspense } from "react";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://127.0.0.1:3000";
 
@@ -55,7 +56,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="light">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -69,6 +70,7 @@ export default function RootLayout({ children }) {
           <Navbar />
         </Suspense>
         {children}
+        <Footer />
       </body>
     </html>
   );

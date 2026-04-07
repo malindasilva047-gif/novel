@@ -175,15 +175,6 @@ const MOCK_STORIES = [
   },
 ];
 
-const MOCK_AUTHORS = [
-  { id: 1, name: 'Elena Rose', init: 'ER', followers: '12.5K', bg: '#8B4513' },
-  { id: 2, name: 'Marcus Stone', init: 'MS', followers: '9.3K', bg: '#2F4F4F' },
-  { id: 3, name: 'Aurora Sky', init: 'AS', followers: '15.8K', bg: '#663399' },
-  { id: 4, name: 'Blake Morgan', init: 'BM', followers: '8.2K', bg: '#DC143C' },
-  { id: 5, name: 'Dr. Kepler', init: 'DK', followers: '11.1K', bg: '#4169E1' },
-  { id: 6, name: 'James Chen', init: 'JC', followers: '7.9K', bg: '#FF8C00' },
-];
-
 const MOCK_REVIEWS = [
   {
     id: 1,
@@ -306,6 +297,8 @@ export default function Home() {
   // HEROES & HERO NAV
   const [currentSlide, setCurrentSlide] = useState(0);
   const [stories, setStories] = useState([]);
+  const [recommended, setRecommended] = useState([]);
+  const [recommendationMeta, setRecommendationMeta] = useState({ reason: 'Based on what readers love', location_hint: '' });
   const [continueHistory, setContinueHistory] = useState([]);
   const [branding, setBranding] = useState({ site_name: 'Wingsaga', logo_url: '' });
   const [activeTab, setActiveTab] = useState('All');
@@ -314,6 +307,7 @@ export default function Home() {
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
   const [sliderNav, setSliderNav] = useState({
+    recommended: { left: false, right: true },
     popular: { left: false, right: true },
     newReleases: { left: false, right: true },
     trending: { left: false, right: true },
@@ -321,30 +315,34 @@ export default function Home() {
     continue: { left: false, right: true },
     readingList: { left: false, right: true },
     reviews: { left: false, right: true },
+    genres: { left: false, right: true },
   });
 
   // CAROUSEL REFS
+  const recommendedRef = useRef(null);
   const popularRef = useRef(null);
   const newReleasesRef = useRef(null);
   const trendingRef = useRef(null);
   const subscriptionRef = useRef(null);
-  const authorsRef = useRef(null);
   const continueRef = useRef(null);
   const readingListRef = useRef(null);
   const reviewsRef = useRef(null);
+  const genresRef = useRef(null);
 
   // DRAG SCROLLING
+  useDragScroll(recommendedRef);
   useDragScroll(popularRef);
   useDragScroll(newReleasesRef);
   useDragScroll(trendingRef);
   useDragScroll(subscriptionRef);
-  useDragScroll(authorsRef);
   useDragScroll(continueRef);
   useDragScroll(readingListRef);
   useDragScroll(reviewsRef);
+  useDragScroll(genresRef);
 
   useEffect(() => {
     const refs = {
+      recommended: recommendedRef,
       popular: popularRef,
       newReleases: newReleasesRef,
       trending: trendingRef,
@@ -352,6 +350,7 @@ export default function Home() {
       continue: continueRef,
       readingList: readingListRef,
       reviews: reviewsRef,
+      genres: genresRef,
     };
 
     const updateKey = (key) => {
@@ -391,12 +390,20 @@ export default function Home() {
         const brandData = await fetchSiteSettings();
         setBranding(brandData);
 
-        // Fetch trending & feed
+        // Fetch recommendations, trending & feed
         try {
-          const [trendingRes, feedRes] = await Promise.all([
+          const [recommendationRes, trendingRes, feedRes] = await Promise.all([
+            apiRequest('/discovery/recommendations').catch(() => ({ stories: [] })),
             apiRequest('/discovery/trending'),
             apiRequest('/discovery/feed'),
           ]);
+
+          const recommendedStories = Array.isArray(recommendationRes?.stories) ? recommendationRes.stories : [];
+          setRecommended(recommendedStories);
+          setRecommendationMeta({
+            reason: recommendationRes?.reason || 'Based on what readers love',
+            location_hint: recommendationRes?.location_hint || '',
+          });
 
           const trendingStories = Array.isArray(trendingRes) ? trendingRes : (trendingRes?.stories || []);
           const feedStories = Array.isArray(feedRes) ? feedRes : (feedRes?.stories || []);
@@ -413,13 +420,19 @@ export default function Home() {
           setStories(mergedStories.length > 0 ? mergedStories : MOCK_STORIES);
         } catch (err) {
           setStories(MOCK_STORIES);
+          setRecommended(MOCK_STORIES.slice(0, 10));
         }
 
         // Fetch continue reading history
-        try {
-          const historyRes = await apiRequest('/reader/history');
-          setContinueHistory(historyRes?.history || []);
-        } catch (err) {
+        const token = readToken();
+        if (token) {
+          try {
+            const historyRes = await apiRequest('/reader/history', { token });
+            setContinueHistory(Array.isArray(historyRes) ? historyRes : (historyRes?.history || []));
+          } catch (err) {
+            setContinueHistory([]);
+          }
+        } else {
           setContinueHistory([]);
         }
       } catch (err) {
@@ -479,6 +492,7 @@ export default function Home() {
   // DATA FOR SECTIONS
   const continueReading = continueHistory.length > 0 ? continueHistory : MOCK_STORIES.slice(0, 4);
   const readingList = continueHistory.slice(0, 4).length > 0 ? continueHistory.slice(0, 4) : MOCK_STORIES.slice(2, 6);
+  const recommendedStories = toFixedLengthStories(recommended.length > 0 ? recommended : displayStories, 10);
   const popularStories = toFixedLengthStories(displayStories, 12);
   const newReleases = displayStories.filter((s) => s.badge === 'New').length > 0
     ? toFixedLengthStories(displayStories.filter((s) => s.badge === 'New'), 10)
@@ -614,7 +628,68 @@ export default function Home() {
       </section>
 
       {/* ───────────────────────────────────────────────────
-          2. GENRE TABS FILTER
+          2. RECOMMENDED FOR YOU
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <div>
+            <h2 className="bx-sec-title">Recommended for You</h2>
+            <p className="bx-sec-subtitle">
+              {recommendationMeta.reason}
+              {recommendationMeta.location_hint ? ` • ${recommendationMeta.location_hint}` : ''}
+            </p>
+          </div>
+          <Link href="/discover" className="bx-sec-more">
+            See All →
+          </Link>
+        </div>
+
+        <div className="bx-carousel">
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(recommendedRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('recommended', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-book-scroll" ref={recommendedRef}>
+            {recommendedStories.map((story, idx) => (
+              <div
+                key={`recommended-${story.id || story._id || 'story'}-${idx}`}
+                className="bx-book-card"
+                onClick={() => router.push(`/read/${story.id || story._id}`)}
+              >
+                <div className="bx-book-cover" style={{ backgroundColor: '#3f7a6a' }}>
+                  {story.badge && <span className="bx-book-badge">{story.badge}</span>}
+                  {story.image || story.cover_image ? (
+                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
+                  ) : (
+                    <div className="bx-book-fallback">{story.title}</div>
+                  )}
+                </div>
+                <h4 className="bx-book-title">{story.title}</h4>
+                <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+                <div className="bx-book-meta bx-book-meta-rich">
+                  <span>{Number(story.views || 0).toLocaleString()} views</span>
+                  <span>{story.category || story.genre || 'Fiction'}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(recommendedRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('recommended', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          3. GENRE TABS FILTER
       ─────────────────────────────────────────────────── */}
       <section className="bx-section">
         <div className="bx-tabs" role="tablist">
@@ -669,10 +744,10 @@ export default function Home() {
                   )}
                 </div>
                 <h4 className="bx-book-title">{story.title}</h4>
-                <p className="bx-book-author">{story.author}</p>
-                <div className="bx-book-meta">
-                  <span className="bx-stars">★★★★★</span>
-                  <span className="bx-book-genre">{story.genre}</span>
+                <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+                <div className="bx-book-meta bx-book-meta-rich">
+                  <span>{Number(story.views || 0).toLocaleString()} views</span>
+                  <span>{story.category || story.genre || 'Fiction'}</span>
                 </div>
               </div>
             ))}
@@ -724,10 +799,10 @@ export default function Home() {
                   )}
                 </div>
                 <h4 className="bx-book-title">{story.title}</h4>
-                <p className="bx-book-author">{story.author}</p>
-                <div className="bx-book-meta">
-                  <span className="bx-stars">★★★★★</span>
-                  <span className="bx-book-genre">{story.genre}</span>
+                <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+                <div className="bx-book-meta bx-book-meta-rich">
+                  <span>{Number(story.views || 0).toLocaleString()} views</span>
+                  <span>{story.category || story.genre || 'Fiction'}</span>
                 </div>
               </div>
             ))}
@@ -779,10 +854,10 @@ export default function Home() {
                   )}
                 </div>
                 <h4 className="bx-book-title">{story.title}</h4>
-                <p className="bx-book-author">{story.author}</p>
-                <div className="bx-book-meta">
-                  <span className="bx-stars">★★★★★</span>
-                  <span className="bx-book-genre">{story.genre}</span>
+                <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+                <div className="bx-book-meta bx-book-meta-rich">
+                  <span>{Number(story.views || 0).toLocaleString()} views</span>
+                  <span>{story.category || story.genre || 'Fiction'}</span>
                 </div>
               </div>
             ))}
@@ -795,46 +870,6 @@ export default function Home() {
           >
             ›
           </button>
-        </div>
-      </section>
-
-      {/* ───────────────────────────────────────────────────
-          8. NEW AUTHORS SECTION
-      ─────────────────────────────────────────────────── */}
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title">New Authors</h2>
-          <Link href="/authors" className="bx-sec-more">
-            Discover More →
-          </Link>
-        </div>
-
-        <div className="bx-authors-scroll" ref={authorsRef}>
-          {MOCK_AUTHORS.map((author) => (
-            <div
-              key={author.id}
-              className="bx-author-card"
-              onClick={() => router.push('/profile')}
-            >
-              <div className="bx-author-avatar-wrap">
-                <div className="bx-author-avatar" style={{ backgroundColor: author.bg }}>
-                  {author.init}
-                </div>
-                <button
-                  className="bx-author-follow-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleToggleFollow(`author-${author.id}`);
-                  }}
-                  title={followed.has(`author-${author.id}`) ? 'Unfollow' : 'Follow'}
-                >
-                  {followed.has(`author-${author.id}`) ? '✓' : '+'}
-                </button>
-              </div>
-              <p className="bx-author-name">{author.name}</p>
-              <p className="bx-author-followers">{author.followers}</p>
-            </div>
-          ))}
         </div>
       </section>
 
@@ -880,10 +915,10 @@ export default function Home() {
                   </div>
                 </div>
                 <h4 className="bx-book-title">{story.title}</h4>
-                <p className="bx-book-author">{story.author}</p>
-                <div className="bx-book-meta">
-                  <span className="bx-stars">★★★★★</span>
-                  <span className="bx-book-genre">{story.genre}</span>
+                <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+                <div className="bx-book-meta bx-book-meta-rich">
+                  <span>{Number(story.views || 0).toLocaleString()} views</span>
+                  <span>{story.category || story.genre || 'Fiction'}</span>
                 </div>
               </div>
             ))}
@@ -926,17 +961,22 @@ export default function Home() {
                 return (
               <div
                 key={`continue-${idx}`}
-                className="bx-continue-card"
+                className="bx-book-card bx-continue-card-flat"
                 onClick={() => router.push(`/read/${story.id || story._id}`)}
               >
-                <div className="bx-continue-cover" style={{ backgroundColor: '#8B4513' }}>
-                  <div className="bx-book-fallback" style={{ fontSize: '10px' }}>
-                    {story.title}
-                  </div>
+                <div className="bx-book-cover" style={{ backgroundColor: '#8B4513' }}>
+                  {story.cover_image || story.image ? (
+                    <img src={story.cover_image || story.image} alt={story.title} loading="lazy" />
+                  ) : (
+                    <div className="bx-book-fallback" style={{ fontSize: '10px' }}>
+                      {story.title}
+                    </div>
+                  )}
                 </div>
-                <div className="bx-continue-info">
-                  <h4 className="bx-continue-title">{story.title}</h4>
-                  <p className="bx-continue-author">{story.author}</p>
+                <div className="bx-book-info">
+                  <h4 className="bx-book-title">{story.title}</h4>
+                  <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+                  <p className="bx-book-progress">Last read part: {story.chapter_id || 'Chapter 1'}</p>
                   <div className="bx-continue-progress-wrap">
                     <div className="bx-continue-progress-bar">
                       <div
@@ -949,15 +989,6 @@ export default function Home() {
                     </span>
                   </div>
                 </div>
-                <button
-                  className="bx-continue-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(`/read/${story.id || story._id}`);
-                  }}
-                >
-                  ▶
-                </button>
               </div>
                 );
               })()
@@ -1130,23 +1161,41 @@ export default function Home() {
           14. BROWSE GENRES GRID
       ─────────────────────────────────────────────────── */}
       <section className="bx-section">
-        <h2 className="bx-sec-title" style={{ marginBottom: '28px' }}>
-          Browse Genres
-        </h2>
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">Browse Genres</h2>
+        </div>
 
-        <div className="bx-genre-grid">
-          {GENRES.map((genre, idx) => (
-            <div
-              key={genre.name}
-              className="bx-genre-card"
-              style={{ backgroundColor: genre.bg }}
-              onClick={() => setActiveTab(genre.name)}
-            >
-              <div className="bx-genre-overlay" />
-              <span className="bx-genre-icon">{genre.icon}</span>
-              <span className="bx-genre-name">{genre.name}</span>
-            </div>
-          ))}
+        <div className="bx-carousel">
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(genresRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('genres', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-genres-row" ref={genresRef}>
+            {GENRES.map((genre) => (
+              <div
+                key={genre.name}
+                className="bx-genre-card"
+                style={{ backgroundColor: genre.bg }}
+                onClick={() => setActiveTab(genre.name)}
+              >
+                <div className="bx-genre-overlay" />
+                <span className="bx-genre-icon">{genre.icon}</span>
+                <span className="bx-genre-name">{genre.name}</span>
+              </div>
+            ))}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(genresRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('genres', 'right')}
+          >
+            ›
+          </button>
         </div>
       </section>
 
@@ -1163,7 +1212,7 @@ export default function Home() {
           <div className="bx-cta-btns">
             <button
               className="bx-btn-primary"
-              onClick={() => router.push('/write')}
+              onClick={() => router.push(readToken() ? '/write' : '/auth/signin?next=%2Fwrite')}
               style={{
                 background: 'var(--gold)',
                 color: '#0d0d12',

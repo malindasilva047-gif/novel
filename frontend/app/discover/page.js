@@ -132,8 +132,8 @@ function DiscoverInner() {
           </p>
           <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
             <span style={{fontSize:'12px',color:'var(--muted)'}}>Sort:</span>
-            <select value={sort} onChange={e => { setSort(e.target.value); setPage(1); }}
-              style={{background:'var(--surface)',border:'1px solid var(--border)',color:'var(--text)',padding:'6px 12px',borderRadius:'8px',fontSize:'13px',cursor:'pointer',outline:'none',fontFamily:'DM Sans,sans-serif'}}>
+            <select value={sort} onChange={e => { setSort(e.target.value); setPage(1); }} className="bx-select-control"
+              style={{padding:'6px 12px'}}>
               {SORT_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>

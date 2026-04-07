@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiRequest, apiUpload } from '@/lib/api';
+import { apiRequest, apiUpload, readToken } from '@/lib/api';
 
 const GENRES = ['Fantasy','Romance','Mystery','Sci-Fi','Horror','Adventure','Drama','Teen Fiction','Fan Fiction','Poetry','Non-Fiction'];
 const STATUS_OPTS = ['Draft','Published'];
@@ -100,8 +100,12 @@ export default function WritePage() {
   }
 
   useEffect(() => {
+    if (!readToken()) {
+      router.replace('/auth/signin?next=%2Fwrite');
+      return;
+    }
     loadStories().catch(() => {});
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     loadChapters(storyId).catch(() => {});
@@ -265,7 +269,7 @@ export default function WritePage() {
             </div>
             <div className="bx-ws-info">
               <div className="bx-ws-title">{story.title || 'Untitled Story'}</div>
-              <div className="bx-ws-status">{story.status} � {story.genre}</div>
+              <div className="bx-ws-status">{story.status} | {story.genre}</div>
             </div>
           </div>
 
@@ -274,7 +278,7 @@ export default function WritePage() {
             {stories.map((s) => <option key={s.id || s._id} value={s.id || s._id}>{s.title}</option>)}
           </select>
 
-          <button onClick={addChapter} style={{width:'100%',padding:'7px',border:'1px dashed rgba(255,255,255,0.12)',borderRadius:'8px',background:'none',color:'var(--muted)',fontSize:'13px',cursor:'pointer',fontFamily:'DM Sans,sans-serif',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px'}}>
+          <button onClick={addChapter} style={{width:'100%',padding:'7px',border:'1px dashed var(--border2)',borderRadius:'8px',background:'none',color:'var(--muted)',fontSize:'13px',cursor:'pointer',fontFamily:'DM Sans,sans-serif',display:'flex',alignItems:'center',justifyContent:'center',gap:'5px'}}>
             <span style={{fontSize:'16px'}}>+</span> New Chapter
           </button>
         </div>
@@ -296,7 +300,7 @@ export default function WritePage() {
           <div style={{display:'flex',gap:'4px',marginRight:'8px'}}>
             {[{id:'write',label:'Write'},{id:'details',label:'Details'},{id:'profile',label:'Profile'}].map((t) => (
               <button key={t.id} onClick={() => setTab(t.id)}
-                style={{background:tab===t.id?'rgba(255,255,255,0.07)':'none',border:'none',color:tab===t.id?'var(--text)':'var(--muted)',padding:'5px 12px',borderRadius:'6px',cursor:'pointer',fontSize:'13px',fontFamily:'DM Sans,sans-serif'}}>
+                style={{background:tab===t.id?'var(--surface2)':'none',border:'none',color:tab===t.id?'var(--text)':'var(--muted)',padding:'5px 12px',borderRadius:'6px',cursor:'pointer',fontSize:'13px',fontFamily:'DM Sans,sans-serif'}}>
                 {t.label}
               </button>
             ))}
@@ -336,14 +340,14 @@ export default function WritePage() {
               suppressContentEditableWarning
               onInput={(event) => setContent(event.currentTarget.innerHTML)}
               data-placeholder="Begin your story here..."
-              style={{flex:1,background:'var(--ink)',border:'none',outline:'none',padding:'40px 48px',fontSize:'17px',lineHeight:1.8,fontFamily:'Lora,Georgia,serif',color:'rgba(255,255,255,0.85)',overflow:'auto',caretColor:'var(--gold)',whiteSpace:'pre-wrap'}}
+              style={{flex:1,background:'var(--ink)',border:'none',outline:'none',padding:'40px 48px',fontSize:'17px',lineHeight:1.8,fontFamily:'Lora,Georgia,serif',color:'var(--text)',overflow:'auto',caretColor:'var(--gold)',whiteSpace:'pre-wrap'}}
             />
           </>
         )}
 
         {tab === 'details' && (
           <div style={{flex:1,overflowY:'auto',padding:'32px 40px'}}>
-            <h3 style={{fontFamily:'Cormorant Garamond,serif',fontSize:'22px',fontWeight:400,color:'#fff',marginBottom:'24px'}}>Story Details</h3>
+            <h3 style={{fontFamily:'Cormorant Garamond,serif',fontSize:'22px',fontWeight:400,color:'var(--text)',marginBottom:'24px'}}>Story Details</h3>
             <div style={{display:'flex',flexDirection:'column',gap:'16px',maxWidth:'700px'}}>
               <div className="bx-auth-field">
                 <label className="bx-auth-label">Story Title</label>
@@ -416,7 +420,7 @@ export default function WritePage() {
 
         {tab === 'profile' && (
           <div style={{flex:1,overflowY:'auto',padding:'32px 40px'}}>
-            <h3 style={{fontFamily:'Cormorant Garamond,serif',fontSize:'22px',fontWeight:400,color:'#fff',marginBottom:'12px'}}>Writer Studio</h3>
+            <h3 style={{fontFamily:'Cormorant Garamond,serif',fontSize:'22px',fontWeight:400,color:'var(--text)',marginBottom:'12px'}}>Writer Studio</h3>
             <p style={{color:'var(--muted)',fontSize:'14px',lineHeight:1.7,maxWidth:'640px'}}>
               Manage your stories, chapters, cover images, tags, and publication state from one place. This panel is connected to FastAPI + MongoDB endpoints.
             </p>

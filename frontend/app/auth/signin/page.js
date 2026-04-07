@@ -107,7 +107,7 @@ function SignInPageInner() {
         </form>
 
         <div className="bx-auth-divider"><span>Or continue with</span></div>
-        <GoogleSignInButton onCredential={handleGoogleSignIn} disabled={loading || googleLoading} />
+        <GoogleSignInButton onCredential={handleGoogleSignIn} disabled={loading || googleLoading} useRedirect={true} />
 
         <div className="bx-auth-divider"><span>New to Bixbi?</span></div>
         <p className="bx-auth-link">

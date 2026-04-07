@@ -299,6 +299,7 @@ export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [stories, setStories] = useState([]);
   const [recommended, setRecommended] = useState([]);
+  const [authors, setAuthors] = useState([]);
   const [recommendationMeta, setRecommendationMeta] = useState({ reason: 'Based on what readers love', location_hint: '' });
   const [continueHistory, setContinueHistory] = useState([]);
   const [branding, setBranding] = useState({ site_name: 'Wingsaga', logo_url: '' });
@@ -391,12 +392,13 @@ export default function Home() {
         const brandData = await fetchSiteSettings();
         setBranding(brandData);
 
-        // Fetch recommendations, trending & feed
+        // Fetch recommendations, trending, feed, and suggested authors
         try {
-          const [recommendationRes, trendingRes, feedRes] = await Promise.all([
+          const [recommendationRes, trendingRes, feedRes, authorsRes] = await Promise.all([
             apiRequest('/discovery/recommendations').catch(() => ({ stories: [] })),
             apiRequest('/discovery/trending'),
             apiRequest('/discovery/feed'),
+            apiRequest('/discovery/authors').catch(() => []),
           ]);
 
           const recommendedStories = Array.isArray(recommendationRes?.stories) ? recommendationRes.stories : [];
@@ -405,6 +407,7 @@ export default function Home() {
             reason: recommendationRes?.reason || 'Based on what readers love',
             location_hint: recommendationRes?.location_hint || '',
           });
+          setAuthors(Array.isArray(authorsRes) ? authorsRes : []);
 
           const trendingStories = Array.isArray(trendingRes) ? trendingRes : (trendingRes?.stories || []);
           const feedStories = Array.isArray(feedRes) ? feedRes : (feedRes?.stories || []);
@@ -416,12 +419,12 @@ export default function Home() {
             rating: Number(story?.avg_rating || 4.5),
             reviews: Number(story?.likes || 0),
             image: story?.cover_image || story?.image || '',
-            badge: idx < 4 ? 'Trending' : idx < 8 ? 'New' : null,
           }));
           setStories(mergedStories.length > 0 ? mergedStories : MOCK_STORIES);
         } catch (err) {
           setStories(MOCK_STORIES);
           setRecommended(MOCK_STORIES.slice(0, 10));
+          setAuthors([]);
         }
 
         // Fetch continue reading history
@@ -520,6 +523,14 @@ export default function Home() {
     ? toFixedLengthStories(displayStories.filter((s) => s.badge === 'Trending'), 10)
     : toFixedLengthStories(MOCK_STORIES.filter((s) => s.badge === 'Trending'), 10);
   const subscriptionStories = toFixedLengthStories(displayStories, 12);
+  const suggestedAuthors = authors.length > 0
+    ? authors.slice(0, 8)
+    : [
+        { id: 'a1', username: 'Elena Rose', story_count: 5, total_likes: 1240 },
+        { id: 'a2', username: 'Marcus Stone', story_count: 3, total_likes: 890 },
+        { id: 'a3', username: 'Aurora Sky', story_count: 7, total_likes: 2100 },
+        { id: 'a4', username: 'Blake Morgan', story_count: 4, total_likes: 760 },
+      ];
 
   // Hero handlers
   const handlePrevSlide = () => {
@@ -680,9 +691,8 @@ export default function Home() {
                 onClick={() => router.push(`/read/${story.id || story._id}`)}
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#3f7a6a' }}>
-                  {story.badge && <span className="bx-book-badge">{story.badge}</span>}
                   {story.image || story.cover_image ? (
-                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
+                    <img src={story.image || story.cover_image} alt={story.title} loading="eager" />
                   ) : (
                     <div className="bx-book-fallback">{story.title}</div>
                   )}
@@ -691,7 +701,6 @@ export default function Home() {
                 <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
                 <div className="bx-book-meta bx-book-meta-rich">
                   <span>{Number(story.views || 0).toLocaleString()} views</span>
-                  <span>{story.category || story.genre || 'Fiction'}</span>
                 </div>
               </div>
             ))}
@@ -755,7 +764,6 @@ export default function Home() {
                 onClick={() => router.push(`/read/${story.id || story._id}`)}
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#2F4F4F' }}>
-                  {story.badge && <span className="bx-book-badge">{story.badge}</span>}
                   {story.image ? (
                     <img src={story.image} alt={story.title} loading="lazy" />
                   ) : (
@@ -766,7 +774,6 @@ export default function Home() {
                 <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
                 <div className="bx-book-meta bx-book-meta-rich">
                   <span>{Number(story.views || 0).toLocaleString()} views</span>
-                  <span>{story.category || story.genre || 'Fiction'}</span>
                 </div>
               </div>
             ))}
@@ -810,7 +817,6 @@ export default function Home() {
                 onClick={() => router.push(`/read/${story.id || story._id}`)}
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#663399' }}>
-                  <span className="bx-book-badge">NEW</span>
                   {story.image ? (
                     <img src={story.image} alt={story.title} loading="lazy" />
                   ) : (
@@ -821,7 +827,6 @@ export default function Home() {
                 <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
                 <div className="bx-book-meta bx-book-meta-rich">
                   <span>{Number(story.views || 0).toLocaleString()} views</span>
-                  <span>{story.category || story.genre || 'Fiction'}</span>
                 </div>
               </div>
             ))}
@@ -865,7 +870,6 @@ export default function Home() {
                 onClick={() => router.push(`/read/${story.id || story._id}`)}
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#DC143C' }}>
-                  <span className="bx-book-badge">TRENDING</span>
                   {story.image ? (
                     <img src={story.image} alt={story.title} loading="lazy" />
                   ) : (
@@ -876,7 +880,6 @@ export default function Home() {
                 <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
                 <div className="bx-book-meta bx-book-meta-rich">
                   <span>{Number(story.views || 0).toLocaleString()} views</span>
-                  <span>{story.category || story.genre || 'Fiction'}</span>
                 </div>
               </div>
             ))}
@@ -937,7 +940,6 @@ export default function Home() {
                 <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
                 <div className="bx-book-meta bx-book-meta-rich">
                   <span>{Number(story.views || 0).toLocaleString()} views</span>
-                  <span>{story.category || story.genre || 'Fiction'}</span>
                 </div>
               </div>
             ))}
@@ -1157,22 +1159,48 @@ export default function Home() {
       ─────────────────────────────────────────────────── */}
       <section className="bx-stats">
         <div className="bx-stat">
+          <span className="bx-stat-icon">✦</span>
           <span className="bx-stat-num">
             <span>12M+</span>
           </span>
           <span className="bx-stat-label">Stories Published</span>
         </div>
         <div className="bx-stat">
+          <span className="bx-stat-icon">◉</span>
           <span className="bx-stat-num">
             <span>450K+</span>
           </span>
           <span className="bx-stat-label">Active Readers</span>
         </div>
         <div className="bx-stat">
+          <span className="bx-stat-icon">◆</span>
           <span className="bx-stat-num">
             <span>195</span>
           </span>
           <span className="bx-stat-label">Countries</span>
+        </div>
+      </section>
+
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">Suggested Authors</h2>
+          <Link href="/authors" className="bx-sec-more">
+            Discover More →
+          </Link>
+        </div>
+
+        <div className="bx-authors-scroll">
+          {suggestedAuthors.map((author, idx) => (
+            <div key={`${author.id || author.username}-${idx}`} className="bx-author-card" onClick={() => router.push('/authors')}>
+              <div className="bx-author-avatar-wrap">
+                <div className="bx-author-avatar" style={{ background: `linear-gradient(145deg, rgba(45,212,192,0.35), rgba(232,116,138,0.38))` }}>
+                  {(author.username || author.full_name || 'A').slice(0, 2).toUpperCase()}
+                </div>
+              </div>
+              <div className="bx-author-name">{author.full_name || author.username || 'Author'}</div>
+              <div className="bx-author-followers">{Number(author.total_likes || 0).toLocaleString()} likes</div>
+            </div>
+          ))}
         </div>
       </section>
 

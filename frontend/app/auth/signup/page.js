@@ -193,7 +193,7 @@ export default function SignUpPage() {
               <button type="submit" className="bx-auth-submit" disabled={loading}>{loading ? 'Creating…' : 'Create Account'}</button>
             </form>
             <div className="bx-auth-divider"><span>Or continue with</span></div>
-            <GoogleSignInButton onCredential={handleGoogleSignup} disabled={loading || googleLoading} text="signup_with" />
+            <GoogleSignInButton onCredential={handleGoogleSignup} disabled={loading || googleLoading} text="signup_with" useRedirect={true} />
             <div className="bx-auth-divider"><span>Already have an account?</span></div>
             <p className="bx-auth-link"><Link href="/auth/signin">Sign in ?</Link></p>
           </>

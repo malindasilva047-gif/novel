@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
-import { apiRequest, readToken } from '@/lib/api';
+import { apiRequest, readToken, trackUserActivity } from '@/lib/api';
 
 const FALLBACK_CHAPTERS = [
   {
@@ -41,6 +41,8 @@ export default function ReadPage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isManagingStory, setIsManagingStory] = useState(false);
   const lastHistoryWriteRef = useRef({ chapterId: '', progressBucket: -1 });
+  const sessionStartRef = useRef(Date.now());
+  const viewTrackedRef = useRef(false);
 
   useEffect(() => {
     if (!storyId) return;
@@ -112,6 +114,21 @@ export default function ReadPage() {
     }
     apiRequest('/users/me', { token }).then(setCurrentUser).catch(() => setCurrentUser(null));
   }, []);
+
+  useEffect(() => {
+    if (!storyId || isNumericDemoId || viewTrackedRef.current) return;
+    const token = readToken();
+    if (!token) return;
+
+    viewTrackedRef.current = true;
+    trackUserActivity({
+      postId: storyId,
+      actionType: 'view',
+      readTime: 0,
+      scrollDepth: 0,
+      token,
+    }).catch(() => {});
+  }, [storyId, isNumericDemoId]);
 
   useEffect(() => {
     if (!story?.is_premium) {
@@ -200,13 +217,23 @@ export default function ReadPage() {
   }, [toast]);
 
   const reactAction = async () => {
-    if (!readToken()) {
+    const token = readToken();
+    if (!token) {
       setToast('Please sign in to react.');
       return;
     }
     try {
       const result = await apiRequest(`/engagement/stories/${storyId}/like`, { method: 'POST' });
       setLiked(result.message?.toLowerCase().includes('liked'));
+      if (result.message?.toLowerCase().includes('liked')) {
+        await trackUserActivity({
+          postId: storyId,
+          actionType: 'like',
+          readTime: Math.floor((Date.now() - sessionStartRef.current) / 1000),
+          scrollDepth: progress,
+          token,
+        }).catch(() => {});
+      }
       setToast(result.message || 'Updated');
     } catch {
       setToast('Could not update like right now.');
@@ -214,13 +241,23 @@ export default function ReadPage() {
   };
 
   const bookmarkAction = async () => {
-    if (!readToken()) {
+    const token = readToken();
+    if (!token) {
       setToast('Please sign in to bookmark.');
       return;
     }
     try {
       const result = await apiRequest(`/reader/bookmarks/${storyId}`, { method: 'POST' });
       setBookmarked(result.message?.toLowerCase().includes('bookmarked'));
+      if (result.message?.toLowerCase().includes('bookmarked')) {
+        await trackUserActivity({
+          postId: storyId,
+          actionType: 'bookmark',
+          readTime: Math.floor((Date.now() - sessionStartRef.current) / 1000),
+          scrollDepth: progress,
+          token,
+        }).catch(() => {});
+      }
       setToast(result.message || 'Updated');
     } catch {
       setToast('Could not update bookmark right now.');
@@ -230,7 +267,8 @@ export default function ReadPage() {
   const submitComment = async () => {
     const content = commentText.trim();
     if (content.length < 2) return;
-    if (!readToken()) {
+    const token = readToken();
+    if (!token) {
       setToast('Please sign in to comment.');
       return;
     }
@@ -239,6 +277,13 @@ export default function ReadPage() {
         method: 'POST',
         body: { content },
       });
+      await trackUserActivity({
+        postId: storyId,
+        actionType: 'comment',
+        readTime: Math.floor((Date.now() - sessionStartRef.current) / 1000),
+        scrollDepth: progress,
+        token,
+      }).catch(() => {});
       const latest = await apiRequest(`/engagement/stories/${storyId}/comments`).catch(() => []);
       setComments(Array.isArray(latest) ? latest : comments);
       setCommentText('');

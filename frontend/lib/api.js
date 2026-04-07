@@ -1,4 +1,6 @@
-const RAW_API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").trim();
+const RAW_API_BASE_URL = String(process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000")
+  .trim()
+  .replace(/^['"]|['"]$/g, "");
 
 function isLocalOrPrivateHost(hostname = "") {
   const host = String(hostname || "").toLowerCase();
@@ -53,6 +55,10 @@ function ensureSecureApiUrl(url) {
     return parsed.toString();
   }
   catch {
+    // Safety fallback: if parsing fails but URL is clearly http and not local, still force https.
+    if (/^http:\/\//i.test(url) && !/^http:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)/i.test(url)) {
+      return url.replace(/^http:\/\//i, "https://");
+    }
     return url;
   }
 }
@@ -64,7 +70,14 @@ function buildApiUrl(path) {
     : safePath.startsWith("/api/")
       ? safePath
       : `/api/v1${safePath}`;
-  return ensureSecureApiUrl(`${API_BASE_URL}${normalizedPath}`);
+  const combined = `${API_BASE_URL}${normalizedPath}`;
+
+  // Extra runtime guard for browser https pages.
+  if (typeof window !== "undefined" && window.location.protocol === "https:" && /^http:\/\//i.test(combined)) {
+    return combined.replace(/^http:\/\//i, "https://");
+  }
+
+  return ensureSecureApiUrl(combined);
 }
 
 function normalizeApiError(detail) {

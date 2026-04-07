@@ -38,6 +38,8 @@ export default function ReadPage() {
   const [loading, setLoading] = useState(true);
   const [accessChecked, setAccessChecked] = useState(false);
   const [hasPremiumAccess, setHasPremiumAccess] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isManagingStory, setIsManagingStory] = useState(false);
   const lastHistoryWriteRef = useRef({ chapterId: '', progressBucket: -1 });
 
   useEffect(() => {
@@ -77,6 +79,15 @@ export default function ReadPage() {
       })
       .finally(() => setLoading(false));
   }, [storyId, isNumericDemoId]);
+
+  useEffect(() => {
+    const token = readToken();
+    if (!token) {
+      setCurrentUser(null);
+      return;
+    }
+    apiRequest('/users/me', { token }).then(setCurrentUser).catch(() => setCurrentUser(null));
+  }, []);
 
   useEffect(() => {
     if (!story?.is_premium) {
@@ -120,13 +131,23 @@ export default function ReadPage() {
     return () => node.removeEventListener('scroll', onScroll);
   }, [loading]);
 
+  const chapterProgress = Math.max(0, Math.min(100, Number(progress || 0)));
+  const totalChapters = Math.max(1, chapters.length || 1);
+  const overallProgress = Math.min(
+    100,
+    Math.max(
+      0,
+      Math.round((((Math.max(0, chapterIndex) + (chapterProgress / 100)) / totalChapters) * 100))
+    )
+  );
+
   useEffect(() => {
     if (!storyId || !chapters.length) return;
     const token = readToken();
     if (!token) return;
 
     const chapterId = chapters[chapterIndex]?._id || chapters[chapterIndex]?.id || null;
-    const progressBucket = Math.floor(Number(progress || 0) / 10);
+    const progressBucket = Math.floor(Number(overallProgress || 0) / 10);
     const lastWrite = lastHistoryWriteRef.current;
     if (lastWrite.chapterId === String(chapterId || '') && lastWrite.progressBucket === progressBucket) {
       return;
@@ -143,10 +164,10 @@ export default function ReadPage() {
       body: {
         story_id: String(storyId),
         chapter_id: chapterId,
-        progress_pct: progress,
+        progress_pct: overallProgress,
       },
     }).catch(() => {});
-  }, [chapterIndex, progress, storyId, chapters]);
+  }, [chapterIndex, overallProgress, storyId, chapters]);
 
   useEffect(() => {
     if (!toast) return;
@@ -204,6 +225,42 @@ export default function ReadPage() {
   };
 
   const currentChapter = chapters[chapterIndex];
+  const canManageStory = !!(
+    currentUser && story && (currentUser.is_admin || currentUser.role === 'admin' || currentUser.id === story.author_id)
+  );
+
+  const handleTogglePublishStatus = async () => {
+    if (!canManageStory || !story?.id) return;
+    try {
+      setIsManagingStory(true);
+      const nextDraft = story?.status === 'published';
+      await apiRequest(`/stories/${story.id || story._id}`, {
+        method: 'PATCH',
+        body: { is_draft: nextDraft },
+      });
+      setStory((prev) => ({ ...prev, status: nextDraft ? 'draft' : 'published' }));
+      setToast(nextDraft ? 'Story moved to draft.' : 'Story published.');
+    } catch (err) {
+      setToast(err.message || 'Could not update story status.');
+    } finally {
+      setIsManagingStory(false);
+    }
+  };
+
+  const handleDeleteStory = async () => {
+    if (!canManageStory || !story?.id) return;
+    if (!window.confirm('Delete this story and all chapters?')) return;
+    try {
+      setIsManagingStory(true);
+      await apiRequest(`/stories/${story.id || story._id}`, { method: 'DELETE' });
+      router.push('/write');
+    } catch (err) {
+      setToast(err.message || 'Could not delete story.');
+    } finally {
+      setIsManagingStory(false);
+    }
+  };
+
   const themeStyles = {
     dark: { bg: '#0d0d12', color: 'rgba(255,255,255,0.88)' },
     light: { bg: '#f4f4ef', color: 'rgba(0,0,0,0.82)' },
@@ -277,6 +334,19 @@ export default function ReadPage() {
         <button className="bx-btn-ghost" style={{fontSize:'12px',padding:'7px 12px',borderColor:liked?'var(--rose)':'var(--border)',color:liked?'var(--rose)':'var(--text)'}} onClick={reactAction}>❤ {liked ? 'Liked' : 'Like'}</button>
         <button className="bx-btn-ghost" style={{fontSize:'12px',padding:'7px 12px',borderColor:bookmarked?'var(--teal)':'var(--border)',color:bookmarked?'var(--teal)':'var(--text)'}} onClick={bookmarkAction}>{bookmarked ? 'Saved' : 'Save'}</button>
         <button className="bx-btn-ghost" style={{fontSize:'12px',padding:'7px 12px'}} onClick={() => setToast('Share copied')}>Share</button>
+        {canManageStory && (
+          <>
+            <button className="bx-btn-ghost" style={{fontSize:'12px',padding:'7px 12px'}} onClick={() => router.push(`/write?storyId=${encodeURIComponent(String(story?.id || story?._id || ''))}`)}>
+              Edit
+            </button>
+            <button className="bx-btn-ghost" style={{fontSize:'12px',padding:'7px 12px',borderColor:'var(--teal)',color:'var(--teal)'}} onClick={handleTogglePublishStatus} disabled={isManagingStory}>
+              {story?.status === 'published' ? 'Unpublish' : 'Publish'}
+            </button>
+            <button className="bx-btn-ghost" style={{fontSize:'12px',padding:'7px 12px',borderColor:'var(--rose)',color:'var(--rose)'}} onClick={handleDeleteStory} disabled={isManagingStory}>
+              Delete
+            </button>
+          </>
+        )}
         <div style={{marginLeft:'auto',fontSize:'12px',color:'var(--muted)'}}>{story?.views || 0} views · {story?.likes || 0} likes</div>
       </div>
 
@@ -387,9 +457,9 @@ export default function ReadPage() {
           Prev
         </button>
         <div style={{ textAlign: 'center', flex: 1 }}>
-          <div style={{ fontSize: '12px', color: activeTheme.color, opacity: 0.5 }}>{progress}% complete</div>
+          <div style={{ fontSize: '12px', color: activeTheme.color, opacity: 0.5 }}>{overallProgress}% complete</div>
           <div style={{ width: '100%', maxWidth: '160px', height: '2px', background: 'rgba(128,128,128,0.15)', borderRadius: '1px', margin: '4px auto 0', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${progress}%`, background: 'var(--teal)', transition: 'width 0.3s', borderRadius: '1px' }} />
+            <div style={{ height: '100%', width: `${overallProgress}%`, background: 'var(--teal)', transition: 'width 0.3s', borderRadius: '1px' }} />
           </div>
         </div>
         <button className="bx-ch-nav-btn next" onClick={() => { setChapterIndex((value) => Math.min(chapters.length - 1, value + 1)); contentRef.current?.scrollTo(0, 0); }} disabled={chapterIndex === chapters.length - 1}>

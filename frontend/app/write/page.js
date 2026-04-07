@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { apiRequest, apiUpload, readToken } from '@/lib/api';
 
 const GENRES = ['Fantasy','Romance','Mystery','Sci-Fi','Horror','Adventure','Drama','Teen Fiction','Fan Fiction','Poetry','Non-Fiction'];
@@ -8,6 +8,7 @@ const STATUS_OPTS = ['Draft','Published'];
 
 export default function WritePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [stories, setStories] = useState([]);
   const [storyId, setStoryId] = useState('');
   const [chapters, setChapters] = useState([]);
@@ -53,6 +54,25 @@ export default function WritePage() {
     const mine = await apiRequest('/stories/mine').catch(() => []);
     const items = Array.isArray(mine) ? mine : [];
     setStories(items);
+    const queryStoryId = (searchParams.get('storyId') || '').trim();
+    if (queryStoryId) {
+      const target = items.find((item) => String(item.id || item._id) === queryStoryId);
+      if (target) {
+        const targetId = target.id || target._id || '';
+        setStoryId(targetId);
+        setStory({
+          title: target.title || '',
+          description: target.description || '',
+          genre: (target.categories || [])[0] || 'Fantasy',
+          status: target.status === 'draft' ? 'Draft' : 'Published',
+          tags: Array.isArray(target.tags) ? target.tags.join(', ') : '',
+          cover_image: target.cover_image || '',
+          is_premium: !!target.is_premium,
+          premium_price: target.premium_price ?? '',
+        });
+        return;
+      }
+    }
     if (!storyId && items.length) {
       const first = items[0];
       setStoryId(first.id || first._id || '');
@@ -105,7 +125,7 @@ export default function WritePage() {
       return;
     }
     loadStories().catch(() => {});
-  }, [router]);
+  }, [router, searchParams]);
 
   useEffect(() => {
     loadChapters(storyId).catch(() => {});

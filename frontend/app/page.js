@@ -269,8 +269,9 @@ function getScrollState(ref) {
 }
 
 function getDeterministicProgress(story, idx) {
-  if (typeof story?.progress_percent === 'number') {
-    return Math.max(5, Math.min(100, Math.floor(story.progress_percent)));
+  const historyProgress = Number(story?.progress_pct ?? story?.progress_percent ?? story?.overall_progress ?? NaN);
+  if (Number.isFinite(historyProgress)) {
+    return Math.max(0, Math.min(100, Math.floor(historyProgress)));
   }
   const raw = Number(story?.id ?? idx + 1);
   return 20 + ((raw * 17) % 71);

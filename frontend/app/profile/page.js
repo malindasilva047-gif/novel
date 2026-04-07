@@ -30,6 +30,20 @@ export default function ProfilePage() {
   const [history, setHistory] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMsg, setProfileMsg] = useState('');
+  const [editForm, setEditForm] = useState({
+    full_name: '',
+    bio: '',
+    location: '',
+    country: '',
+    phone: '',
+    date_of_birth: '',
+    gender: '',
+    website: '',
+    preferred_language: '',
+    reading_goal: '',
+  });
 
   useEffect(() => {
     const stored = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
@@ -62,6 +76,59 @@ export default function ProfilePage() {
       setBookmarks(Array.isArray(bookmarkData) ? bookmarkData : []);
     }).finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    setEditForm({
+      full_name: user.full_name || '',
+      bio: user.bio || '',
+      location: user.location || '',
+      country: user.country || '',
+      phone: user.phone || '',
+      date_of_birth: user.date_of_birth || '',
+      gender: user.gender || '',
+      website: user.website || '',
+      preferred_language: user.preferred_language || '',
+      reading_goal: user.reading_goal || '',
+    });
+  }, [user]);
+
+  async function saveProfile() {
+    const token = readToken();
+    if (!token) {
+      setProfileMsg('Please sign in again.');
+      return;
+    }
+    try {
+      setSavingProfile(true);
+      setProfileMsg('');
+      await apiRequest('/users/me', {
+        method: 'PATCH',
+        token,
+        body: {
+          full_name: editForm.full_name,
+          bio: editForm.bio,
+          location: editForm.location,
+          country: editForm.country,
+          phone: editForm.phone,
+          date_of_birth: editForm.date_of_birth,
+          gender: editForm.gender,
+          website: editForm.website,
+          favorite_genres: user?.favorite_genres || [],
+          reading_goal: editForm.reading_goal,
+          preferred_language: editForm.preferred_language,
+        },
+      });
+      const refreshed = await apiRequest('/users/me', { token });
+      setUser(refreshed);
+      localStorage.setItem('user', JSON.stringify(refreshed));
+      setProfileMsg('Profile updated successfully.');
+    } catch (err) {
+      setProfileMsg(err.message || 'Could not update profile.');
+    } finally {
+      setSavingProfile(false);
+    }
+  }
 
   if (!user && !loading) {
     return (
@@ -193,7 +260,36 @@ export default function ProfilePage() {
           <div style={{ maxWidth: '640px' }}>
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: '24px' }}>
               <h3 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '20px', color: '#fff', marginBottom: '16px', fontWeight: 400 }}>About {username}</h3>
-              <p style={{ color: 'var(--muted)', lineHeight: 1.7, fontSize: '14.5px' }}>{user?.bio || 'This author has not written a bio yet.'}</p>
+              <div style={{ display: 'grid', gap: '10px' }}>
+                <label className="bx-auth-label">Username (locked)</label>
+                <input className="bx-auth-input" value={user?.username || ''} readOnly disabled />
+                <label className="bx-auth-label">Email (locked)</label>
+                <input className="bx-auth-input" value={user?.email || ''} readOnly disabled />
+                <label className="bx-auth-label">Name (locked after first setup)</label>
+                <input className="bx-auth-input" value={editForm.full_name} readOnly disabled />
+                <label className="bx-auth-label">Date Of Birth (locked after first setup)</label>
+                <input className="bx-auth-input" value={editForm.date_of_birth} readOnly disabled />
+                <label className="bx-auth-label">Bio</label>
+                <textarea className="bx-auth-input" rows={3} value={editForm.bio} onChange={(e) => setEditForm((prev) => ({ ...prev, bio: e.target.value }))} style={{ resize: 'vertical', fontFamily: 'DM Sans,sans-serif' }} />
+                <label className="bx-auth-label">Location</label>
+                <input className="bx-auth-input" value={editForm.location} onChange={(e) => setEditForm((prev) => ({ ...prev, location: e.target.value }))} />
+                <label className="bx-auth-label">Country</label>
+                <input className="bx-auth-input" value={editForm.country} onChange={(e) => setEditForm((prev) => ({ ...prev, country: e.target.value }))} />
+                <label className="bx-auth-label">Phone</label>
+                <input className="bx-auth-input" value={editForm.phone} onChange={(e) => setEditForm((prev) => ({ ...prev, phone: e.target.value }))} />
+                <label className="bx-auth-label">Gender</label>
+                <input className="bx-auth-input" value={editForm.gender} onChange={(e) => setEditForm((prev) => ({ ...prev, gender: e.target.value }))} />
+                <label className="bx-auth-label">Website</label>
+                <input className="bx-auth-input" value={editForm.website} onChange={(e) => setEditForm((prev) => ({ ...prev, website: e.target.value }))} />
+                <label className="bx-auth-label">Preferred Language</label>
+                <input className="bx-auth-input" value={editForm.preferred_language} onChange={(e) => setEditForm((prev) => ({ ...prev, preferred_language: e.target.value }))} />
+                <label className="bx-auth-label">Reading Goal</label>
+                <input className="bx-auth-input" value={editForm.reading_goal} onChange={(e) => setEditForm((prev) => ({ ...prev, reading_goal: e.target.value }))} />
+                <button className="bx-btn-primary" onClick={saveProfile} disabled={savingProfile} style={{ marginTop: '8px' }}>
+                  {savingProfile ? 'Saving...' : 'Save Profile'}
+                </button>
+                {profileMsg && <p style={{ fontSize: '12px', color: 'var(--muted)' }}>{profileMsg}</p>}
+              </div>
               {(user?.favorite_genres || []).length > 0 && (
                 <>
                   <div style={{ height: '1px', background: 'var(--border)', margin: '20px 0' }} />

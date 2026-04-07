@@ -1,39 +1,59 @@
 const RAW_API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000").trim();
 
-function normalizeApiBaseUrl(rawUrl) {
-  const sanitized = rawUrl.trim().replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
-  // Fast string-based check: local backends always use plain http
-  if (sanitized.includes("127.0.0.1") || sanitized.includes("localhost")) {
-    return sanitized.replace(/^https:\/\//, "http://");
+function isLocalOrPrivateHost(hostname = "") {
+  const host = String(hostname || "").toLowerCase();
+  if (!host) return false;
+  if (host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0" || host === "::1") {
+    return true;
   }
+  if (/^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) {
+    return true;
+  }
+  return false;
+}
+
+function normalizeApiBaseUrl(rawUrl) {
+  const value = rawUrl.trim();
+  if (!value) {
+    return "http://localhost:8000";
+  }
+  const withProtocol = /^https?:\/\//i.test(value) ? value : `http://${value}`;
+  const sanitized = withProtocol.replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
+
   try {
     const parsed = new URL(sanitized);
-    if (sanitized.startsWith("http://")) {
+    if (isLocalOrPrivateHost(parsed.hostname)) {
+      parsed.protocol = "http:";
+      return parsed.toString().replace(/\/$/, "");
+    }
+    if (parsed.protocol === "http:") {
       parsed.protocol = "https:";
       return parsed.toString().replace(/\/$/, "");
     }
-    return sanitized;
+    return parsed.toString().replace(/\/$/, "");
   } catch {
-    return sanitized; // Return as-is; do NOT convert http to https on parse failure
+    // Safe fallback for malformed custom values
+    return "http://localhost:8000";
   }
 }
 
 const API_BASE_URL = normalizeApiBaseUrl(RAW_API_BASE_URL);
 
 function ensureSecureApiUrl(url) {
-  // Fast string-based check: local backends always use plain http
-  if (url.includes("127.0.0.1") || url.includes("localhost")) {
-    return url.replace(/^https:\/\//, "http://");
-  }
   try {
     const parsed = new URL(url);
-    if (url.startsWith("http://")) {
+    if (isLocalOrPrivateHost(parsed.hostname)) {
+      parsed.protocol = "http:";
+      return parsed.toString();
+    }
+    if (parsed.protocol === "http:") {
       parsed.protocol = "https:";
       return parsed.toString();
     }
+    return parsed.toString();
+  }
+  catch {
     return url;
-  } catch {
-    return url; // Return as-is; do NOT convert http to https on parse failure
   }
 }
 

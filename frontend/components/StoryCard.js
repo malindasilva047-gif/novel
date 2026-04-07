@@ -48,10 +48,10 @@ export default function StoryCard({ story, index = 0, onClick }) {
         {isPremium && <div className="bx-book-locked">Premium</div>}
       </div>
       <div className="bx-book-title">{story.title}</div>
-      <div className="bx-book-author">{story.author_name || story.author || 'Unknown Author'}</div>
-      <div className="bx-book-meta">
-        <span className="bx-stars">{'*'.repeat(Math.round(Number(story.avg_rating) || 4))}</span>
-        <span className="bx-book-genre">{story.genre || story.category || 'Fiction'}</span>
+      <div className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</div>
+      <div className="bx-book-meta bx-book-meta-rich">
+        <span>{Number(story.views || 0).toLocaleString()} views</span>
+        <span>{story.genre || story.category || 'Fiction'}</span>
       </div>
     </div>
   );

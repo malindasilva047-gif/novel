@@ -112,6 +112,10 @@ export default function GoogleSignInButton({ onCredential, disabled = false, tex
     return null;
   }
 
+  const showLocalhostHint = typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  );
+
   return (
     <div style={{ display: 'grid', gap: '10px' }}>
       {loadError ? <div className="bx-auth-error">{loadError}</div> : null}
@@ -121,6 +125,11 @@ export default function GoogleSignInButton({ onCredential, disabled = false, tex
           <div style={{ position: 'absolute', inset: 0, cursor: 'not-allowed' }} aria-hidden="true" />
         ) : null}
       </div>
+      {showLocalhostHint ? (
+        <div style={{ fontSize: '12px', color: 'var(--muted)', textAlign: 'center', lineHeight: 1.5 }}>
+          If Google sign-in shows origin errors, add http://localhost:3000 and http://127.0.0.1:3000 to Authorized JavaScript origins in Google Cloud OAuth settings.
+        </div>
+      ) : null}
     </div>
   );
 }

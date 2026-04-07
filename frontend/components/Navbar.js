@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { apiRequest, readToken } from '@/lib/api';
+import { apiRequest, fetchSiteSettings, readToken } from '@/lib/api';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -13,10 +13,14 @@ export default function Navbar() {
   const [userDd, setUserDd] = useState(false);
   const [writeDd, setWriteDd] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [branding, setBranding] = useState({ site_name: 'Wingsaga', logo_url: '' });
   const userRef = useRef(null);
   const writeRef = useRef(null);
 
   useEffect(() => {
+    fetchSiteSettings().then(setBranding).catch(() => {});
+
     const stored = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
     if (stored) {
       try {
@@ -72,6 +76,25 @@ export default function Navbar() {
     router.push('/');
   };
 
+  const handleWriteRoute = (target) => {
+    setWriteDd(false);
+    if (!user) {
+      router.push(`/auth/signin?next=${encodeURIComponent(target)}`);
+      return;
+    }
+    router.push(target);
+  };
+
+  const submitSearch = () => {
+    const q = searchText.trim();
+    if (!q) {
+      router.push('/discover');
+      return;
+    }
+    router.push(`/discover?q=${encodeURIComponent(q)}`);
+    setMobileOpen(false);
+  };
+
   const currentSort = searchParams.get('sort');
   const currentGenre = searchParams.get('genre');
   const currentHash = typeof window !== 'undefined' ? window.location.hash : '';
@@ -92,7 +115,11 @@ export default function Navbar() {
     <>
       <header className="bx-header" style={{ boxShadow: scrolled ? '0 2px 18px rgba(0,0,0,0.3)' : 'none' }}>
         <Link href="/" className="bx-logo">
-          Bi<span>x</span>bi
+          {branding.logo_url ? (
+            <img src={branding.logo_url} alt={branding.site_name} className="bx-nav-logo-img" />
+          ) : (
+            <>{branding.site_name}</>
+          )}
         </Link>
 
         <nav className="bx-nav">
@@ -105,37 +132,50 @@ export default function Navbar() {
         </nav>
 
         <div className="bx-hdr-right">
-          <button className="bx-btn-icon" onClick={() => router.push('/discover')} aria-label="Search">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-            </svg>
-          </button>
+          <div className="bx-nav-search-inline">
+            <button className="bx-btn-icon" onClick={submitSearch} aria-label="Search">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+              </svg>
+            </button>
+            <input
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  submitSearch();
+                }
+              }}
+              placeholder="Search by title, author, or genre"
+            />
+          </div>
+
+          <div className="bx-dd-wrap" ref={writeRef}>
+            <button className="bx-btn-write" onClick={() => setWriteDd(v => !v)}>
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{width:'13px',height:'13px'}}>
+                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              <span className="write-label">Write</span>
+              <svg style={{width:'11px',height:'11px',opacity:0.7}} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div className={`bx-dd${writeDd ? ' open' : ''}`} style={{minWidth:'170px',right:0}}>
+              <div className="bx-dd-sec">
+                <div className="bx-dd-row" onClick={() => handleWriteRoute('/write')}>
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{width:'14px',height:'14px',color:'var(--muted)',flexShrink:0}}><path d="M12 5v14M5 12h14"/></svg>
+                  New story
+                </div>
+                <div className="bx-dd-row" onClick={() => handleWriteRoute('/profile')}>
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{width:'14px',height:'14px',color:'var(--muted)',flexShrink:0}}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+                  My works
+                </div>
+              </div>
+            </div>
+          </div>
 
           {user ? (
             <>
-              <div className="bx-dd-wrap" ref={writeRef}>
-                <button className="bx-btn-write" onClick={() => setWriteDd(v => !v)}>
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{width:'13px',height:'13px'}}>
-                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                  </svg>
-                  <span className="write-label">Write</span>
-                  <svg style={{width:'11px',height:'11px',opacity:0.7}} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M6 9l6 6 6-6"/></svg>
-                </button>
-                <div className={`bx-dd${writeDd ? ' open' : ''}`} style={{minWidth:'170px',right:0}}>
-                  <div className="bx-dd-sec">
-                    <div className="bx-dd-row" onClick={() => { setWriteDd(false); router.push('/write'); }}>
-                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{width:'14px',height:'14px',color:'var(--muted)',flexShrink:0}}><path d="M12 5v14M5 12h14"/></svg>
-                      New story
-                    </div>
-                    <div className="bx-dd-row" onClick={() => { setWriteDd(false); router.push('/profile'); }}>
-                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{width:'14px',height:'14px',color:'var(--muted)',flexShrink:0}}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
-                      My works
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               <button className="bx-btn-icon" style={{position:'relative'}} aria-label="Notifications">
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -184,14 +224,9 @@ export default function Navbar() {
               </div>
             </>
           ) : (
-            <>
-              <Link href="/auth/signin">
-                <button className="bx-btn-ghost" style={{fontSize:'13px'}}>Sign In</button>
-              </Link>
-              <Link href="/auth/signup">
-                <button className="bx-btn-primary">Start Free</button>
-              </Link>
-            </>
+            <Link href="/auth/signin">
+              <button className="bx-btn-ghost" style={{fontSize:'13px'}}>Sign In</button>
+            </Link>
           )}
 
           <button className="bx-hamburger" onClick={() => setMobileOpen(true)} aria-label="Menu">
@@ -214,6 +249,22 @@ export default function Navbar() {
             <Link key={href} href={href} className={isActive ? 'active' : ''}>{label}</Link>
           ))}
           {user && <Link href="/library" className={pathname === '/library' ? 'active' : ''}>Library</Link>}
+          <Link href={user ? '/write' : '/auth/signin?next=%2Fwrite'}>New Story</Link>
+          <Link href={user ? '/profile' : '/auth/signin?next=%2Fprofile'}>My Works</Link>
+          <div className="bx-mobile-search-row">
+            <input
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  submitSearch();
+                }
+              }}
+              placeholder="Search stories"
+            />
+            <button onClick={submitSearch}>Go</button>
+          </div>
           <div className="bx-mobile-nav-divider" />
           {user ? (
             <>
@@ -228,7 +279,6 @@ export default function Navbar() {
           ) : (
             <>
               <Link href="/auth/signin">Sign In</Link>
-              <Link href="/auth/signup">Create Account</Link>
             </>
           )}
         </div>

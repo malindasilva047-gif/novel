@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { readToken } from '@/lib/api';
 
 const COVER_PALETTES = [
   'linear-gradient(160deg,#1a0a2e,#3d1a5e)',
@@ -17,8 +18,14 @@ function palette(seed) {
 
 export default function StoryCard({ story, index = 0, onClick }) {
   const router = useRouter();
+  const isPremium = !!story?.is_premium;
 
   function handleClick() {
+    if (isPremium && !readToken()) {
+      router.push(`/auth/signin?next=${encodeURIComponent(`/read/${story._id || story.id}`)}`);
+      return;
+    }
+
     if (onClick) {
       onClick(story);
       return;
@@ -37,6 +44,8 @@ export default function StoryCard({ story, index = 0, onClick }) {
           </div>
         )}
         {story.badge && <span className="bx-book-badge">{story.badge}</span>}
+        {isPremium && <span className="bx-book-premium">PRO</span>}
+        {isPremium && <div className="bx-book-locked">Premium</div>}
       </div>
       <div className="bx-book-title">{story.title}</div>
       <div className="bx-book-author">{story.author_name || story.author || 'Unknown Author'}</div>

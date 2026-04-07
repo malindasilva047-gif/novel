@@ -2,40 +2,38 @@ const RAW_API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localh
 
 function normalizeApiBaseUrl(rawUrl) {
   const sanitized = rawUrl.trim().replace(/\/api\/v1\/?$/, "").replace(/\/$/, "");
-  if (!sanitized.startsWith("http://")) {
-    return sanitized;
+  // Fast string-based check: local backends always use plain http
+  if (sanitized.includes("127.0.0.1") || sanitized.includes("localhost")) {
+    return sanitized.replace(/^https:\/\//, "http://");
   }
-
   try {
     const parsed = new URL(sanitized);
-    const isLocalHost = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
-    if (isLocalHost) {
-      return sanitized;
+    if (sanitized.startsWith("http://")) {
+      parsed.protocol = "https:";
+      return parsed.toString().replace(/\/$/, "");
     }
-    parsed.protocol = "https:";
-    return parsed.toString().replace(/\/$/, "");
+    return sanitized;
   } catch {
-    return sanitized.replace(/^http:\/\//, "https://");
+    return sanitized; // Return as-is; do NOT convert http to https on parse failure
   }
 }
 
 const API_BASE_URL = normalizeApiBaseUrl(RAW_API_BASE_URL);
 
 function ensureSecureApiUrl(url) {
-  if (!url.startsWith("http://")) {
-    return url;
+  // Fast string-based check: local backends always use plain http
+  if (url.includes("127.0.0.1") || url.includes("localhost")) {
+    return url.replace(/^https:\/\//, "http://");
   }
-
   try {
     const parsed = new URL(url);
-    const isLocalHost = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
-    if (isLocalHost) {
-      return url;
+    if (url.startsWith("http://")) {
+      parsed.protocol = "https:";
+      return parsed.toString();
     }
-    parsed.protocol = "https:";
-    return parsed.toString();
+    return url;
   } catch {
-    return url.replace(/^http:\/\//, "https://");
+    return url; // Return as-is; do NOT convert http to https on parse failure
   }
 }
 
@@ -142,4 +140,33 @@ export function clearToken() {
     return;
   }
   localStorage.removeItem("token");
+}
+
+export async function fetchSiteSettings() {
+  const fallback = { site_name: "Wingsaga", logo_url: "" };
+
+  if (typeof window !== "undefined") {
+    const cached = localStorage.getItem("site_settings");
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch {
+        localStorage.removeItem("site_settings");
+      }
+    }
+  }
+
+  try {
+    const data = await apiRequest("/discovery/site-settings");
+    const normalized = {
+      site_name: data?.site_name || "Wingsaga",
+      logo_url: data?.logo_url || "",
+    };
+    if (typeof window !== "undefined") {
+      localStorage.setItem("site_settings", JSON.stringify(normalized));
+    }
+    return normalized;
+  } catch {
+    return fallback;
+  }
 }

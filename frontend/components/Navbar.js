@@ -156,24 +156,15 @@ export default function Navbar() {
   return (
     <>
       <header className="bx-header" style={{ boxShadow: scrolled ? '0 2px 18px rgba(0,0,0,0.3)' : 'none' }}>
-        <Link href="/" className="bx-logo">
-          {branding.logo_url ? (
-            <img src={branding.logo_url} alt={branding.site_name} className="bx-nav-logo-img" />
-          ) : (
-            <>{branding.site_name}</>
-          )}
-        </Link>
+        <div className="bx-hdr-left">
+          <Link href="/" className="bx-logo">
+            {branding.logo_url ? (
+              <img src={branding.logo_url} alt={branding.site_name} className="bx-nav-logo-img" />
+            ) : (
+              <>{branding.site_name}</>
+            )}
+          </Link>
 
-        <nav className="bx-nav">
-          {nav.map(({ href, label, isActive }) => (
-            <Link key={href} href={href} className={isActive ? 'active' : ''}>
-              {label}
-            </Link>
-          ))}
-          {user && <Link href="/library" className={pathname === '/library' ? 'active' : ''}>Library</Link>}
-        </nav>
-
-        <div className="bx-hdr-right">
           <div className="bx-nav-search-inline">
             <button className="bx-btn-icon" onClick={submitSearch} aria-label="Search">
               <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -189,10 +180,21 @@ export default function Navbar() {
                   submitSearch();
                 }
               }}
-              placeholder="Search by title, author, or genre"
+              placeholder="Search stories, author..."
             />
           </div>
+        </div>
 
+        <nav className="bx-nav">
+          {nav.map(({ href, label, isActive }) => (
+            <Link key={href} href={href} className={isActive ? 'active' : ''}>
+              {label}
+            </Link>
+          ))}
+          {user && <Link href="/library" className={pathname === '/library' ? 'active' : ''}>Library</Link>}
+        </nav>
+
+        <div className="bx-hdr-right">
           <div className="bx-dd-wrap" ref={writeRef}>
             <button className="bx-btn-write" onClick={() => setWriteDd(v => !v)}>
               <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{width:'13px',height:'13px'}}>

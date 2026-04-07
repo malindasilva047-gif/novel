@@ -1,516 +1,1195 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { apiRequest } from '@/lib/api';
-import StoryCard from '@/components/StoryCard';
+import { apiRequest, fetchSiteSettings, readToken } from '@/lib/api';
 
-const CONTINUE_COVER_PALETTES = [
-  'linear-gradient(160deg,#1a0a2e,#3d1a5e)',
-  'linear-gradient(160deg,#0a1628,#1a3060)',
-  'linear-gradient(160deg,#1a0a10,#5e1a2e)',
-  'linear-gradient(160deg,#0a1a0a,#1a3c1a)',
-  'linear-gradient(160deg,#1a140a,#5e3c0a)',
-  'linear-gradient(160deg,#0a1a1a,#0a4040)',
-];
+/* ═══════════════════════════════════════════════════════
+   MOCK DATA & CONSTANTS
+═══════════════════════════════════════════════════════ */
 
-function coverPalette(seed) {
-  return CONTINUE_COVER_PALETTES[Math.abs(Number(seed) || 0) % CONTINUE_COVER_PALETTES.length];
-}
-
-// -- Hero slides ------------------------------------------
 const HERO_SLIDES = [
   {
     id: 1,
-    bg: 'linear-gradient(160deg,#0e0204 0%,#3a0813 40%,#1a0608 70%,#0a0a0a 100%)',
-    tag: '?  Featured Story',
-    title: <>The <em>Last</em> Kingdom<br />of Stars</>,
-    desc: 'An epic fantasy spanning centuries — where gods walk among mortals and destiny is written in blood.',
-    author: 'Elara Moonwhisper',
-    genre: 'Fantasy',
+    tag: '⭐ Featured',
+    title: 'The Chronicles of <em>Aeloria</em>',
+    desc: 'A sweeping fantasy epic spanning continents, with intricate magic systems and unforgettable characters.',
+    bg: 'linear-gradient(135deg, #1a0a0a 0%, #2a0a0a 50%, #1a0a2e 100%)',
   },
   {
     id: 2,
-    bg: 'linear-gradient(160deg,#020a1a 0%,#061840 40%,#040e28 70%,#020608 100%)',
-    tag: '?  Trending Now',
-    title: <>Echoes of a<br /><em>Broken</em> Sea</>,
-    desc: 'A nautical adventure that pulls you beneath the waves and never lets you go.',
-    author: 'Caspian Drake',
-    genre: 'Adventure',
+    tag: '🔥 Trending',
+    title: 'Whispers in the <em>Shadows</em>',
+    desc: 'A thrilling paranormal mystery that blurs the line between reality and the supernatural.',
+    bg: 'linear-gradient(135deg, #0a1a2e 0%, #16213e 50%, #0f3460 100%)',
   },
   {
     id: 3,
-    bg: 'linear-gradient(160deg,#0a0a02 0%,#262010 40%,#1a1808 70%,#080808 100%)',
-    tag: '?  Editor\'s Pick',
-    title: <><em>Gilded</em> Dust<br />& Forgotten Vows</>,
-    desc: 'A slow-burn romance set in the glittering courts of a dying empire.',
-    author: 'Seraphina Vale',
-    genre: 'Romance',
+    tag: '💕 Romance',
+    title: 'Hearts <em>Entwined</em>',
+    desc: 'An intimate love story that transcends time and challenges everything they believe in.',
+    bg: 'linear-gradient(135deg, #2e0a1a 0%, #3e0a1a 50%, #2e1a2e 100%)',
+  },
+  {
+    id: 4,
+    tag: '🚀 Sci-Fi',
+    title: 'Beyond the <em>Stars</em>',
+    desc: 'Humanity\'s struggle for survival in a vast and hostile universe awaits discovery.',
+    bg: 'linear-gradient(135deg, #0a1a2e 0%, #1a3a4e 50%, #0a2a4e 100%)',
   },
 ];
 
-// -- Genre data -------------------------------------------
 const GENRES = [
-  { name: 'Fantasy', icon: '??', bg: 'linear-gradient(135deg,#1a0a2e 0%,#3d1260 100%)' },
-  { name: 'Romance', icon: '??', bg: 'linear-gradient(135deg,#2a0a14 0%,#6e1430 100%)' },
-  { name: 'Mystery', icon: '??', bg: 'linear-gradient(135deg,#0a1428 0%,#1a3060 100%)' },
-  { name: 'Sci-Fi', icon: '??', bg: 'linear-gradient(135deg,#0a1a24 0%,#0a3a56 100%)' },
-  { name: 'Horror', icon: '??', bg: 'linear-gradient(135deg,#100808 0%,#3a1010 100%)' },
-  { name: 'Adventure', icon: '??', bg: 'linear-gradient(135deg,#0a1a0a 0%,#1a3c18 100%)' },
-  { name: 'Drama', icon: '??', bg: 'linear-gradient(135deg,#1a1208 0%,#3e2c0a 100%)' },
-  { name: 'Teen Fiction', icon: '?', bg: 'linear-gradient(135deg,#1a0a28 0%,#480a60 100%)' },
-  { name: 'Fan Fiction', icon: '??', bg: 'linear-gradient(135deg,#0a1428 0%,#1e2e50 100%)' },
-  { name: 'Poetry', icon: '??', bg: 'linear-gradient(135deg,#200a1e 0%,#4a0e46 100%)' },
+  { name: 'Fantasy', icon: '🧙', bg: '#1a0a2e' },
+  { name: 'Romance', icon: '💕', bg: '#2e0a1a' },
+  { name: 'Paranormal', icon: '👻', bg: '#0a2a2e' },
+  { name: 'Thriller', icon: '⚡', bg: '#2e2a0a' },
+  { name: 'Sci-Fi', icon: '🚀', bg: '#0a1a2e' },
+  { name: 'Mystery', icon: '🔍', bg: '#1a0a1a' },
+  { name: 'Drama', icon: '🎭', bg: '#2a1a0a' },
+  { name: 'Adventure', icon: '🗺️', bg: '#0a2a1a' },
+  { name: 'Comedy', icon: '😄', bg: '#2a0a2a' },
 ];
 
-// -- Mock authors -----------------------------------------
+const MOCK_STORIES = [
+  {
+    id: 1,
+    title: 'The Lost Kingdom',
+    author: 'Elena Rose',
+    genre: 'Fantasy',
+    rating: 4.8,
+    reviews: 2341,
+    image: 'https://picsum.photos/seed/wingsaga-1/320/480',
+    badge: 'New',
+  },
+  {
+    id: 2,
+    title: 'Midnight Echoes',
+    author: 'Marcus Stone',
+    genre: 'Thriller',
+    rating: 4.6,
+    reviews: 1892,
+    image: 'https://picsum.photos/seed/wingsaga-2/320/480',
+    badge: null,
+  },
+  {
+    id: 3,
+    title: 'Love in the Time of Stars',
+    author: 'Aurora Sky',
+    genre: 'Romance',
+    rating: 4.9,
+    reviews: 3124,
+    image: 'https://picsum.photos/seed/wingsaga-3/320/480',
+    badge: null,
+  },
+  {
+    id: 4,
+    title: 'The Ghost Protocol',
+    author: 'Blake Morgan',
+    genre: 'Paranormal',
+    rating: 4.5,
+    reviews: 1456,
+    image: 'https://picsum.photos/seed/wingsaga-4/320/480',
+    badge: 'Trending',
+  },
+  {
+    id: 5,
+    title: 'Nexus Prime',
+    author: 'Dr. Kepler',
+    genre: 'Sci-Fi',
+    rating: 4.7,
+    reviews: 2108,
+    image: 'https://picsum.photos/seed/wingsaga-5/320/480',
+    badge: null,
+  },
+  {
+    id: 6,
+    title: 'When Autumn Falls',
+    author: 'James Chen',
+    genre: 'Drama',
+    rating: 4.4,
+    reviews: 987,
+    image: 'https://picsum.photos/seed/wingsaga-6/320/480',
+    badge: null,
+  },
+  {
+    id: 7,
+    title: 'Ashes of the Crown',
+    author: 'Mina Vale',
+    genre: 'Fantasy',
+    rating: 4.7,
+    reviews: 1743,
+    image: 'https://picsum.photos/seed/wingsaga-7/320/480',
+    badge: 'Trending',
+  },
+  {
+    id: 8,
+    title: 'Silent Meridian',
+    author: 'Noah Rivera',
+    genre: 'Sci-Fi',
+    rating: 4.6,
+    reviews: 1598,
+    image: 'https://picsum.photos/seed/wingsaga-8/320/480',
+    badge: 'New',
+  },
+  {
+    id: 9,
+    title: 'Velvet Storm',
+    author: 'Iris Lane',
+    genre: 'Romance',
+    rating: 4.9,
+    reviews: 2810,
+    image: 'https://picsum.photos/seed/wingsaga-9/320/480',
+    badge: null,
+  },
+  {
+    id: 10,
+    title: 'The Ninth Corridor',
+    author: 'Reed Hawkins',
+    genre: 'Mystery',
+    rating: 4.5,
+    reviews: 1322,
+    image: 'https://picsum.photos/seed/wingsaga-10/320/480',
+    badge: null,
+  },
+  {
+    id: 11,
+    title: 'Neon Hollow',
+    author: 'Aria Winters',
+    genre: 'Thriller',
+    rating: 4.4,
+    reviews: 1104,
+    image: 'https://picsum.photos/seed/wingsaga-11/320/480',
+    badge: 'Trending',
+  },
+  {
+    id: 12,
+    title: 'The Last Orchard',
+    author: 'Ruth Everly',
+    genre: 'Drama',
+    rating: 4.7,
+    reviews: 1689,
+    image: 'https://picsum.photos/seed/wingsaga-12/320/480',
+    badge: null,
+  },
+];
+
 const MOCK_AUTHORS = [
-  { id: 1, name: 'Elena Voss', followers: '42.1k', init: 'EV', bg: 'linear-gradient(135deg,#1a1a0a,#2e2a08)' },
-  { id: 2, name: 'Kian Rivers', followers: '31.8k', init: 'KR', bg: 'linear-gradient(135deg,#0a1a10,#0e3020)' },
-  { id: 3, name: 'Lyra Moon', followers: '58.4k', init: 'LM', bg: 'linear-gradient(135deg,#1a0a2e,#2e0a50)' },
-  { id: 4, name: 'Ash Stormwood', followers: '19.2k', init: 'AS', bg: 'linear-gradient(135deg,#0a1428,#12203c)' },
-  { id: 5, name: 'Sera Wilde', followers: '76.3k', init: 'SW', bg: 'linear-gradient(135deg,#280a10,#4e1020)' },
-  { id: 6, name: 'Callum Grey', followers: '23.7k', init: 'CG', bg: 'linear-gradient(135deg,#0e0e10,#1e1e28)' },
-  { id: 7, name: 'Isolde Fae', followers: '44.1k', init: 'IF', bg: 'linear-gradient(135deg,#200a1a,#3a0a30)' },
+  { id: 1, name: 'Elena Rose', init: 'ER', followers: '12.5K', bg: '#8B4513' },
+  { id: 2, name: 'Marcus Stone', init: 'MS', followers: '9.3K', bg: '#2F4F4F' },
+  { id: 3, name: 'Aurora Sky', init: 'AS', followers: '15.8K', bg: '#663399' },
+  { id: 4, name: 'Blake Morgan', init: 'BM', followers: '8.2K', bg: '#DC143C' },
+  { id: 5, name: 'Dr. Kepler', init: 'DK', followers: '11.1K', bg: '#4169E1' },
+  { id: 6, name: 'James Chen', init: 'JC', followers: '7.9K', bg: '#FF8C00' },
 ];
 
-// -- Mock reviews -----------------------------------------
 const MOCK_REVIEWS = [
-  { id: 1, user: 'StarReader', book: 'The Last Kingdom', rating: 5, text: '"Absolutely breathtaking prose. Every chapter felt like waking from a beautiful dream."', date: '2 days ago', init: 'SR', bg: '#1a1a0a' },
-  { id: 2, user: 'LunaMoth', book: 'Echoes of a Broken Sea', rating: 5, text: '"I stayed up until 3am reading this. No regrets. Pure magic."', date: '4 days ago', init: 'LM', bg: '#0a1428' },
-  { id: 3, user: 'WildReader', book: 'Gilded Dust', rating: 4, text: '"The slow burn is real but every page is worth it. The ending made me cry."', date: '1 week ago', init: 'WR', bg: '#280a10' },
-  { id: 4, user: 'Phantom77', book: 'Dark Waters', rating: 5, text: '"This author understands the human soul in ways most published authors never do."', date: '1 week ago', init: 'PH', bg: '#0a1a10' },
-  { id: 5, user: 'Aurora', book: 'Crimson Veil', rating: 5, text: '"I came for the romance, I stayed for the world-building. Outstanding."', date: '2 weeks ago', init: 'AU', bg: '#1a0a2e' },
+  {
+    id: 1,
+    user: 'Sophie L.',
+    book: 'The Lost Kingdom',
+    rating: 5,
+    text: '"A masterpiece! The world-building is incredible and I couldn\'t put it down. Elena Rose is a genius."',
+    date: '2 weeks ago',
+    avatar: 'SL',
+    bg: '#E91E63',
+  },
+  {
+    id: 2,
+    user: 'Thomas K.',
+    book: 'Midnight Echoes',
+    rating: 4,
+    text: '"Gripping from start to finish. The twist at the end completely blindsided me. Highly recommend!"',
+    date: '1 week ago',
+    avatar: 'TK',
+    bg: '#2196F3',
+  },
+  {
+    id: 3,
+    user: 'Maya P.',
+    book: 'Love in the Time of Stars',
+    rating: 5,
+    text: '"The most beautiful love story I\'ve read in years. Aurora captured my heart completely. Perfection!"',
+    date: '3 days ago',
+    avatar: 'MP',
+    bg: '#FF69B4',
+  },
 ];
 
-// -- useDragScroll -----------------------------------------
+/* ═══════════════════════════════════════════════════════
+   CUSTOM HOOKS & UTILITIES
+═══════════════════════════════════════════════════════ */
+
 function useDragScroll(ref) {
-  const isDragging = useRef(false);
-  const startX = useRef(0);
-  const scrollLeft = useRef(0);
-  const moved = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollStart, setScrollStart] = useState(0);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const onDown = (e) => {
-      isDragging.current = true; moved.current = false;
-      startX.current = e.pageX - el.offsetLeft;
-      scrollLeft.current = el.scrollLeft;
-      el.classList.add('dragging');
+    const element = ref.current;
+    if (!element) return;
+
+    const handleMouseDown = (e) => {
+      setIsDragging(true);
+      setStartX(e.clientX);
+      setScrollStart(element.scrollLeft);
+      element.classList.add('dragging');
     };
-    const onMove = (e) => {
-      if (!isDragging.current) return;
-      e.preventDefault(); moved.current = true;
-      const x = e.pageX - el.offsetLeft;
-      el.scrollLeft = scrollLeft.current - (x - startX.current) * 1.5;
+
+    const handleMouseMove = (e) => {
+      if (!isDragging) return;
+      const diff = e.clientX - startX;
+      element.scrollLeft = scrollStart - diff;
     };
-    const onUp = () => { isDragging.current = false; el.classList.remove('dragging'); };
-    el.addEventListener('mousedown', onDown);
-    el.addEventListener('mousemove', onMove);
-    el.addEventListener('mouseup', onUp);
-    el.addEventListener('mouseleave', onUp);
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      element.classList.remove('dragging');
+    };
+
+    element.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
     return () => {
-      el.removeEventListener('mousedown', onDown);
-      el.removeEventListener('mousemove', onMove);
-      el.removeEventListener('mouseup', onUp);
-      el.removeEventListener('mouseleave', onUp);
+      element.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [ref]);
+  }, [isDragging, startX, scrollStart]);
 }
 
-// -- Main Home component -----------------------------------
+function scrollCarousel(ref, direction) {
+  if (!ref.current) return;
+  const scrollAmount = 300;
+  const newScroll = ref.current.scrollLeft + (direction === 'right' ? scrollAmount : -scrollAmount);
+  ref.current.scrollTo({ left: newScroll, behavior: 'smooth' });
+}
+
+function getScrollState(ref) {
+  const node = ref?.current;
+  if (!node) {
+    return { left: false, right: false };
+  }
+  const left = node.scrollLeft > 1;
+  const right = node.scrollLeft + node.clientWidth < node.scrollWidth - 1;
+  return { left, right };
+}
+
+function getDeterministicProgress(story, idx) {
+  if (typeof story?.progress_percent === 'number') {
+    return Math.max(5, Math.min(100, Math.floor(story.progress_percent)));
+  }
+  const raw = Number(story?.id ?? idx + 1);
+  return 20 + ((raw * 17) % 71);
+}
+
+function toFixedLengthStories(list, length) {
+  if (!Array.isArray(list) || list.length === 0) {
+    return MOCK_STORIES.slice(0, length);
+  }
+  const output = [];
+  for (let i = 0; i < length; i += 1) {
+    output.push(list[i % list.length]);
+  }
+  return output;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MAIN COMPONENT
+═══════════════════════════════════════════════════════ */
+
 export default function Home() {
   const router = useRouter();
-  const [slide, setSlide] = useState(0);
+
+  // HEROES & HERO NAV
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [stories, setStories] = useState([]);
   const [continueHistory, setContinueHistory] = useState([]);
-  const [featured, setFeatured] = useState(null);
-  const [search, setSearch] = useState('');
-  const [tab, setTab] = useState('trending');
-  const heroRef = useRef(null);
-  const touchStart = useRef(0);
-  const trendRef = useRef(null);
-  const reviewRef = useRef(null);
+  const [branding, setBranding] = useState({ site_name: 'Wingsaga', logo_url: '' });
+  const [activeTab, setActiveTab] = useState('All');
+  const [followed, setFollowed] = useState(new Set());
+  const [bookmarkedStoryIds, setBookmarkedStoryIds] = useState(new Set());
+  const [toast, setToast] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sliderNav, setSliderNav] = useState({
+    popular: { left: false, right: true },
+    newReleases: { left: false, right: true },
+    trending: { left: false, right: true },
+    subscription: { left: false, right: true },
+    continue: { left: false, right: true },
+    readingList: { left: false, right: true },
+    reviews: { left: false, right: true },
+  });
+
+  // CAROUSEL REFS
+  const popularRef = useRef(null);
+  const newReleasesRef = useRef(null);
+  const trendingRef = useRef(null);
+  const subscriptionRef = useRef(null);
+  const authorsRef = useRef(null);
   const continueRef = useRef(null);
-  useDragScroll(trendRef);
-  useDragScroll(reviewRef);
+  const readingListRef = useRef(null);
+  const reviewsRef = useRef(null);
+
+  // DRAG SCROLLING
+  useDragScroll(popularRef);
+  useDragScroll(newReleasesRef);
+  useDragScroll(trendingRef);
+  useDragScroll(subscriptionRef);
+  useDragScroll(authorsRef);
   useDragScroll(continueRef);
+  useDragScroll(readingListRef);
+  useDragScroll(reviewsRef);
 
-  // Auto-slide hero
   useEffect(() => {
-    const t = setInterval(() => setSlide(s => (s + 1) % HERO_SLIDES.length), 5000);
-    return () => clearInterval(t);
-  }, []);
+    const refs = {
+      popular: popularRef,
+      newReleases: newReleasesRef,
+      trending: trendingRef,
+      subscription: subscriptionRef,
+      continue: continueRef,
+      readingList: readingListRef,
+      reviews: reviewsRef,
+    };
 
-  // Load homepage feeds from discovery APIs
+    const updateKey = (key) => {
+      setSliderNav((prev) => ({
+        ...prev,
+        [key]: getScrollState(refs[key]),
+      }));
+    };
+
+    const cleanups = Object.entries(refs).map(([key, ref]) => {
+      const node = ref.current;
+      if (!node) return () => {};
+      const onScroll = () => updateKey(key);
+      node.addEventListener('scroll', onScroll, { passive: true });
+      setTimeout(() => updateKey(key), 0);
+      return () => node.removeEventListener('scroll', onScroll);
+    });
+
+    const onResize = () => {
+      Object.keys(refs).forEach((key) => updateKey(key));
+    };
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      cleanups.forEach((cleanup) => cleanup());
+      window.removeEventListener('resize', onResize);
+    };
+  }, [stories, continueHistory]);
+
+  // FETCH DATA
   useEffect(() => {
-    Promise.all([
-      apiRequest('/discovery/trending').catch(() => []),
-      apiRequest('/discovery/feed').catch(() => []),
-      apiRequest('/reader/history').catch(() => []),
-    ]).then(([trendingData, feedData, historyData]) => {
-      const trending = Array.isArray(trendingData) ? trendingData : [];
-      const feed = Array.isArray(feedData) ? feedData : [];
-      const merged = [...trending, ...feed].reduce((acc, item) => {
-        const key = String(item.id || item._id || item.title || Math.random());
-        if (!acc.seen.has(key)) {
-          acc.seen.add(key);
-          acc.items.push({ ...item, _id: item._id || item.id, genre: (item.categories || [])[0] || item.genre || 'Fiction' });
+    async function loadData() {
+      try {
+        setLoading(true);
+
+        // Fetch branding
+        const brandData = await fetchSiteSettings();
+        setBranding(brandData);
+
+        // Fetch trending & feed
+        try {
+          const [trendingRes, feedRes] = await Promise.all([
+            apiRequest('/discovery/trending'),
+            apiRequest('/discovery/feed'),
+          ]);
+
+          const trendingStories = Array.isArray(trendingRes) ? trendingRes : (trendingRes?.stories || []);
+          const feedStories = Array.isArray(feedRes) ? feedRes : (feedRes?.stories || []);
+          const mergedStories = [...trendingStories, ...feedStories].map((story, idx) => ({
+            id: story?.id || story?._id || `api-story-${idx}`,
+            title: story?.title || `Story ${idx + 1}`,
+            author: story?.author_name || story?.author || 'Wingsaga',
+            genre: story?.genre || (Array.isArray(story?.categories) && story.categories[0]) || 'Fiction',
+            rating: Number(story?.avg_rating || 4.5),
+            reviews: Number(story?.likes || 0),
+            image: story?.cover_image || story?.image || '',
+            badge: idx < 4 ? 'Trending' : idx < 8 ? 'New' : null,
+          }));
+          setStories(mergedStories.length > 0 ? mergedStories : MOCK_STORIES);
+        } catch (err) {
+          setStories(MOCK_STORIES);
         }
-        return acc;
-      }, { seen: new Set(), items: [] }).items;
 
-      if (merged.length > 0) {
-        setStories(merged);
-        setFeatured(merged[0]);
+        // Fetch continue reading history
+        try {
+          const historyRes = await apiRequest('/reader/history');
+          setContinueHistory(historyRes?.history || []);
+        } catch (err) {
+          setContinueHistory([]);
+        }
+      } catch (err) {
+        console.error('Error loading data:', err);
+      } finally {
+        setLoading(false);
       }
-      setContinueHistory(Array.isArray(historyData) ? historyData : []);
-    }).catch(() => {});
+    }
+
+    loadData();
   }, []);
 
-  // Touch swipe for hero
-  const heroTouchStart = (e) => { touchStart.current = e.touches[0].clientX; };
-  const heroTouchEnd = (e) => {
-    const diff = touchStart.current - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 40) {
-      if (diff > 0) setSlide(s => (s + 1) % HERO_SLIDES.length);
-      else setSlide(s => (s - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+  // Hero auto-play
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(''), 2400);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  useEffect(() => {
+    if (!readToken()) {
+      setBookmarkedStoryIds(new Set());
+      return;
+    }
+
+    apiRequest('/reader/bookmarks')
+      .then((items) => {
+        const ids = new Set(
+          (Array.isArray(items) ? items : [])
+            .map((item) => item?.story_id)
+            .filter(Boolean)
+        );
+        setBookmarkedStoryIds(ids);
+      })
+      .catch(() => setBookmarkedStoryIds(new Set()));
+  }, []);
+
+  // FILTER STORIES BY TAB
+  const allStories = stories.length > 0 ? stories : MOCK_STORIES;
+  const displayStories = activeTab === 'All'
+    ? allStories
+    : allStories.filter((story) => {
+      const storyGenre = String(story.genre || '').toLowerCase();
+      const selectedGenre = activeTab.toLowerCase();
+      const categories = Array.isArray(story.categories)
+        ? story.categories.map((category) => String(category).toLowerCase())
+        : [];
+      return storyGenre === selectedGenre || categories.includes(selectedGenre);
+    });
+  // DATA FOR SECTIONS
+  const continueReading = continueHistory.length > 0 ? continueHistory : MOCK_STORIES.slice(0, 4);
+  const readingList = continueHistory.slice(0, 4).length > 0 ? continueHistory.slice(0, 4) : MOCK_STORIES.slice(2, 6);
+  const popularStories = toFixedLengthStories(displayStories, 12);
+  const newReleases = displayStories.filter((s) => s.badge === 'New').length > 0
+    ? toFixedLengthStories(displayStories.filter((s) => s.badge === 'New'), 10)
+    : toFixedLengthStories(MOCK_STORIES.filter((s) => s.badge === 'New'), 10);
+  const trendingStories = displayStories.filter((s) => s.badge === 'Trending').length > 0
+    ? toFixedLengthStories(displayStories.filter((s) => s.badge === 'Trending'), 10)
+    : toFixedLengthStories(MOCK_STORIES.filter((s) => s.badge === 'Trending'), 10);
+  const subscriptionStories = toFixedLengthStories(displayStories, 12);
+
+  // Hero handlers
+  const handlePrevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+  };
+
+  const handleNextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+  };
+
+  const handleToggleFollow = (followKey) => {
+    setFollowed((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(followKey)) {
+        newSet.delete(followKey);
+      } else {
+        newSet.add(followKey);
+      }
+      return newSet;
+    });
+  };
+
+  const isArrowDisabled = (key, direction) => {
+    if (direction === 'left') {
+      return !sliderNav[key]?.left;
+    }
+    return !sliderNav[key]?.right;
+  };
+
+  const getActiveHeroStory = () => {
+    if (!displayStories.length) return null;
+    return displayStories[currentSlide % displayStories.length];
+  };
+
+  const handleHeroSaveToList = async () => {
+    const activeStory = getActiveHeroStory();
+    const storyId = activeStory?.id || activeStory?._id;
+
+    if (!storyId) {
+      setToast('No story available to save right now.');
+      return;
+    }
+
+    if (!readToken()) {
+      router.push(`/auth/signin?next=${encodeURIComponent('/')}`);
+      return;
+    }
+
+    try {
+      const result = await apiRequest(`/reader/bookmarks/${storyId}`, { method: 'POST' });
+      setBookmarkedStoryIds((prev) => {
+        const next = new Set(prev);
+        if (result?.message?.toLowerCase().includes('removed')) {
+          next.delete(storyId);
+        } else {
+          next.add(storyId);
+        }
+        return next;
+      });
+      setToast(result?.message || 'Reading list updated');
+    } catch {
+      setToast('Could not update your reading list right now.');
     }
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (search.trim()) router.push(`/discover?q=${encodeURIComponent(search.trim())}`);
-  };
-
-  // Continue reading from backend history, fallback to synthetic items
-  const continueReading = continueHistory.length > 0
-    ? continueHistory.slice(0, 6).map((h) => ({
-      _id: h.story_id,
-      title: h.title,
-      cover_image: h.cover_image,
-      progress: Math.round(h.progress_pct || 0),
-      chapInfo: h.chapter_id ? `Chapter ${h.chapter_id}` : 'Continue reading',
-    }))
-    : stories.slice(0, 6).map((s, i) => ({
-      ...s,
-      progress: [35, 68, 12, 90, 47, 23][i] || 50,
-      chapInfo: `Ch. ${[3, 8, 1, 12, 5, 2][i] || 1} of ${[12, 14, 8, 16, 10, 6][i] || 10}`,
-    }));
-
-  const filteredStories = stories.filter(s => {
-    if (tab === 'trending') return true;
-    if (tab === 'fantasy') return (s.genre || s.category || '').toLowerCase().includes('fantasy');
-    if (tab === 'romance') return (s.genre || s.category || '').toLowerCase().includes('romance');
-    if (tab === 'mystery') return (s.genre || s.category || '').toLowerCase().includes('mystery');
-    return true;
-  });
-
-  // Fallback mock stories for display if API returns nothing
-  const MOCK_STORIES = [
-    { id: 1, title: 'The Last Kingdom of Stars', author_name: 'Elara Moonwhisper', genre: 'Fantasy', avg_rating: 5, badge: 'HOT' },
-    { id: 2, title: 'Echoes of a Broken Sea', author_name: 'Caspian Drake', genre: 'Adventure', avg_rating: 4.5, badge: 'NEW' },
-    { id: 3, title: 'Gilded Dust & Forgotten Vows', author_name: 'Seraphina Vale', genre: 'Romance', avg_rating: 4.8, badge: 'TRENDING' },
-    { id: 4, title: 'When the Moon Forgets', author_name: 'Lyra Moon', genre: 'Fantasy', avg_rating: 4.7 },
-    { id: 5, title: 'Dark Waters Rising', author_name: 'Kian Rivers', genre: 'Mystery', avg_rating: 4.6 },
-    { id: 6, title: 'The Crimson Veil', author_name: 'Sera Wilde', genre: 'Horror', avg_rating: 4.9, badge: 'FEATURED' },
-    { id: 7, title: 'Starfall Academy', author_name: 'Ash Stormwood', genre: 'Fantasy', avg_rating: 4.4 },
-    { id: 8, title: 'Letters to Nobody', author_name: 'Elena Voss', genre: 'Drama', avg_rating: 4.8 },
-  ];
-
-  const displayStories = filteredStories.length > 0 ? filteredStories : MOCK_STORIES;
-  const featuredStory = featured || MOCK_STORIES[0];
-
   return (
     <main>
-      {/* -- Hero Slider -- */}
-      <div className="bx-hero" ref={heroRef} onTouchStart={heroTouchStart} onTouchEnd={heroTouchEnd}>
-        <div className="bx-hero-track" style={{ transform: `translateX(-${slide * 100}%)` }}>
-          {HERO_SLIDES.map((s, i) => (
-            <div key={s.id} className="bx-hero-slide">
-              <div className="bx-hero-bg" style={{ background: s.bg }} />
+      {/* ───────────────────────────────────────────────────
+          1. HERO SLIDER
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-hero">
+        <div
+          className="bx-hero-track"
+          style={{
+            transform: `translateX(-${currentSlide * 100}%)`,
+          }}
+        >
+          {HERO_SLIDES.map((slide, idx) => (
+            <div key={slide.id} className="bx-hero-slide" style={{ backgroundImage: slide.bg }}>
+              <div className="bx-hero-bg" style={{ backgroundImage: slide.bg }} />
               <div className="bx-hero-content">
-                <div className="bx-hero-tag">{s.tag}</div>
-                <h1 className="bx-hero-title">{s.title}</h1>
-                <p className="bx-hero-desc">{s.desc}</p>
+                <span className="bx-hero-tag">{slide.tag}</span>
+                <h1 className="bx-hero-title" dangerouslySetInnerHTML={{ __html: slide.title }} />
+                <p className="bx-hero-desc">{slide.desc}</p>
                 <div className="bx-hero-actions">
-                  <button className="bx-hero-btn-read" onClick={() => {
-                    const story = stories[i];
-                    router.push(story?._id ? `/read/${story._id}` : '/discover');
-                  }}>Read Now</button>
-                  <button className="bx-hero-btn-list" onClick={() => router.push('/library')}>+ Reading List</button>
+                  <button
+                    className="bx-hero-btn-read"
+                    onClick={() => router.push(`/read/${slide.id}`)}
+                  >
+                    Start Reading
+                  </button>
+                  <button className="bx-hero-btn-list" onClick={handleHeroSaveToList}>
+                    {(() => {
+                      const activeStory = getActiveHeroStory();
+                      const storyId = activeStory?.id || activeStory?._id;
+                      const isSaved = storyId ? bookmarkedStoryIds.has(storyId) : false;
+                      return isSaved ? 'Saved' : 'Save to List';
+                    })()}
+                  </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Arrows */}
-        <button className="bx-hero-arrow prev" onClick={() => setSlide(s => (s - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}>
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M15 18l-6-6 6-6"/></svg>
+        {/* Hero Arrows */}
+        <button className="bx-hero-arrow prev" onClick={handlePrevSlide} aria-label="Previous slide">
+          ‹
         </button>
-        <button className="bx-hero-arrow next" onClick={() => setSlide(s => (s + 1) % HERO_SLIDES.length)}>
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M9 18l6-6-6-6"/></svg>
+        <button className="bx-hero-arrow next" onClick={handleNextSlide} aria-label="Next slide">
+          ›
         </button>
 
-        {/* Dots */}
+        {/* Hero Dots */}
         <div className="bx-hero-dots">
-          {HERO_SLIDES.map((_, i) => (
-            <button key={i} className={`bx-hero-dot${slide === i ? ' active' : ''}`} onClick={() => setSlide(i)} />
+          {HERO_SLIDES.map((_, idx) => (
+            <button
+              key={idx}
+              className={`bx-hero-dot ${idx === currentSlide ? 'active' : ''}`}
+              onClick={() => setCurrentSlide(idx)}
+              aria-label={`Go to slide ${idx + 1}`}
+            />
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* -- Search -- */}
-      <div className="bx-search-wrap">
-        <form className="bx-search" onSubmit={handleSearch}>
-          <input
-            value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search stories, authors, genres…"
-          />
-          <button type="submit" className="bx-search-btn">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          </button>
-        </form>
-      </div>
-
-      {/* -- Stats bar -- */}
-      <div className="bx-stats">
-        <div className="bx-stat">
-          <span className="bx-stat-num">82<span>M+</span></span>
-          <span className="bx-stat-label">Stories Published</span>
-        </div>
-        <div className="bx-stat">
-          <span className="bx-stat-num">4<span>B+</span></span>
-          <span className="bx-stat-label">Monthly Reads</span>
-        </div>
-        <div className="bx-stat">
-          <span className="bx-stat-num">97<span>M+</span></span>
-          <span className="bx-stat-label">Active Readers</span>
-        </div>
-      </div>
-
-      {/* -- Trending -- */}
+      {/* ───────────────────────────────────────────────────
+          2. GENRE TABS FILTER
+      ─────────────────────────────────────────────────── */}
       <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title serif">Trending Stories</h2>
-          <Link href="/discover?sort=popular" className="bx-sec-more">See all ?</Link>
-        </div>
-
-        <div className="bx-tabs">
-          {['trending','fantasy','romance','mystery'].map(t => (
-            <button key={t} className={`bx-tab${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+        <div className="bx-tabs" role="tablist">
+          {['All', ...GENRES.map((g) => g.name)].map((genre, idx) => (
+            <button
+              key={genre}
+              className={`bx-tab ${activeTab === genre ? 'active' : ''}`}
+              onClick={() => setActiveTab(genre)}
+              role="tab"
+              aria-selected={activeTab === genre}
+            >
+              {genre}
             </button>
           ))}
         </div>
 
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          5. POPULAR RIGHT NOW CAROUSEL
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">Popular Right Now</h2>
+          <Link href="/discover?sort=popular" className="bx-sec-more">
+            See All →
+          </Link>
+        </div>
+
         <div className="bx-carousel">
-          <div className="bx-book-scroll" ref={trendRef}>
-            {displayStories.slice(0, 10).map((s, i) => <StoryCard key={s._id || s.id || i} story={s} index={i} />)}
-          </div>
-        </div>
-      </section>
-
-      {/* -- Featured -- */}
-      <section className="bx-section" style={{paddingTop:0}}>
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title serif">Featured Pick</h2>
-        </div>
-        <div className="bx-featured-card" onClick={() => router.push(`/read/${featuredStory._id || featuredStory.id}`)}>
-          <div className="bx-featured-cover">
-            {featuredStory.cover_image ? (
-              <img src={featuredStory.cover_image} alt={featuredStory.title} />
-            ) : (
-              <div className="bx-featured-fallback" style={{ background: 'linear-gradient(160deg,#1a0a2e,#3d1a5e)', height:'100%' }}>
-                {featuredStory.title}
-              </div>
-            )}
-          </div>
-          <div className="bx-featured-info">
-            <div className="bx-featured-tag">{featuredStory.genre || featuredStory.category || 'Fantasy'}</div>
-            <div className="bx-featured-title">{featuredStory.title}</div>
-            <p className="bx-featured-desc">{featuredStory.description || featuredStory.summary || 'An immersive story that will keep you reading through the night.'}</p>
-            <div className="bx-featured-footer">
-              <span className="bx-featured-status">{featuredStory.status || 'Ongoing'}</span>
-              <button className="bx-btn-read" onClick={e => { e.stopPropagation(); router.push(`/read/${featuredStory._id || featuredStory.id}`); }}>
-                Read Free ?
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* -- Genres -- */}
-      <section className="bx-section" style={{paddingTop:0}}>
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title serif">Browse by Genre</h2>
-          <Link href="/discover" className="bx-sec-more">All genres ?</Link>
-        </div>
-        <div className="bx-genre-grid">
-          {GENRES.map(g => (
-            <div key={g.name} className="bx-genre-card" style={{ background: g.bg }} onClick={() => router.push(`/discover?genre=${encodeURIComponent(g.name.toLowerCase())}`)}>
-              <div className="bx-genre-overlay" />
-              <span className="bx-genre-icon">{g.icon}</span>
-              <span className="bx-genre-name">{g.name}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* -- Authors -- */}
-      <section className="bx-section" style={{paddingTop:0}}>
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title serif">Popular Authors</h2>
-          <Link href="/discover?view=authors" className="bx-sec-more">More authors ?</Link>
-        </div>
-        <div className="bx-authors-scroll">
-          {MOCK_AUTHORS.map(a => (
-            <div key={a.id} className="bx-author-card">
-              <div className="bx-author-avatar-wrap">
-                <div className="bx-author-avatar" style={{ background: a.bg }}>{a.init}</div>
-                <button className="bx-author-follow-btn" title="Follow">+</button>
-              </div>
-              <span className="bx-author-name">{a.name}</span>
-              <span className="bx-author-followers">{a.followers}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* -- Continue Reading -- */}
-      {continueReading.length > 0 && (
-        <section className="bx-section" style={{paddingTop:0}}>
-          <div className="bx-sec-header">
-            <h2 className="bx-sec-title serif">Continue Reading</h2>
-            <Link href="/library" className="bx-sec-more">Library ?</Link>
-          </div>
-          <div className="bx-continue-scroll" ref={continueRef}>
-            {continueReading.map((s, i) => (
-              <div key={s._id || s.id || i} className="bx-continue-card" onClick={() => router.push(`/read/${s._id || s.id}`)}>
-                <div className="bx-continue-cover" style={{ background: coverPalette(s._id || s.id) }}>
-                  {s.cover_image && <img src={s.cover_image} alt={s.title} style={{width:'100%',height:'100%',objectFit:'cover'}} />}
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(popularRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('popular', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-book-scroll" ref={popularRef}>
+            {popularStories.map((story, idx) => (
+              <div
+                key={`popular-${story.id || story._id || 'story'}-${idx}`}
+                className="bx-book-card"
+                onClick={() => router.push(`/read/${story.id || story._id}`)}
+              >
+                <div className="bx-book-cover" style={{ backgroundColor: '#2F4F4F' }}>
+                  {story.badge && <span className="bx-book-badge">{story.badge}</span>}
+                  {story.image ? (
+                    <img src={story.image} alt={story.title} loading="lazy" />
+                  ) : (
+                    <div className="bx-book-fallback">{story.title}</div>
+                  )}
                 </div>
-                <div className="bx-continue-info">
-                  <div className="bx-continue-title">{s.title}</div>
-                  <div className="bx-continue-author">{s.chapInfo}</div>
-                  <div className="bx-continue-progress-wrap">
-                    <div className="bx-continue-progress-bar">
-                      <div className="bx-continue-progress-fill" style={{ width: `${s.progress}%` }} />
-                    </div>
-                    <span className="bx-continue-progress-label">{s.progress}%</span>
-                  </div>
+                <h4 className="bx-book-title">{story.title}</h4>
+                <p className="bx-book-author">{story.author}</p>
+                <div className="bx-book-meta">
+                  <span className="bx-stars">★★★★★</span>
+                  <span className="bx-book-genre">{story.genre}</span>
                 </div>
-                <button className="bx-continue-btn">
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} style={{width:'14px',height:'14px'}}><path d="M9 18l6-6-6-6"/></svg>
-                </button>
               </div>
             ))}
           </div>
-        </section>
-      )}
-
-      {/* -- New Releases -- */}
-      <section className="bx-section" style={{paddingTop:0}}>
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title serif">New Releases</h2>
-          <Link href="/discover?sort=new" className="bx-sec-more">See all ?</Link>
-        </div>
-        <div className="bx-carousel">
-          <div className="bx-book-scroll">
-            {displayStories.slice(4, 14).map((s, i) => <StoryCard key={s._id || s.id || i} story={{...s, badge: i < 3 ? 'NEW' : undefined}} index={i} />)}
-          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(popularRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('popular', 'right')}
+          >
+            ›
+          </button>
         </div>
       </section>
 
-      {/* -- Reviews -- */}
-      <section className="bx-section" style={{paddingTop:0}}>
+      {/* ───────────────────────────────────────────────────
+          6. NEW RELEASES CAROUSEL
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
         <div className="bx-sec-header">
-          <h2 className="bx-sec-title serif">Reader Reviews</h2>
+          <h2 className="bx-sec-title">New Releases</h2>
+          <Link href="/discover?sort=new" className="bx-sec-more">
+            See All →
+          </Link>
         </div>
-        <div className="bx-reviews-list" ref={reviewRef}>
-          {MOCK_REVIEWS.map(r => (
-            <div key={r.id} className="bx-review-card">
-              <div className="bx-review-top">
-                <div className="bx-review-avatar" style={{ background: r.bg }}>{r.init}</div>
-                <div>
-                  <div className="bx-review-username">{r.user}</div>
-                  <div className="bx-review-book">on <span>{r.book}</span></div>
+
+        <div className="bx-carousel">
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(newReleasesRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('newReleases', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-book-scroll" ref={newReleasesRef}>
+            {newReleases.map((story, idx) => (
+              <div
+                key={`new-${story.id || story._id || 'story'}-${idx}`}
+                className="bx-book-card"
+                onClick={() => router.push(`/read/${story.id || story._id}`)}
+              >
+                <div className="bx-book-cover" style={{ backgroundColor: '#663399' }}>
+                  <span className="bx-book-badge">NEW</span>
+                  {story.image ? (
+                    <img src={story.image} alt={story.title} loading="lazy" />
+                  ) : (
+                    <div className="bx-book-fallback">{story.title}</div>
+                  )}
                 </div>
-                <span className="bx-review-stars" style={{marginLeft:'auto'}}>{'?'.repeat(r.rating)}</span>
+                <h4 className="bx-book-title">{story.title}</h4>
+                <p className="bx-book-author">{story.author}</p>
+                <div className="bx-book-meta">
+                  <span className="bx-stars">★★★★★</span>
+                  <span className="bx-book-genre">{story.genre}</span>
+                </div>
               </div>
-              <p className="bx-review-text">{r.text}</p>
-              <div className="bx-review-footer">
-                <span className="bx-review-date">{r.date}</span>
-                <button className="bx-review-helpful">?? Helpful</button>
+            ))}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(newReleasesRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('newReleases', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          7. TRENDING THIS WEEK CAROUSEL
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">🔥 Trending This Week</h2>
+          <Link href="/discover?sort=trending" className="bx-sec-more">
+            See All →
+          </Link>
+        </div>
+
+        <div className="bx-carousel">
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(trendingRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('trending', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-book-scroll" ref={trendingRef}>
+            {trendingStories.map((story, idx) => (
+              <div
+                key={`trend-${story.id || story._id || 'story'}-${idx}`}
+                className="bx-book-card"
+                onClick={() => router.push(`/read/${story.id || story._id}`)}
+              >
+                <div className="bx-book-cover" style={{ backgroundColor: '#DC143C' }}>
+                  <span className="bx-book-badge">TRENDING</span>
+                  {story.image ? (
+                    <img src={story.image} alt={story.title} loading="lazy" />
+                  ) : (
+                    <div className="bx-book-fallback">{story.title}</div>
+                  )}
+                </div>
+                <h4 className="bx-book-title">{story.title}</h4>
+                <p className="bx-book-author">{story.author}</p>
+                <div className="bx-book-meta">
+                  <span className="bx-stars">★★★★★</span>
+                  <span className="bx-book-genre">{story.genre}</span>
+                </div>
               </div>
+            ))}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(trendingRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('trending', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          8. NEW AUTHORS SECTION
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">New Authors</h2>
+          <Link href="/authors" className="bx-sec-more">
+            Discover More →
+          </Link>
+        </div>
+
+        <div className="bx-authors-scroll" ref={authorsRef}>
+          {MOCK_AUTHORS.map((author) => (
+            <div
+              key={author.id}
+              className="bx-author-card"
+              onClick={() => router.push('/profile')}
+            >
+              <div className="bx-author-avatar-wrap">
+                <div className="bx-author-avatar" style={{ backgroundColor: author.bg }}>
+                  {author.init}
+                </div>
+                <button
+                  className="bx-author-follow-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleFollow(`author-${author.id}`);
+                  }}
+                  title={followed.has(`author-${author.id}`) ? 'Unfollow' : 'Follow'}
+                >
+                  {followed.has(`author-${author.id}`) ? '✓' : '+'}
+                </button>
+              </div>
+              <p className="bx-author-name">{author.name}</p>
+              <p className="bx-author-followers">{author.followers}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* -- CTA Banner -- */}
-      <div className="bx-cta-banner">
-        <h2>Start Writing Your<br /><em>Next Great Story</em></h2>
-        <p>Join millions of writers who share their voice with readers around the world.<br />Free to start. No credit card required.</p>
-        <div className="bx-cta-btns">
-          <Link href="/auth/signup">
-            <button style={{background:'var(--gold)',color:'#0d0d12',border:'none',padding:'13px 32px',borderRadius:'10px',fontSize:'15px',fontWeight:'600',cursor:'pointer',fontFamily:'DM Sans,sans-serif',transition:'all 0.2s'}}>
-              Start Writing Free
-            </button>
-          </Link>
-          <Link href="/discover">
-            <button style={{background:'none',border:'1px solid rgba(255,255,255,0.2)',color:'#fff',padding:'13px 28px',borderRadius:'10px',fontSize:'15px',cursor:'pointer',fontFamily:'DM Sans,sans-serif',backdropFilter:'blur(8px)',transition:'all 0.2s'}}>
-              Explore Stories
-            </button>
-          </Link>
-        </div>
-      </div>
-
-      <section className="bx-section" style={{paddingTop:0}}>
-        <div style={{border:'1px solid var(--border)',borderRadius:'14px',background:'linear-gradient(135deg,rgba(201,169,110,0.08),rgba(45,212,192,0.08))',padding:'16px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px',flexWrap:'wrap'}}>
+      {/* ───────────────────────────────────────────────────
+          9. SUBSCRIPTION STORIES SECTION
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <div className="bx-sub-banner">
           <div>
-            <div style={{fontSize:'11px',letterSpacing:'0.7px',textTransform:'uppercase',color:'var(--gold)',marginBottom:'5px'}}>Sponsored</div>
-            <div style={{fontSize:'14px',color:'var(--text)'}}>Power your writing workflow with chapter planning templates and analytics.</div>
+            <div className="bx-sub-banner-title">♛ Subscription Stories</div>
+            <p className="bx-sub-banner-desc">Unlock exclusive premium content & full access</p>
           </div>
-          <button className="bx-btn-ghost" style={{fontSize:'12px',padding:'8px 14px'}}>View Offer</button>
+          <button className="bx-sub-banner-btn" onClick={() => router.push('/auth/signup')}>
+            Upgrade
+          </button>
+        </div>
+
+        <div className="bx-carousel">
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(subscriptionRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('subscription', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-book-scroll" ref={subscriptionRef}>
+            {subscriptionStories.map((story, idx) => (
+              <div
+                key={`sub-${story.id}-${idx}`}
+                className="bx-book-card"
+                onClick={() => router.push(`/read/${story.id || story._id}`)}
+              >
+                <div className="bx-book-cover" style={{ backgroundColor: '#4169E1' }}>
+                  <span className="bx-book-sub-badge">PRO</span>
+                  {story.image ? (
+                    <img src={story.image} alt={story.title} loading="lazy" />
+                  ) : (
+                    <div className="bx-book-fallback">{story.title}</div>
+                  )}
+                  <div className="bx-book-locked">
+                    <span className="bx-book-locked-icon">🔒</span>
+                  </div>
+                </div>
+                <h4 className="bx-book-title">{story.title}</h4>
+                <p className="bx-book-author">{story.author}</p>
+                <div className="bx-book-meta">
+                  <span className="bx-stars">★★★★★</span>
+                  <span className="bx-book-genre">{story.genre}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(subscriptionRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('subscription', 'right')}
+          >
+            ›
+          </button>
         </div>
       </section>
 
-      {/* -- Footer -- */}
-      <footer className="bx-footer">
-        <div className="bx-footer-grid">
-          <div className="bx-footer-brand">
-            <span className="bx-logo">Bi<span>x</span>bi</span>
-            <p>The home for stories. Read, write, and connect with millions of readers and authors worldwide.</p>
+      {/* ───────────────────────────────────────────────────
+          10. CONTINUE READING SECTION
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">▶ Continue Reading</h2>
+          <Link href="/library?tab=Reading" className="bx-sec-more">
+            View All →
+          </Link>
+        </div>
+
+        <div className="bx-carousel">
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(continueRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('continue', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-continue-scroll" ref={continueRef}>
+            {continueReading.map((story, idx) => (
+              (() => {
+                const progress = getDeterministicProgress(story, idx);
+                return (
+              <div
+                key={`continue-${idx}`}
+                className="bx-continue-card"
+                onClick={() => router.push(`/read/${story.id || story._id}`)}
+              >
+                <div className="bx-continue-cover" style={{ backgroundColor: '#8B4513' }}>
+                  <div className="bx-book-fallback" style={{ fontSize: '10px' }}>
+                    {story.title}
+                  </div>
+                </div>
+                <div className="bx-continue-info">
+                  <h4 className="bx-continue-title">{story.title}</h4>
+                  <p className="bx-continue-author">{story.author}</p>
+                  <div className="bx-continue-progress-wrap">
+                    <div className="bx-continue-progress-bar">
+                      <div
+                        className="bx-continue-progress-fill"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <span className="bx-continue-progress-label">
+                      {progress}%
+                    </span>
+                  </div>
+                </div>
+                <button
+                  className="bx-continue-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/read/${story.id || story._id}`);
+                  }}
+                >
+                  ▶
+                </button>
+              </div>
+                );
+              })()
+            ))}
           </div>
-          <div className="bx-footer-col">
-            <h4>Explore</h4>
-            <Link href="/discover">Browse Stories</Link>
-            <Link href="/discover?sort=popular">Trending</Link>
-            <Link href="/discover?sort=new">New Releases</Link>
-            <Link href="/discover?view=authors">Authors</Link>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(continueRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('continue', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          11. MY READING LIST SECTION
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">🔖 My Reading List</h2>
+          <Link href="/library?tab=Saved" className="bx-sec-more">
+            Manage List →
+          </Link>
+        </div>
+
+        <div className="bx-carousel">
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(readingListRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('readingList', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-readlist-scroll" ref={readingListRef}>
+            {readingList.map((story, idx) => (
+              (() => {
+                const followKey = `author-${story.author || idx}`;
+                return (
+              <div
+                key={`readlist-${idx}`}
+                className="bx-readlist-card"
+                onClick={() => router.push(`/read/${story.id || story._id}`)}
+              >
+                <div className="bx-readlist-cover" style={{ backgroundColor: '#2F4F4F' }}>
+                  {story.image ? (
+                    <img src={story.image} alt={story.title} loading="lazy" />
+                  ) : (
+                    <div className="bx-book-fallback">{story.title}</div>
+                  )}
+                </div>
+                <div className="bx-readlist-info">
+                  <h4 className="bx-readlist-title">{story.title}</h4>
+                  <p className="bx-readlist-meta">{story.author}</p>
+                  <span className={`bx-readlist-status ${idx % 2 === 0 ? 'ongoing' : 'complete'}`}>
+                    {idx % 2 === 0 ? 'Ongoing' : 'Complete'}
+                  </span>
+                  <button
+                    className={`bx-readlist-follow ${followed.has(followKey) ? 'followed' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleFollow(followKey);
+                    }}
+                  >
+                    {followed.has(followKey) ? 'Following' : 'Follow'}
+                  </button>
+                </div>
+              </div>
+                );
+              })()
+            ))}
           </div>
-          <div className="bx-footer-col">
-            <h4>Create</h4>
-            <Link href="/write">Write a Story</Link>
-            <Link href="/auth/signup">Join Free</Link>
-            <Link href="/profile">My Works</Link>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(readingListRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('readingList', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          12. TOP REVIEWS SECTION
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">⭐ Top Reviews</h2>
+          <Link href="/reviews" className="bx-sec-more">
+            Browse All →
+          </Link>
+        </div>
+
+        <div className="bx-carousel">
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(reviewsRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('reviews', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-reviews-list" ref={reviewsRef}>
+            {MOCK_REVIEWS.map((review) => (
+              <div key={review.id} className="bx-review-card">
+                <div className="bx-review-top">
+                  <div
+                    className="bx-review-avatar"
+                    style={{ backgroundColor: review.bg }}
+                  >
+                    {review.avatar}
+                  </div>
+                  <div>
+                    <p className="bx-review-username">{review.user}</p>
+                    <p className="bx-review-book">
+                      on <span>{review.book}</span>
+                    </p>
+                  </div>
+                </div>
+                <div className="bx-review-stars">
+                  {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                </div>
+                <p className="bx-review-text">{review.text}</p>
+                <div className="bx-review-footer">
+                  <span className="bx-review-date">{review.date}</span>
+                  <button className="bx-review-helpful" onClick={() => setToast('Thanks for your feedback!')}>👍 Helpful</button>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="bx-footer-col">
-            <h4>Support</h4>
-            <a href="#">Help Center</a>
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
-            <a href="#">Contact</a>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(reviewsRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('reviews', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          13. STATS SECTION (3 columns)
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-stats">
+        <div className="bx-stat">
+          <span className="bx-stat-num">
+            <span>12M+</span>
+          </span>
+          <span className="bx-stat-label">Stories Published</span>
+        </div>
+        <div className="bx-stat">
+          <span className="bx-stat-num">
+            <span>450K+</span>
+          </span>
+          <span className="bx-stat-label">Active Readers</span>
+        </div>
+        <div className="bx-stat">
+          <span className="bx-stat-num">
+            <span>195</span>
+          </span>
+          <span className="bx-stat-label">Countries</span>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          14. BROWSE GENRES GRID
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <h2 className="bx-sec-title" style={{ marginBottom: '28px' }}>
+          Browse Genres
+        </h2>
+
+        <div className="bx-genre-grid">
+          {GENRES.map((genre, idx) => (
+            <div
+              key={genre.name}
+              className="bx-genre-card"
+              style={{ backgroundColor: genre.bg }}
+              onClick={() => setActiveTab(genre.name)}
+            >
+              <div className="bx-genre-overlay" />
+              <span className="bx-genre-icon">{genre.icon}</span>
+              <span className="bx-genre-name">{genre.name}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          15. CTA BANNER
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <div className="bx-cta-banner">
+          <h2>Your story deserves to be <em>heard</em></h2>
+          <p>
+            Join thousands of authors sharing their creative works with the world. Start writing today
+            and connect with millions of readers.
+          </p>
+          <div className="bx-cta-btns">
+            <button
+              className="bx-btn-primary"
+              onClick={() => router.push('/write')}
+              style={{
+                background: 'var(--gold)',
+                color: '#0d0d12',
+                padding: '11px 28px',
+              }}
+            >
+              Start Writing
+            </button>
+            <button
+              className="bx-btn-ghost"
+              onClick={() => router.push('/discover')}
+              style={{
+                border: '1px solid rgba(201,169,110,0.3)',
+                color: 'var(--text)',
+                padding: '11px 28px',
+              }}
+            >
+              Explore Stories
+            </button>
           </div>
         </div>
-        <div className="bx-footer-bottom">
-          <p>© {new Date().getFullYear()} Bixbi. Read what you love.</p>
-          <p style={{fontSize:'12px',color:'var(--muted)'}}>Made with ? for readers everywhere</p>
-        </div>
-      </footer>
+      </section>
+
+      {toast && (
+        <div className="bx-toast show">{toast}</div>
+      )}
     </main>
   );
 }

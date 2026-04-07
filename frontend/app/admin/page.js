@@ -14,6 +14,8 @@ export default function AdminPage() {
   const [selectedCommentIds, setSelectedCommentIds] = useState([]);
   const [badgeSummary, setBadgeSummary] = useState([]);
   const [message, setMessage] = useState("Admin analytics panel.");
+  const [siteName, setSiteName] = useState("Wingsaga");
+  const [siteLogo, setSiteLogo] = useState("");
   const [me, setMe] = useState(null);
   const [bootstrapEmail, setBootstrapEmail] = useState("");
   const [bootstrapKey, setBootstrapKey] = useState("change-this-admin-bootstrap-key");
@@ -46,12 +48,15 @@ export default function AdminPage() {
           apiRequest("/admin/comments", { token }),
           apiRequest("/admin/badges/summary", { token }),
         ]);
+        const branding = await apiRequest("/admin/site-settings", { token }).catch(() => ({ site_name: "Wingsaga", logo_url: "" }));
         setStats(analytics);
         setUsers(userList || []);
         setReports(reportList || []);
         setStories(storyList || []);
         setComments(commentList || []);
         setBadgeSummary(badgeData?.items || []);
+        setSiteName(branding?.site_name || "Wingsaga");
+        setSiteLogo(branding?.logo_url || "");
       } catch (error) {
         if (error?.status === 403) {
           localStorage.removeItem('token');
@@ -276,6 +281,50 @@ export default function AdminPage() {
     }
   }
 
+  async function saveBranding() {
+    try {
+      const token = readToken();
+      if (!token) {
+        setMessage("Sign in first.");
+        return;
+      }
+      const result = await apiRequest('/admin/site-settings', {
+        method: 'PATCH',
+        token,
+        body: {
+          site_name: siteName,
+          logo_url: siteLogo,
+        },
+      });
+      localStorage.removeItem('site_settings');
+      setMessage(result.message || 'Branding updated');
+    } catch (error) {
+      setMessage(error.message || 'Could not update branding');
+    }
+  }
+
+  async function uploadBrandLogo(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const token = readToken();
+      if (!token) {
+        setMessage("Sign in first.");
+        return;
+      }
+      const uploaded = await apiUpload('/admin/site-settings/logo', {
+        fieldName: 'image',
+        file,
+        token,
+      });
+      setSiteLogo(uploaded.logo_url || '');
+      localStorage.removeItem('site_settings');
+      setMessage(uploaded.message || 'Logo updated');
+    } catch (error) {
+      setMessage(error.message || 'Could not upload logo');
+    }
+  }
+
   return (
     <main className="page-wrap">
       <section className="section-title fade-up">
@@ -381,6 +430,35 @@ export default function AdminPage() {
           ))}
           {!stories.length && <p className="token-state">No stories found.</p>}
         </div>
+      </section>
+
+      <section className="api-panel">
+        <h2>Site Branding</h2>
+        <div className="card-actions" style={{ marginBottom: '12px', flexWrap: 'wrap' }}>
+          <input
+            value={siteName}
+            onChange={(e) => setSiteName(e.target.value)}
+            placeholder="Site name"
+            style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'8px',padding:'8px 10px',color:'var(--text)',minWidth:'240px'}}
+          />
+          <input
+            value={siteLogo}
+            onChange={(e) => setSiteLogo(e.target.value)}
+            placeholder="Logo URL"
+            style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'8px',padding:'8px 10px',color:'var(--text)',minWidth:'320px'}}
+          />
+          <label className="cta ghost small" style={{cursor:'pointer'}}>
+            Upload Logo
+            <input type="file" accept="image/*" hidden onChange={uploadBrandLogo} />
+          </label>
+          <button className="cta ghost small" onClick={saveBranding}>Save Branding</button>
+        </div>
+        {siteLogo && (
+          <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+            <img src={siteLogo} alt="Site logo" style={{width:'44px',height:'44px',borderRadius:'8px',objectFit:'cover',border:'1px solid var(--border)'}} />
+            <span className="token-state">Current logo preview</span>
+          </div>
+        )}
       </section>
 
       <section className="api-panel">

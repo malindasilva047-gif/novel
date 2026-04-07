@@ -23,6 +23,32 @@ const MOCK_STORIES = Array.from({length:24},(_,i)=>({
   status: i % 3 === 0 ? 'completed' : 'ongoing',
 }));
 
+function applyFilters(items, currentQuery, currentGenre) {
+  let next = Array.isArray(items) ? items : [];
+
+  if (currentGenre !== 'All') {
+    const selectedGenre = currentGenre.toLowerCase();
+    next = next.filter((item) => {
+      const genreText = String(item.genre || '').toLowerCase();
+      const categories = Array.isArray(item.categories) ? item.categories.map((c) => String(c).toLowerCase()) : [];
+      return genreText === selectedGenre || categories.includes(selectedGenre);
+    });
+  }
+
+  if (currentQuery) {
+    const needle = currentQuery.toLowerCase();
+    next = next.filter((item) => {
+      const title = String(item.title || '').toLowerCase();
+      const author = String(item.author_name || item.author || '').toLowerCase();
+      const genreText = String(item.genre || '').toLowerCase();
+      const categories = Array.isArray(item.categories) ? item.categories.join(' ').toLowerCase() : '';
+      return `${title} ${author} ${genreText} ${categories}`.includes(needle);
+    });
+  }
+
+  return next;
+}
+
 function DiscoverInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -54,32 +80,24 @@ function DiscoverInner() {
 
   useEffect(() => {
     setLoading(true);
-    if (q) {
-      const searchParams = new URLSearchParams({ q });
-      if (genre !== 'All') searchParams.set('category', genre);
-      apiRequest(`/discovery/search?${searchParams}`)
-        .then((items) => {
-          const list = Array.isArray(items) ? items : [];
-          setStories(list);
-          setHasMore(false);
-        })
-        .catch(() => setStories(MOCK_STORIES))
-        .finally(() => setLoading(false));
-      return;
-    }
-
     const params = new URLSearchParams({ limit: String(LIMIT), skip: String((page-1)*LIMIT), sort_by: sort });
-    if (genre !== 'All') params.set('genre', genre.toLowerCase());
+    if (q) params.set('q', q);
+    if (genre !== 'All') params.set('genre', genre);
     apiRequest(`/stories/?${params}`).then(data => {
-      const items = Array.isArray(data) ? data : data?.stories || [];
-      if (items.length) { setStories(items); setHasMore(items.length === LIMIT); }
-      else setStories(MOCK_STORIES);
-    }).catch(() => setStories(MOCK_STORIES)).finally(() => setLoading(false));
+      const rawItems = Array.isArray(data) ? data : data?.stories || [];
+      const filteredItems = applyFilters(rawItems, q, genre);
+      setStories((prev) => (page === 1 ? filteredItems : [...prev, ...filteredItems]));
+      setHasMore(rawItems.length === LIMIT);
+    }).catch(() => {
+      const fallbackItems = applyFilters(MOCK_STORIES, q, genre);
+      setStories((prev) => (page === 1 ? fallbackItems : [...prev, ...fallbackItems]));
+      setHasMore(false);
+    }).finally(() => setLoading(false));
   }, [genre, sort, q, page]);
 
   const doSearch = (e) => { e.preventDefault(); setQ(search); setPage(1); };
 
-  const displayStories = stories.length > 0 ? stories : MOCK_STORIES;
+  const displayStories = stories;
 
   return (
     <main style={{minHeight:'100vh'}}>
@@ -155,6 +173,12 @@ function DiscoverInner() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {!loading && displayStories.length === 0 && (
+          <div style={{textAlign:'center',marginTop:'20px',color:'var(--muted)',fontSize:'13px'}}>
+            No stories matched your filters.
           </div>
         )}
 

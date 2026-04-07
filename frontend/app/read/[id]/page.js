@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
 import { apiRequest, readToken } from '@/lib/api';
 
@@ -18,6 +18,9 @@ const FALLBACK_CHAPTERS = [
 
 export default function ReadPage() {
   const { id } = useParams();
+  const storyId = Array.isArray(id) ? id[0] : id;
+  const isNumericDemoId = /^\d+$/.test(String(storyId || ''));
+  const router = useRouter();
   const contentRef = useRef(null);
 
   const [story, setStory] = useState(null);
@@ -33,14 +36,30 @@ export default function ReadPage() {
   const [bookmarked, setBookmarked] = useState(false);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
+  const [accessChecked, setAccessChecked] = useState(false);
+  const [hasPremiumAccess, setHasPremiumAccess] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!storyId) return;
+
+    if (isNumericDemoId) {
+      setStory({
+        id: storyId,
+        title: `Story ${storyId}`,
+        author_name: 'Wingsaga Author',
+        genre: 'Fiction',
+      });
+      setChapters(FALLBACK_CHAPTERS);
+      setComments([]);
+      setRecoStories([]);
+      setLoading(false);
+      return;
+    }
 
     Promise.all([
-      apiRequest(`/stories/${id}`).catch(() => null),
-      apiRequest(`/stories/${id}/chapters`).catch(() => null),
-      apiRequest(`/engagement/stories/${id}/comments`).catch(() => []),
+      apiRequest(`/stories/${storyId}`).catch(() => null),
+      apiRequest(`/stories/${storyId}/chapters`).catch(() => null),
+      apiRequest(`/engagement/stories/${storyId}/comments`).catch(() => []),
       apiRequest('/discovery/trending').catch(() => []),
     ])
       .then(([storyData, chapterData, commentData, trendingData]) => {
@@ -56,7 +75,31 @@ export default function ReadPage() {
         setRecoStories((Array.isArray(trendingData) ? trendingData : []).slice(0, 4));
       })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [storyId, isNumericDemoId]);
+
+  useEffect(() => {
+    if (!story?.is_premium) {
+      setAccessChecked(true);
+      setHasPremiumAccess(true);
+      return;
+    }
+
+    const token = readToken();
+    if (!token) {
+      setAccessChecked(true);
+      setHasPremiumAccess(false);
+      return;
+    }
+
+    apiRequest('/users/me', { token })
+      .then((me) => {
+        const isAuthor = me?.id && story?.author_id && me.id === story.author_id;
+        const canAccess = !!(me?.is_subscribed || me?.is_admin || me?.role === 'admin' || isAuthor);
+        setHasPremiumAccess(canAccess);
+      })
+      .catch(() => setHasPremiumAccess(false))
+      .finally(() => setAccessChecked(true));
+  }, [story]);
 
   useEffect(() => {
     const node = contentRef.current;
@@ -77,17 +120,17 @@ export default function ReadPage() {
   }, [loading]);
 
   useEffect(() => {
-    if (!id || !chapters.length) return;
+    if (!storyId || !chapters.length) return;
     const chapterId = chapters[chapterIndex]?._id || chapters[chapterIndex]?.id || null;
     apiRequest('/reader/history', {
       method: 'POST',
       body: {
-        story_id: String(id),
+        story_id: String(storyId),
         chapter_id: chapterId,
         progress_pct: progress,
       },
     }).catch(() => {});
-  }, [chapterIndex, progress, id, chapters]);
+  }, [chapterIndex, progress, storyId, chapters]);
 
   useEffect(() => {
     if (!toast) return;
@@ -101,7 +144,7 @@ export default function ReadPage() {
       return;
     }
     try {
-      const result = await apiRequest(`/engagement/stories/${id}/like`, { method: 'POST' });
+      const result = await apiRequest(`/engagement/stories/${storyId}/like`, { method: 'POST' });
       setLiked(result.message?.toLowerCase().includes('liked'));
       setToast(result.message || 'Updated');
     } catch {
@@ -115,7 +158,7 @@ export default function ReadPage() {
       return;
     }
     try {
-      const result = await apiRequest(`/reader/bookmarks/${id}`, { method: 'POST' });
+      const result = await apiRequest(`/reader/bookmarks/${storyId}`, { method: 'POST' });
       setBookmarked(result.message?.toLowerCase().includes('bookmarked'));
       setToast(result.message || 'Updated');
     } catch {
@@ -131,11 +174,11 @@ export default function ReadPage() {
       return;
     }
     try {
-      await apiRequest(`/engagement/stories/${id}/comments`, {
+      await apiRequest(`/engagement/stories/${storyId}/comments`, {
         method: 'POST',
         body: { content },
       });
-      const latest = await apiRequest(`/engagement/stories/${id}/comments`).catch(() => []);
+      const latest = await apiRequest(`/engagement/stories/${storyId}/comments`).catch(() => []);
       setComments(Array.isArray(latest) ? latest : comments);
       setCommentText('');
       setToast('Comment added');
@@ -156,6 +199,43 @@ export default function ReadPage() {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ink)' }}>
         <div style={{ color: 'var(--muted)', fontSize: '15px' }}>Loading story...</div>
+      </div>
+    );
+  }
+
+  const premiumLocked = story?.is_premium && accessChecked && !hasPremiumAccess;
+  if (premiumLocked) {
+    return (
+      <div style={{ minHeight: 'calc(100vh - 60px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+        <div style={{ maxWidth: '520px', width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '26px' }}>
+          <div style={{ fontSize: '12px', letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '8px' }}>Premium Story</div>
+          <h1 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '36px', marginBottom: '8px' }}>{story?.title}</h1>
+          <p style={{ color: 'var(--muted)', marginBottom: '16px', lineHeight: 1.6 }}>
+            {readToken()
+              ? 'This chapter requires an active subscription. Upgrade your account to continue reading.'
+              : 'Sign in to unlock this premium chapter and continue reading on Wingsaga.'}
+          </p>
+          <button
+            className="bx-btn-primary"
+            onClick={() => {
+              if (!readToken()) {
+                router.push(`/auth/signin?next=${encodeURIComponent(`/read/${storyId}`)}`);
+                return;
+              }
+              router.push('/profile');
+            }}
+          >
+            {readToken() ? 'Manage Subscription' : 'Sign In To Continue'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (story?.is_premium && !accessChecked) {
+    return (
+      <div style={{ minHeight: 'calc(100vh - 60px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: 'var(--muted)', fontSize: '15px' }}>Checking access...</div>
       </div>
     );
   }

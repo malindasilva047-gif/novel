@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { apiRequest } from '@/lib/api';
 
 const PALETTES = [
@@ -28,23 +28,79 @@ const TABS = ['All','Reading','Completed','Saved'];
 
 export default function LibraryPage() {
   const router = useRouter();
-  const [tab, setTab] = useState('All');
+  const searchParams = useSearchParams();
+
+  const requestedTabRaw = searchParams.get('tab') || searchParams.get('filter') || 'All';
+  const requestedTab = TABS.find((t) => t.toLowerCase() === requestedTabRaw.toLowerCase()) || 'All';
+
+  const [tab, setTab] = useState(requestedTab);
   const [books, setBooks] = useState([]);
+  const [following, setFollowing] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiRequest('/reader/history').then(data => {
-      if (Array.isArray(data)) setBooks(data);
-      else setBooks(MOCK);
-    }).catch(() => setBooks(MOCK)).finally(() => setLoading(false));
+    setTab(requestedTab);
+  }, [requestedTab]);
+
+  useEffect(() => {
+    Promise.all([
+      apiRequest('/reader/history').catch(() => []),
+      apiRequest('/reader/bookmarks').catch(() => []),
+    ])
+      .then(([historyData, bookmarksData]) => {
+        const history = Array.isArray(historyData)
+          ? historyData.map((item) => ({
+              ...item,
+              _id: item.story_id || item._id,
+              progress: Math.round(item.progress_pct ?? item.progress ?? 0),
+              source: 'history',
+            }))
+          : [];
+
+        const mergedByStoryId = new Map(history.map((item) => [item.story_id || item._id, item]));
+
+        const bookmarks = Array.isArray(bookmarksData)
+          ? bookmarksData.map((item) => ({
+              _id: item.story_id,
+              story_id: item.story_id,
+              title: item.title,
+              cover_image: item.cover_image,
+              author_name: item.author_name || 'Author',
+              genre: item.genre || 'Fiction',
+              progress: 0,
+              status: 'saved',
+              source: 'bookmark',
+            }))
+          : [];
+
+        bookmarks.forEach((bookmark) => {
+          if (!mergedByStoryId.has(bookmark.story_id)) {
+            mergedByStoryId.set(bookmark.story_id, bookmark);
+          }
+        });
+
+        const merged = Array.from(mergedByStoryId.values());
+        setBooks(merged.length ? merged : MOCK);
+      })
+      .catch(() => setBooks(MOCK))
+      .finally(() => setLoading(false));
   }, []);
 
   const filtered = books.filter(b => {
     if (tab === 'All') return true;
     if (tab === 'Completed') return b.status === 'completed' || (b.progress || 0) === 100;
-    if (tab === 'Reading') return b.status !== 'completed' && (b.progress || 0) < 100 && (b.progress || 0) > 0;
+    if (tab === 'Reading') return (b.progress || 0) > 0 && (b.progress || 0) < 100;
+    if (tab === 'Saved') return b.source === 'bookmark' || (b.progress || 0) === 0;
     return true;
   });
+
+  const followAuthor = async (authorId) => {
+    if (!authorId) return;
+    try {
+      await apiRequest(`/users/${authorId}/follow`, { method: 'POST' });
+      setFollowing((prev) => ({ ...prev, [authorId]: true }));
+    } catch {}
+  };
 
   return (
     <main style={{minHeight:'100vh',paddingBottom:'60px'}}>
@@ -75,13 +131,25 @@ export default function LibraryPage() {
         ) : filtered.length > 0 ? (
           <div className="bx-library-grid">
             {filtered.map((b, i) => (
-              <div key={b._id || i} className="bx-lib-card" onClick={() => router.push(`/read/${b._id}`)}>
+              <div key={b.story_id || b._id || i} className="bx-lib-card" onClick={() => router.push(`/read/${b.story_id || b._id}`)}>
                 <div className="bx-lib-cover" style={{background: pal(i), display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Cormorant Garamond,serif',fontSize:'13px',fontWeight:600,color:'#fff',textAlign:'center',padding:'10px',lineHeight:1.3}}>
                   {b.cover_image ? <img src={b.cover_image} alt={b.title} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} /> : b.title}
                 </div>
                 <div className="bx-lib-info">
                   <div className="bx-lib-title">{b.title}</div>
                   <div className="bx-lib-meta">{b.author_name || b.author || 'Author'}</div>
+                  {!!b.author_id && (
+                    <button
+                      className="bx-btn-ghost"
+                      style={{ fontSize: '11px', padding: '6px 10px', marginBottom: '8px' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        followAuthor(b.author_id);
+                      }}
+                    >
+                      {following[b.author_id] ? 'Following' : 'Follow'}
+                    </button>
+                  )}
                   {(b.progress !== undefined) && b.progress < 100 && (
                     <div style={{marginBottom:'6px'}}>
                       <div style={{height:'3px',background:'rgba(255,255,255,0.07)',borderRadius:'2px',overflow:'hidden'}}>

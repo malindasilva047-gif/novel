@@ -14,14 +14,31 @@ export default function WritePage() {
   const [activeChIdx, setActiveChIdx] = useState(0);
   const [content, setContent] = useState('');
   const [chapterTitle, setChapterTitle] = useState('Chapter 1');
-  const [story, setStory] = useState({ title: '', description: '', genre: 'Fantasy', status: 'Draft', tags: '', cover_image: '' });
+  const [story, setStory] = useState({
+    title: '',
+    description: '',
+    genre: 'Fantasy',
+    status: 'Draft',
+    tags: '',
+    cover_image: '',
+    is_premium: false,
+    premium_price: '',
+  });
   const [tab, setTab] = useState('write');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(true);
   const [wordCount, setWordCount] = useState(0);
-  const textareaRef = useRef(null);
+  const editorRef = useRef(null);
 
   const activeChapter = chapters[activeChIdx];
+
+  const plainTextFromHtml = (html) =>
+    String(html || '')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
 
   const showToast = (msg) => {
     const t = document.createElement('div');
@@ -46,6 +63,8 @@ export default function WritePage() {
         status: first.status === 'draft' ? 'Draft' : 'Published',
         tags: Array.isArray(first.tags) ? first.tags.join(', ') : '',
         cover_image: first.cover_image || '',
+        is_premium: !!first.is_premium,
+        premium_price: first.premium_price ?? '',
       });
     }
   }
@@ -89,10 +108,20 @@ export default function WritePage() {
   }, [storyId]);
 
   useEffect(() => {
-    const words = content.trim() ? content.trim().split(/\s+/).length : 0;
+    const plainText = plainTextFromHtml(content);
+    const words = plainText ? plainText.split(/\s+/).length : 0;
     setWordCount(words);
     setSaved(false);
   }, [content]);
+
+  useEffect(() => {
+    if (tab !== 'write') return;
+    const editor = editorRef.current;
+    if (!editor) return;
+    if (editor.innerHTML !== content) {
+      editor.innerHTML = content || '';
+    }
+  }, [content, tab]);
 
   useEffect(() => {
     if (!chapters.length) return;
@@ -112,22 +141,26 @@ export default function WritePage() {
   };
 
   const toolbar = [
-    { label: 'B', cmd: '**', tip: 'Bold' },
-    { label: 'I', style: { fontStyle: 'italic' }, cmd: '_', tip: 'Italic' },
-    { label: 'H', cmd: '\n## ', tip: 'Heading' },
-    { label: '>', cmd: '\n> ', tip: 'Blockquote' },
-    { label: '�', cmd: '\n---\n', tip: 'Divider' },
+    { label: 'B', command: 'bold', tip: 'Bold' },
+    { label: 'I', command: 'italic', tip: 'Italic', style: { fontStyle: 'italic' } },
+    { label: 'U', command: 'underline', tip: 'Underline' },
+    { label: 'H', command: 'hiliteColor', value: '#ffe58f', tip: 'Highlight' },
+    { label: '•', command: 'insertUnorderedList', tip: 'Bullet list' },
   ];
 
-  const insertFormat = (cmd) => {
-    const ta = textareaRef.current;
-    if (!ta) return;
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-    const sel = content.slice(start, end);
-    const replacement = cmd.startsWith('\n') ? cmd + sel : cmd + sel + cmd;
-    setContent(content.slice(0, start) + replacement + content.slice(end));
-    setTimeout(() => { ta.focus(); ta.setSelectionRange(start + replacement.length, start + replacement.length); }, 0);
+  const applyEditorCommand = (tool) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.focus();
+
+    if (tool.command === 'hiliteColor') {
+      document.execCommand('styleWithCSS', false, true);
+      document.execCommand('hiliteColor', false, tool.value || '#ffe58f');
+    } else {
+      document.execCommand(tool.command, false, tool.value || null);
+    }
+
+    setContent(editor.innerHTML);
   };
 
   const persistDetails = async () => {
@@ -143,6 +176,8 @@ export default function WritePage() {
       tags: story.tags.split(',').map((t) => t.trim()).filter(Boolean),
       categories: [story.genre],
       is_draft: story.status === 'Draft',
+      is_premium: !!story.is_premium,
+      premium_price: story.is_premium && story.premium_price !== '' ? Number(story.premium_price) : null,
     };
 
     if (storyId) {
@@ -168,7 +203,7 @@ export default function WritePage() {
         showToast('Chapter title is required.');
         return;
       }
-      if ((content || '').trim().length < 50) {
+      if (plainTextFromHtml(content).length < 50) {
         showToast('Chapter content must be at least 50 characters.');
         return;
       }
@@ -281,22 +316,27 @@ export default function WritePage() {
         {tab === 'write' && (
           <>
             <div style={{padding:'6px 24px',borderBottom:'1px solid var(--border)',display:'flex',gap:'4px',background:'var(--deep)',flexShrink:0}}>
-              {toolbar.map(t => (
-                <button key={t.label} onClick={() => insertFormat(t.cmd)} title={t.tip}
-                  style={{width:'32px',height:'30px',background:'none',border:'1px solid transparent',borderRadius:'5px',cursor:'pointer',color:'var(--muted)',fontSize:'14px',fontWeight:700,...(t.style||{}),fontFamily:'DM Sans,sans-serif',display:'flex',alignItems:'center',justifyContent:'center'}}>
-                  {t.label}
+              {toolbar.map((tool) => (
+                <button
+                  key={tool.label}
+                  onClick={() => applyEditorCommand(tool)}
+                  title={tool.tip}
+                  style={{width:'32px',height:'30px',background:'none',border:'1px solid transparent',borderRadius:'5px',cursor:'pointer',color:'var(--muted)',fontSize:'14px',fontWeight:700,...(tool.style||{}),fontFamily:'DM Sans,sans-serif',display:'flex',alignItems:'center',justifyContent:'center'}}
+                >
+                  {tool.label}
                 </button>
               ))}
               <div style={{width:'1px',background:'var(--border)',margin:'4px 6px'}} />
-              <span style={{fontSize:'11px',color:'var(--muted)',alignSelf:'center',paddingLeft:'4px'}}>Markdown supported</span>
+              <span style={{fontSize:'11px',color:'var(--muted)',alignSelf:'center',paddingLeft:'4px'}}>Rich text editor</span>
             </div>
 
-            <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={e => setContent(e.target.value)}
-              placeholder="Begin your story here..."
-              style={{flex:1,background:'var(--ink)',border:'none',outline:'none',resize:'none',padding:'40px 48px',fontSize:'17px',lineHeight:1.8,fontFamily:'Lora,Georgia,serif',color:'rgba(255,255,255,0.85)',overflow:'auto',caretColor:'var(--gold)'}}
+            <div
+              ref={editorRef}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={(event) => setContent(event.currentTarget.innerHTML)}
+              data-placeholder="Begin your story here..."
+              style={{flex:1,background:'var(--ink)',border:'none',outline:'none',padding:'40px 48px',fontSize:'17px',lineHeight:1.8,fontFamily:'Lora,Georgia,serif',color:'rgba(255,255,255,0.85)',overflow:'auto',caretColor:'var(--gold)',whiteSpace:'pre-wrap'}}
             />
           </>
         )}
@@ -333,6 +373,29 @@ export default function WritePage() {
               <div className="bx-auth-field">
                 <label className="bx-auth-label">Tags (comma separated)</label>
                 <input className="bx-auth-input" value={story.tags} onChange={e=>setStory(s=>({...s,tags:e.target.value}))} placeholder="magic, adventure, coming-of-age" />
+              </div>
+
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
+                <div className="bx-auth-field">
+                  <label className="bx-auth-label">Access</label>
+                  <select className="bx-auth-input" value={story.is_premium ? 'premium' : 'free'} onChange={e=>setStory(s=>({...s,is_premium:e.target.value==='premium'}))}>
+                    <option value="free">Free</option>
+                    <option value="premium">Premium</option>
+                  </select>
+                </div>
+                <div className="bx-auth-field">
+                  <label className="bx-auth-label">Premium Price</label>
+                  <input
+                    className="bx-auth-input"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={story.premium_price}
+                    disabled={!story.is_premium}
+                    onChange={e=>setStory(s=>({...s,premium_price:e.target.value}))}
+                    placeholder="2.99"
+                  />
+                </div>
               </div>
 
               <div className="bx-auth-field">

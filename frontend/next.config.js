@@ -37,6 +37,19 @@ const nextConfig = {
 
       { source: "/bixbi-source/bixbi-profile.html", destination: "/profile", permanent: false }
     ];
+  },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "upgrade-insecure-requests"
+          }
+        ]
+      }
+    ];
   }
 };
 

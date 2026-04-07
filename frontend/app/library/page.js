@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { apiRequest } from '@/lib/api';
 
@@ -26,7 +26,7 @@ const MOCK = [
 
 const TABS = ['All','Reading','Completed','Saved'];
 
-export default function LibraryPage() {
+function LibraryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -176,5 +176,13 @@ export default function LibraryPage() {
         )}
       </section>
     </main>
+  );
+}
+
+export default function LibraryPage() {
+  return (
+    <Suspense fallback={<main style={{ minHeight: '100vh' }} />}>
+      <LibraryPageContent />
+    </Suspense>
   );
 }

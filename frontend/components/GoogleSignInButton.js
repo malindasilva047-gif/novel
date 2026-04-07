@@ -57,7 +57,7 @@ function loadGoogleScript() {
   });
 }
 
-export default function GoogleSignInButton({ onCredential, disabled = false, text = 'continue_with' }) {
+export default function GoogleSignInButton({ onCredential, disabled = false, text = 'continue_with', useRedirect = false }) {
   const clientId = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '').trim();
   const buttonRef = useRef(null);
   const callbackRef = useRef(onCredential);
@@ -89,13 +89,29 @@ export default function GoogleSignInButton({ onCredential, disabled = false, tex
         initializeGoogleOnce(clientId);
 
         buttonRef.current.innerHTML = '';
-        window.google.accounts.id.renderButton(buttonRef.current, {
-          theme: 'outline',
-          size: 'large',
-          shape: 'pill',
-          width: 320,
-          text,
-        });
+        
+        if (useRedirect) {
+          // Redirect-based flow (no popup, eliminates COOP warnings)
+          window.google.accounts.id.renderButton(buttonRef.current, {
+            theme: 'outline',
+            size: 'large',
+            shape: 'pill',
+            width: 320,
+            text,
+            auto_select: false,
+            ux_mode: 'redirect',
+            redirect_uri: window.location.origin + (typeof window !== 'undefined' && window.location.pathname === '/' ? '/auth/signin' : window.location.pathname),
+          });
+        } else {
+          // Popup flow (default, may show COOP warning)
+          window.google.accounts.id.renderButton(buttonRef.current, {
+            theme: 'outline',
+            size: 'large',
+            shape: 'pill',
+            width: 320,
+            text,
+          });
+        }
       })
       .catch((error) => {
         if (isMounted) {

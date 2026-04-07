@@ -43,7 +43,6 @@ export default function StoryCard({ story, index = 0, onClick }) {
             {story.title}
           </div>
         )}
-        {story.badge && <span className="bx-book-badge">{story.badge}</span>}
         {isPremium && <span className="bx-book-premium">PRO</span>}
         {isPremium && <div className="bx-book-locked">Premium</div>}
       </div>
@@ -51,7 +50,6 @@ export default function StoryCard({ story, index = 0, onClick }) {
       <div className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</div>
       <div className="bx-book-meta bx-book-meta-rich">
         <span>{Number(story.views || 0).toLocaleString()} views</span>
-        <span>{story.genre || story.category || 'Fiction'}</span>
       </div>
     </div>
   );

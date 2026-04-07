@@ -209,3 +209,26 @@ export async function fetchSiteSettings() {
     return fallback;
   }
 }
+
+export async function trackUserActivity({
+  postId,
+  actionType,
+  readTime = 0,
+  scrollDepth = 0,
+  token,
+} = {}) {
+  if (!postId || !actionType) {
+    return null;
+  }
+
+  return apiRequest('/user-activity', {
+    method: 'POST',
+    token,
+    body: {
+      post_id: String(postId),
+      action_type: String(actionType),
+      read_time: Number(readTime) || 0,
+      scroll_depth: Number(scrollDepth) || 0,
+    },
+  });
+}

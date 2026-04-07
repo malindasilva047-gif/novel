@@ -1,12 +1,12 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { apiRequest, apiUpload, readToken } from '@/lib/api';
 
 const GENRES = ['Fantasy','Romance','Mystery','Sci-Fi','Horror','Adventure','Drama','Teen Fiction','Fan Fiction','Poetry','Non-Fiction'];
 const STATUS_OPTS = ['Draft','Published'];
 
-export default function WritePage() {
+function WritePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [stories, setStories] = useState([]);
@@ -458,5 +458,13 @@ export default function WritePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function WritePage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: 'calc(100vh - 60px)' }} />}>
+      <WritePageContent />
+    </Suspense>
   );
 }

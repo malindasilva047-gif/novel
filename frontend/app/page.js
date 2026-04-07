@@ -446,6 +446,24 @@ export default function Home() {
     loadData();
   }, []);
 
+  // REAL-TIME POLLING FOR CONTINUE READING UPDATES
+  useEffect(() => {
+    const token = readToken();
+    if (!token) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const historyRes = await apiRequest('/reader/history', { token });
+        const updated = Array.isArray(historyRes) ? historyRes : (historyRes?.history || []);
+        setContinueHistory(updated);
+      } catch (err) {
+        // Silently fail on polling errors
+      }
+    }, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Hero auto-play
   useEffect(() => {
     const interval = setInterval(() => {

@@ -80,6 +80,30 @@ export default function ReadPage() {
       .finally(() => setLoading(false));
   }, [storyId, isNumericDemoId]);
 
+  // REAL-TIME VIEW COUNT & ENGAGEMENT POLLING
+  useEffect(() => {
+    if (!storyId || isNumericDemoId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const updated = await apiRequest(`/stories/${storyId}`).catch(() => null);
+        if (updated) {
+          setStory((prev) => ({
+            ...prev,
+            views: updated.views,
+            likes: updated.likes,
+            bookmarks: updated.bookmarks,
+            comments_count: updated.comments_count,
+          }));
+        }
+      } catch (err) {
+        // Silently fail on polling errors
+      }
+    }, 8000); // Poll every 8 seconds for view/engagement updates
+
+    return () => clearInterval(interval);
+  }, [storyId, isNumericDemoId]);
+
   useEffect(() => {
     const token = readToken();
     if (!token) {

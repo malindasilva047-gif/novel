@@ -50,11 +50,13 @@ function LibraryPageContent() {
       return;
     }
 
-    Promise.all([
-      apiRequest('/reader/history', { token }).catch(() => []),
-      apiRequest('/reader/bookmarks', { token }).catch(() => []),
-    ])
-      .then(([historyData, bookmarksData]) => {
+    const fetchLibraryData = async () => {
+      try {
+        const [historyData, bookmarksData] = await Promise.all([
+          apiRequest('/reader/history', { token }).catch(() => []),
+          apiRequest('/reader/bookmarks', { token }).catch(() => []),
+        ]);
+
         const history = Array.isArray(historyData)
           ? historyData.map((item) => ({
               ...item,
@@ -88,9 +90,18 @@ function LibraryPageContent() {
 
         const merged = Array.from(mergedByStoryId.values());
         setBooks(merged.length ? merged : MOCK);
-      })
-      .catch(() => setBooks(MOCK))
-      .finally(() => setLoading(false));
+      } catch (err) {
+        setBooks(MOCK);
+      }
+    };
+
+    // Initial load
+    fetchLibraryData().finally(() => setLoading(false));
+
+    // Real-time polling every 10 seconds
+    const interval = setInterval(fetchLibraryData, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const filtered = books.filter(b => {

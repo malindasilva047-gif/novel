@@ -7,6 +7,10 @@ const nextConfig = {
         hostname: "images.unsplash.com"
       },
       {
+        protocol: "https",
+        hostname: "lakmasachith-novel-backend.hf.space"
+      },
+      {
         protocol: "http",
         hostname: "localhost",
         port: "8000"

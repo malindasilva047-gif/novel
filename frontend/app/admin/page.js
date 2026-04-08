@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiRequest, clearSiteSettingsCache, readToken } from "@/lib/api";
+import { apiRequest, apiUpload, clearSiteSettingsCache, readToken } from "@/lib/api";
 
 const DEFAULT_SETTINGS = {
   site_name: "Bixbi",
@@ -67,11 +67,15 @@ const DEFAULT_PANEL_DATA = {
   reels: [],
   stories: [],
   user_reports: [],
+  story_reports: [],
+  chapter_reports: [],
+  comment_reports: [],
   post_reports: [],
   reel_reports: [],
   country_users: [],
   hashtags: [],
   languages: [],
+  genres: [],
   blocks: [],
   avatars: [],
   push_notifications: [],
@@ -116,12 +120,14 @@ const SIDEBAR_ITEMS = [
   { key: "reels", label: "Reel List" },
   { key: "stories", label: "Stories List" },
   { key: "user-reports", label: "User Report List" },
-  { key: "post-reports", label: "Post Report List" },
-  { key: "reel-reports", label: "Reel Report List" },
+  { key: "story-reports", label: "Story Report List" },
+  { key: "chapter-reports", label: "Chapter Report List" },
+  { key: "comment-reports", label: "Comment Report List" },
   { key: "users", label: "User List" },
   { key: "country-users", label: "Countrywise Users" },
   { key: "hashtags", label: "Hashtag List" },
   { key: "languages", label: "Language List" },
+  { key: "genres", label: "Genre List" },
   { key: "blocks", label: "Block List" },
   { key: "avatars", label: "Avatar List" },
 ];
@@ -277,6 +283,7 @@ export default function AdminPage() {
   const [hashtagName, setHashtagName] = useState("");
   const [languageForm, setLanguageForm] = useState({ name: "", country: "", status: "active", is_default: false });
   const [avatarForm, setAvatarForm] = useState({ name: "", gender: "female", image_url: "" });
+  const [genreForm, setGenreForm] = useState({ name: "", icon_url: "", status: "active" });
   const [pushForm, setPushForm] = useState({ title: "", description: "" });
   const [cmsDraft, setCmsDraft] = useState({ slug: "", title: "", excerpt: "", content: "", is_published: true });
   const [selectedCmsSlug, setSelectedCmsSlug] = useState("");
@@ -287,6 +294,9 @@ export default function AdminPage() {
   const [editingUserId, setEditingUserId] = useState("");
   const [editingLanguageName, setEditingLanguageName] = useState("");
   const [editingAvatarId, setEditingAvatarId] = useState("");
+  const [editingGenreName, setEditingGenreName] = useState("");
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [genreUploading, setGenreUploading] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const deferredSearch = useDeferredValue(searchText.trim().toLowerCase());
@@ -390,6 +400,13 @@ export default function AdminPage() {
       return `${item.name} ${item.country}`.toLowerCase().includes(deferredSearch);
     });
   }, [panelData.languages, deferredSearch]);
+
+  const filteredGenres = useMemo(() => {
+    return (panelData.genres || []).filter((item) => {
+      if (!deferredSearch) return true;
+      return `${item.name} ${item.status}`.toLowerCase().includes(deferredSearch);
+    });
+  }, [panelData.genres, deferredSearch]);
 
   const filteredBlocks = useMemo(() => {
     return (panelData.blocks || []).filter((item) => {
@@ -616,6 +633,74 @@ export default function AdminPage() {
       },
       loadPanelData,
     );
+  }
+
+  async function saveGenre() {
+    const token = readToken();
+    if (!token || !genreForm.name.trim()) return;
+    const route = editingGenreName ? `/admin/genres/${encodeURIComponent(editingGenreName)}` : "/admin/genres";
+    const method = editingGenreName ? "PATCH" : "POST";
+    const body = editingGenreName
+      ? { icon_url: genreForm.icon_url, status: genreForm.status }
+      : genreForm;
+    await performAction(
+      async () => {
+        const response = await apiRequest(route, { method, token, body });
+        setEditingGenreName("");
+        setGenreForm({ name: "", icon_url: "", status: "active" });
+        setMessage(response.message || "Genre saved.");
+      },
+      loadPanelData,
+    );
+  }
+
+  function startGenreEdit(item) {
+    setEditingGenreName(item.name || "");
+    setGenreForm({
+      name: item.name || "",
+      icon_url: item.icon_url || "",
+      status: item.status || "active",
+    });
+  }
+
+  function resetGenreEditor() {
+    setEditingGenreName("");
+    setGenreForm({ name: "", icon_url: "", status: "active" });
+  }
+
+  async function deleteGenre(name) {
+    const token = readToken();
+    if (!token) return;
+    await performAction(
+      async () => {
+        const response = await apiRequest(`/admin/genres/${encodeURIComponent(name)}`, { method: "DELETE", token });
+        if (editingGenreName === name) {
+          resetGenreEditor();
+        }
+        setMessage(response.message || "Genre deleted.");
+      },
+      loadPanelData,
+    );
+  }
+
+  async function uploadAdminImage(file, target = "avatar") {
+    const token = readToken();
+    if (!token || !file) return;
+    const setBusy = target === "genre" ? setGenreUploading : setAvatarUploading;
+    setBusy(true);
+    try {
+      const uploaded = await apiUpload("/admin/uploads/image", { file, fieldName: "image", token });
+      if (target === "genre") {
+        setGenreForm((prev) => ({ ...prev, icon_url: uploaded.image_url || "" }));
+      } else {
+        setAvatarForm((prev) => ({ ...prev, image_url: uploaded.image_url || "" }));
+      }
+      setMessage("Image uploaded.");
+    } catch (error) {
+      setMessage(error?.message || "Image upload failed.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function deleteAvatar(avatarId) {
@@ -859,7 +944,10 @@ export default function AdminPage() {
 
   const reportSections = {
     "user-reports": { title: "User Report List", items: panelData.user_reports || [] },
-    "post-reports": { title: "Post Report List", items: panelData.post_reports || [] },
+    "story-reports": { title: "Story Report List", items: panelData.story_reports || panelData.post_reports || [] },
+    "chapter-reports": { title: "Chapter Report List", items: panelData.chapter_reports || [] },
+    "comment-reports": { title: "Comment Report List", items: panelData.comment_reports || [] },
+    "post-reports": { title: "Story Report List", items: panelData.story_reports || panelData.post_reports || [] },
     "reel-reports": { title: "Reel Report List", items: panelData.reel_reports || [] },
   };
 
@@ -912,7 +1000,7 @@ export default function AdminPage() {
             </div>
           )}
 
-          {SIDEBAR_ITEMS.filter((item) => !["reels", "stories", "user-reports", "post-reports", "reel-reports"].includes(item.key)).map((item) => (
+          {SIDEBAR_ITEMS.filter((item) => !["reels", "stories", "user-reports", "story-reports", "chapter-reports", "comment-reports", "post-reports", "reel-reports"].includes(item.key)).map((item) => (
             <button type="button" key={item.key} className={`admin-nav-item ${activeSection === item.key ? "active" : ""}`} onClick={() => { setActiveSection(item.key); setSidebarOpen(false); }}>
               <span className="admin-nav-icon">{item.label.slice(0, 2).toUpperCase()}</span>
               {item.label}
@@ -1208,10 +1296,41 @@ export default function AdminPage() {
                         <td>{formatDateTime(item.created_at)}</td>
                         <td>
                           <div className="admin-user-identity">
-                            <MiniAvatar image={activeSection === "user-reports" ? item.reported_user?.image : item.story?.image || item.reported_user?.image} text={activeSection === "user-reports" ? item.reported_user?.name : item.story?.title || item.reported_user?.name} />
+                            <MiniAvatar
+                              image={
+                                activeSection === "user-reports"
+                                  ? item.reported_user?.image
+                                  : item.story?.image || item.reported_user?.image
+                              }
+                              text={
+                                activeSection === "user-reports"
+                                  ? item.reported_user?.name
+                                  : activeSection === "chapter-reports"
+                                    ? item.chapter?.title || item.story?.title || "Chapter"
+                                    : activeSection === "comment-reports"
+                                      ? item.comment?.content || item.story?.title || "Comment"
+                                      : item.story?.title || item.reported_user?.name
+                              }
+                            />
                             <div className="admin-person-cell">
-                              <strong>{activeSection === "user-reports" ? item.reported_user?.name : item.story?.title || item.reported_user?.name}</strong>
-                              <span>{activeSection === "user-reports" ? item.reported_user?.email : item.reported_user?.email || item.story?.title}</span>
+                              <strong>
+                                {activeSection === "user-reports"
+                                  ? item.reported_user?.name
+                                  : activeSection === "chapter-reports"
+                                    ? item.chapter?.title || item.story?.title || "Unknown Chapter"
+                                    : activeSection === "comment-reports"
+                                      ? item.comment?.content || item.story?.title || "Unknown Comment"
+                                      : item.story?.title || item.reported_user?.name}
+                              </strong>
+                              <span>
+                                {activeSection === "user-reports"
+                                  ? item.reported_user?.email
+                                  : activeSection === "chapter-reports"
+                                    ? `Story: ${item.story?.title || "Unknown Story"}`
+                                    : activeSection === "comment-reports"
+                                      ? `Story: ${item.story?.title || "Unknown Story"}`
+                                      : item.reported_user?.email || item.story?.title}
+                              </span>
                             </div>
                           </div>
                         </td>
@@ -1225,7 +1344,7 @@ export default function AdminPage() {
                             </div>
                           </div>
                         </td>
-                        <td><StatusChip value={item.reported_user?.status || item.status} /></td>
+                        <td><StatusChip value={item.reported_user?.status || item.status || item.report_kind} /></td>
                         <td>
                           <div className="admin-inline-actions">
                             <ActionIconButton label="Resolve" onClick={() => resolveReport(item.id)} />
@@ -1489,6 +1608,75 @@ export default function AdminPage() {
             </section>
           )}
 
+          {activeSection === "genres" && (
+            <section className="admin-panel">
+              <SectionHeader title="Genre List" breadcrumb="Dashboard . Genre List" actions={<button type="button" className="admin-primary-btn" onClick={resetGenreEditor}>{editingGenreName ? "New Genre" : "Add Genre"}</button>} />
+              <div className="admin-form-split admin-form-split-wide">
+                <div className="admin-table-wrap">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>S.L</th>
+                        <th>Genre</th>
+                        <th>Stories</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredGenres.map((item, index) => (
+                        <tr key={item.name}>
+                          <td>{index + 1}</td>
+                          <td>
+                            <div className="admin-user-identity">
+                              <MiniAvatar image={item.icon_url} text={item.name} />
+                              <div className="admin-person-cell">
+                                <strong>{item.name}</strong>
+                                <span>{item.icon_url ? "Icon uploaded" : "No icon"}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td>{item.story_count || 0}</td>
+                          <td><StatusChip value={item.status || "active"} /></td>
+                          <td>
+                            <div className="admin-inline-actions">
+                              <ActionIconButton label="Edit" onClick={() => startGenreEdit(item)} />
+                              <ActionIconButton label="Delete" danger onClick={() => deleteGenre(item.name)} />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="admin-form-card">
+                  <div className="admin-form-heading">
+                    <h3>{editingGenreName ? "Edit Genre" : "Add Genre"}</h3>
+                    <p>Create genre labels with icon uploads used by admin and discovery pages.</p>
+                  </div>
+                  <label>Genre Name</label>
+                  <input className="admin-input" value={genreForm.name} disabled={Boolean(editingGenreName)} onChange={(event) => setGenreForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="Genre name" />
+                  <label>Genre Icon Upload</label>
+                  <input type="file" accept="image/*" className="admin-file-input" onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) uploadAdminImage(file, "genre");
+                    event.target.value = "";
+                  }} />
+                  {genreUploading ? <p className="admin-page-subtitle">Uploading icon...</p> : null}
+                  {genreForm.icon_url ? <MiniAvatar image={genreForm.icon_url} text={genreForm.name || "G"} /> : null}
+                  <div className="admin-toggle-row admin-toggle-row-card">
+                    <span>Status: {genreForm.status === "inactive" ? "Inactive" : "Active"}</span>
+                    <button type="button" className={`admin-toggle ${genreForm.status !== "inactive" ? "active" : ""}`} onClick={() => setGenreForm((prev) => ({ ...prev, status: prev.status === "active" ? "inactive" : "active" }))}><span /></button>
+                  </div>
+                  <div className="admin-inline-actions">
+                    <button type="button" className="admin-primary-btn" onClick={saveGenre}>{editingGenreName ? "Update Genre" : "Save Genre"}</button>
+                    {(editingGenreName || genreForm.name) ? <button type="button" className="admin-clear-btn" onClick={resetGenreEditor}>Cancel</button> : null}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
           {activeSection === "blocks" && (
             <section className="admin-panel">
               <SectionHeader title="Block List" breadcrumb="Dashboard . Block List" />
@@ -1573,8 +1761,19 @@ export default function AdminPage() {
                   </div>
                   <label>Avatar Name</label>
                   <input className="admin-input" value={avatarForm.name} onChange={(event) => setAvatarForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="Avatar name" />
-                  <label>Image URL</label>
-                  <input className="admin-input" value={avatarForm.image_url} onChange={(event) => setAvatarForm((prev) => ({ ...prev, image_url: event.target.value }))} placeholder="Image URL" />
+                  <label>Avatar Image Upload</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="admin-file-input"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) uploadAdminImage(file, "avatar");
+                      event.target.value = "";
+                    }}
+                  />
+                  {avatarUploading ? <p className="admin-page-subtitle">Uploading avatar...</p> : null}
+                  {avatarForm.image_url ? <MiniAvatar image={avatarForm.image_url} text={avatarForm.name || "A"} /> : null}
                   <div className="admin-radio-row">
                     <span>Gender</span>
                     {["male", "female", "other"].map((value) => (

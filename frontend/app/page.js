@@ -1241,7 +1241,7 @@ export default function Home() {
       {/* ───────────────────────────────────────────────────
           15. CTA BANNER
       ─────────────────────────────────────────────────── */}
-      <section className="bx-section">
+      <section className="bx-section bx-section-cta">
         <div className="bx-cta-banner">
           <h2>Your story deserves to be <em>heard</em></h2>
           <p>

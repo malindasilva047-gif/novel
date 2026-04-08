@@ -1,9 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { apiRequest, saveToken } from '@/lib/api';
+import { apiRequest, fetchSiteSettings, saveToken } from '@/lib/api';
 import GoogleSignInButton from '@/components/GoogleSignInButton';
 
 function SignInPageInner() {
@@ -14,8 +14,13 @@ function SignInPageInner() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [needsVerif, setNeedsVerif] = useState(false);
+  const [siteSettings, setSiteSettings] = useState({ site_name: 'Bixbi', login_config: { email_enabled: true, google_enabled: true } });
 
   const nextPath = searchParams.get('next') || '/';
+
+  useEffect(() => {
+    fetchSiteSettings().then(setSiteSettings).catch(() => {});
+  }, []);
 
   async function finishLogin(accessToken, loginPayload = null) {
     saveToken(accessToken);
@@ -66,6 +71,7 @@ function SignInPageInner() {
     <div className="bx-auth-page">
       <div className="bx-auth-card">
         <div className="bx-auth-logo">Bi<span>x</span>bi</div>
+        <div className="bx-auth-logo">{siteSettings.site_name}</div>
         <h1 className="bx-auth-title">Welcome back</h1>
         <p className="bx-auth-sub">Sign in to continue your reading journey</p>
 
@@ -78,38 +84,48 @@ function SignInPageInner() {
           </div>
         )}
 
-        <form className="bx-auth-form" onSubmit={onSubmit}>
-          <div className="bx-auth-field">
-            <label className="bx-auth-label">Username or Email</label>
-            <input
-              className="bx-auth-input"
-              placeholder="Enter your username or email"
-              value={form.identifier}
-              onChange={e => setForm({...form, identifier: e.target.value})}
-              required autoFocus
-            />
-          </div>
-          <div className="bx-auth-field">
-            <label className="bx-auth-label">Password</label>
-            <input
-              type="password"
-              className="bx-auth-input"
-              placeholder="Enter your password"
-              value={form.password}
-              onChange={e => setForm({...form, password: e.target.value})}
-              required
-            />
-          </div>
+        {siteSettings?.login_config?.email_enabled !== false && (
+          <form className="bx-auth-form" onSubmit={onSubmit}>
+            <div className="bx-auth-field">
+              <label className="bx-auth-label">Username or Email</label>
+              <input
+                className="bx-auth-input"
+                placeholder="Enter your username or email"
+                value={form.identifier}
+                onChange={e => setForm({...form, identifier: e.target.value})}
+                required autoFocus
+              />
+            </div>
+            <div className="bx-auth-field">
+              <label className="bx-auth-label">Password</label>
+              <input
+                type="password"
+                className="bx-auth-input"
+                placeholder="Enter your password"
+                value={form.password}
+                onChange={e => setForm({...form, password: e.target.value})}
+                required
+              />
+            </div>
 
-          <button type="submit" className="bx-auth-submit" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign In'}
-          </button>
-        </form>
+            <button type="submit" className="bx-auth-submit" disabled={loading}>
+              {loading ? 'Signing in…' : 'Sign In'}
+            </button>
+          </form>
+        )}
 
-        <div className="bx-auth-divider"><span>Or continue with</span></div>
-        <GoogleSignInButton onCredential={handleGoogleSignIn} disabled={loading || googleLoading} useRedirect={true} />
+        {siteSettings?.login_config?.google_enabled !== false && (
+          <>
+            <div className="bx-auth-divider"><span>Or continue with</span></div>
+            <GoogleSignInButton onCredential={handleGoogleSignIn} disabled={loading || googleLoading} useRedirect={true} />
+          </>
+        )}
 
-        <div className="bx-auth-divider"><span>New to Bixbi?</span></div>
+        {siteSettings?.login_config?.email_enabled === false && siteSettings?.login_config?.google_enabled === false && (
+          <div className="bx-auth-error" style={{marginBottom:'16px'}}>Login is currently disabled by the administrator.</div>
+        )}
+
+        <div className="bx-auth-divider"><span>New to {siteSettings.site_name}?</span></div>
         <p className="bx-auth-link">
           <Link href="/auth/signup">Create a free account ?</Link>
         </p>

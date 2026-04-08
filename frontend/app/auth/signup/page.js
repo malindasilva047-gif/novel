@@ -1,8 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { apiRequest, saveToken } from '@/lib/api';
+import { apiRequest, fetchSiteSettings, saveToken } from '@/lib/api';
 import GoogleSignInButton from '@/components/GoogleSignInButton';
 
 const STEPS = ['Account', 'Verify', 'Profile'];
@@ -31,8 +31,13 @@ export default function SignUpPage() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [siteSettings, setSiteSettings] = useState({ site_name: 'Bixbi', login_config: { email_enabled: true, google_enabled: true } });
 
   const GENRES = ['Fantasy','Romance','Mystery','Sci-Fi','Horror','Adventure','Drama','Teen Fiction'];
+
+  useEffect(() => {
+    fetchSiteSettings().then(setSiteSettings).catch(() => {});
+  }, []);
 
   async function hydrateUser(accessToken) {
     saveToken(accessToken);
@@ -159,7 +164,7 @@ export default function SignUpPage() {
   return (
     <div className="bx-auth-page">
       <div className="bx-auth-card">
-        <div className="bx-auth-logo">Bi<span>x</span>bi</div>
+        <div className="bx-auth-logo">{siteSettings.site_name}</div>
 
         <div className="bx-steps" style={{marginBottom:'24px'}}>
           {STEPS.map((s, i) => (
@@ -177,23 +182,32 @@ export default function SignUpPage() {
           <>
             <h2 className="bx-auth-title">Create account</h2>
             <p className="bx-auth-sub">Join millions of readers and writers</p>
-            <form className="bx-auth-form" onSubmit={handleStep1}>
-              <div className="bx-auth-field">
-                <label className="bx-auth-label">Username</label>
-                <input className="bx-auth-input" placeholder="Choose a username" value={form.username} onChange={e => setForm({...form, username: e.target.value})} required autoFocus />
-              </div>
-              <div className="bx-auth-field">
-                <label className="bx-auth-label">Email</label>
-                <input type="email" className="bx-auth-input" placeholder="Enter your email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} required />
-              </div>
-              <div className="bx-auth-field">
-                <label className="bx-auth-label">Password</label>
-                <input type="password" className="bx-auth-input" placeholder="Create a strong password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} required minLength={8} />
-              </div>
-              <button type="submit" className="bx-auth-submit" disabled={loading}>{loading ? 'Creating…' : 'Create Account'}</button>
-            </form>
-            <div className="bx-auth-divider"><span>Or continue with</span></div>
-            <GoogleSignInButton onCredential={handleGoogleSignup} disabled={loading || googleLoading} text="signup_with" useRedirect={true} />
+            {siteSettings?.login_config?.email_enabled !== false && (
+              <form className="bx-auth-form" onSubmit={handleStep1}>
+                <div className="bx-auth-field">
+                  <label className="bx-auth-label">Username</label>
+                  <input className="bx-auth-input" placeholder="Choose a username" value={form.username} onChange={e => setForm({...form, username: e.target.value})} required autoFocus />
+                </div>
+                <div className="bx-auth-field">
+                  <label className="bx-auth-label">Email</label>
+                  <input type="email" className="bx-auth-input" placeholder="Enter your email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} required />
+                </div>
+                <div className="bx-auth-field">
+                  <label className="bx-auth-label">Password</label>
+                  <input type="password" className="bx-auth-input" placeholder="Create a strong password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} required minLength={8} />
+                </div>
+                <button type="submit" className="bx-auth-submit" disabled={loading}>{loading ? 'Creating…' : 'Create Account'}</button>
+              </form>
+            )}
+            {siteSettings?.login_config?.google_enabled !== false && (
+              <>
+                <div className="bx-auth-divider"><span>Or continue with</span></div>
+                <GoogleSignInButton onCredential={handleGoogleSignup} disabled={loading || googleLoading} text="signup_with" useRedirect={true} />
+              </>
+            )}
+            {siteSettings?.login_config?.email_enabled === false && siteSettings?.login_config?.google_enabled === false && (
+              <div className="bx-auth-error" style={{marginBottom:'16px'}}>New registrations are currently disabled by the administrator.</div>
+            )}
             <div className="bx-auth-divider"><span>Already have an account?</span></div>
             <p className="bx-auth-link"><Link href="/auth/signin">Sign in ?</Link></p>
           </>

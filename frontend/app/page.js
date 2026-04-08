@@ -1268,8 +1268,8 @@ export default function Home() {
       ─────────────────────────────────────────────────── */}
       <section className="bx-section bx-section-cta">
         <div className="bx-cta-banner">
-          <h2>Your story deserves to be <em>heard</em></h2>
-          <p>
+          <h2 style={{ color: "#ffffff" }}>Your story deserves to be heard</h2>
+          <p style={{ color: "#ffffff" }}>
             Join thousands of authors sharing their creative works with the world. Start writing today
             and connect with millions of readers.
           </p>
@@ -1290,7 +1290,7 @@ export default function Home() {
               onClick={() => router.push('/discover')}
               style={{
                 border: '1px solid rgba(201,169,110,0.3)',
-                color: 'var(--text)',
+                color: '#ffffff',
                 padding: '11px 28px',
               }}
             >

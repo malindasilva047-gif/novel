@@ -116,20 +116,20 @@ const DEFAULT_USER_FORM = {
   is_banned: false,
 };
 
-const SIDEBAR_ITEMS = [
-  { key: "reels", label: "Reel List", icon: "🎬" },
-  { key: "stories", label: "Stories List", icon: "📚" },
-  { key: "user-reports", label: "User Report List", icon: "🚨" },
-  { key: "story-reports", label: "Story Report List", icon: "📣" },
-  { key: "chapter-reports", label: "Chapter Report List", icon: "📝" },
-  { key: "comment-reports", label: "Comment Report List", icon: "💬" },
-  { key: "users", label: "User List", icon: "👤" },
-  { key: "country-users", label: "Countrywise Users", icon: "🌍" },
-  { key: "hashtags", label: "Hashtag List", icon: "#" },
-  { key: "languages", label: "Language List", icon: "🈯" },
-  { key: "genres", label: "Genre List", icon: "🏷️" },
-  { key: "blocks", label: "Block List", icon: "⛔" },
-  { key: "avatars", label: "Avatar List", icon: "🖼️" },
+const ADVANCED_SECTIONS = [
+  { key: "reels", label: "Reels", icon: "🎬" },
+  { key: "hashtags", label: "Hashtags", icon: "#" },
+  { key: "languages", label: "Languages", icon: "🈯" },
+  { key: "genres", label: "Genres", icon: "🏷️" },
+  { key: "blocks", label: "Blocks", icon: "⛔" },
+  { key: "avatars", label: "Avatars", icon: "🖼️" },
+  { key: "story-reports", label: "Story Reports", icon: "📣" },
+  { key: "chapter-reports", label: "Chapter Reports", icon: "📝" },
+  { key: "comment-reports", label: "Comment Reports", icon: "💬" },
+  { key: "profile", label: "Profile", icon: "👤" },
+  { key: "cms", label: "CMS Pages", icon: "📄" },
+  { key: "debug", label: "Admin Debug", icon: "🧪" },
+  { key: "country-users", label: "Country Users", icon: "🌍" },
 ];
 
 const SETTINGS_TABS = [
@@ -216,9 +216,9 @@ function toUserForm(user = {}) {
 function DashboardCard({ label, value, tone = "primary" }) {
   const iconMap = {
     "Total Users": "👤",
-    "Total Books": "📚",
-    Downloads: "⬇",
-    Views: "👁",
+    "Total Stories": "📚",
+    "Total Reads": "👁",
+    Revenue: "💰",
   };
   return (
     <article className={`admin-stat-card admin-tone-${tone}`}>
@@ -232,9 +232,12 @@ function DashboardCard({ label, value, tone = "primary" }) {
 function StatusChip({ value }) {
   const toneMap = {
     active: "active",
+    ok: "active",
     published: "published",
     resolved: "resolved",
     sent: "resolved",
+    flagged: "open",
+    spam: "inactive",
     inactive: "inactive",
     draft: "draft",
     open: "open",
@@ -305,6 +308,9 @@ export default function AdminPage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [genreUploading, setGenreUploading] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [adminComments, setAdminComments] = useState([]);
+  const [commentsFilter, setCommentsFilter] = useState("all");
+  const [commentsLoading, setCommentsLoading] = useState(false);
 
   const deferredSearch = useDeferredValue(searchText.trim().toLowerCase());
 
@@ -365,6 +371,11 @@ export default function AdminPage() {
     }, 20000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (activeSection !== "comments") return;
+    loadAdminComments().catch(() => {});
+  }, [activeSection]);
 
   const filteredUsers = useMemo(() => {
     return (panelData.users || []).filter((item) => {
@@ -443,6 +454,36 @@ export default function AdminPage() {
     });
   }, [panelData.cms_pages, deferredSearch]);
 
+  const chapterRows = useMemo(() => {
+    const seen = new Set();
+    return (panelData.chapter_reports || []).filter((item) => {
+      const key = item.chapter?.id || item.id;
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      if (!deferredSearch) return true;
+      return `${item.chapter?.title || ""} ${item.story?.title || ""} ${item.reported_user?.name || ""}`
+        .toLowerCase()
+        .includes(deferredSearch);
+    });
+  }, [panelData.chapter_reports, deferredSearch]);
+
+  const flaggedCommentIds = useMemo(() => {
+    return new Set((panelData.comment_reports || []).map((item) => item.comment?.id).filter(Boolean));
+  }, [panelData.comment_reports]);
+
+  const filteredAdminComments = useMemo(() => {
+    return adminComments.filter((item) => {
+      const isSpam = /(https?:\/\/|www\.|spam|cheap|buy followers|telegram|porn|casino)/i.test(item.content || "");
+      const isFlagged = flaggedCommentIds.has(item.id) || item.status === "hidden";
+
+      if (commentsFilter === "flagged" && !isFlagged) return false;
+      if (commentsFilter === "spam" && !isSpam) return false;
+
+      if (!deferredSearch) return true;
+      return `${item.content || ""} ${item.story_id || ""} ${item.user_id || ""}`.toLowerCase().includes(deferredSearch);
+    });
+  }, [adminComments, commentsFilter, deferredSearch, flaggedCommentIds]);
+
   async function performAction(task, onSuccess) {
     try {
       await task();
@@ -452,6 +493,55 @@ export default function AdminPage() {
     } catch (error) {
       setMessage(error?.message || "Action failed.");
     }
+  }
+
+  async function loadAdminComments(status = "all") {
+    const token = readToken();
+    if (!token) return;
+    setCommentsLoading(true);
+    try {
+      const query = status === "all" ? "" : `?status=${encodeURIComponent(status)}`;
+      const rows = await apiRequest(`/admin/comments${query}`, { token });
+      setAdminComments(Array.isArray(rows) ? rows : []);
+    } catch (error) {
+      setMessage(error?.message || "Could not load comments.");
+    } finally {
+      setCommentsLoading(false);
+    }
+  }
+
+  function getUserForComment(comment) {
+    return (panelData.users || []).find((item) => item.id === comment.user_id || item._id === comment.user_id);
+  }
+
+  async function toggleCommentVisibility(comment) {
+    const token = readToken();
+    if (!token) return;
+    await performAction(
+      async () => {
+        const route = comment.status === "hidden"
+          ? `/admin/comments/${comment.id}/show`
+          : `/admin/comments/${comment.id}/hide`;
+        const response = await apiRequest(route, { method: "POST", token });
+        setMessage(response.message || "Comment updated.");
+      },
+      async () => loadAdminComments(),
+    );
+  }
+
+  async function removeComment(comment) {
+    if (typeof window !== "undefined" && !window.confirm("Delete this comment permanently?")) {
+      return;
+    }
+    const token = readToken();
+    if (!token) return;
+    await performAction(
+      async () => {
+        const response = await apiRequest(`/admin/comments/${comment.id}`, { method: "DELETE", token });
+        setMessage(response.message || "Comment deleted.");
+      },
+      async () => loadAdminComments(),
+    );
   }
 
   async function updateUserBan(user) {
@@ -970,82 +1060,109 @@ export default function AdminPage() {
     <main className="admin-shell">
       <aside className={`admin-sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="admin-brand-row admin-sidebar-logo">
-          <div className="admin-logo-icon">BX</div>
+          <div className="admin-logo-icon">NA</div>
           <div className="admin-brand-block">
-            <div className="admin-brand-script">Bixbi</div>
+            <div className="admin-brand-script">NovelAdmin</div>
             <div className="admin-brand-sub">Control Panel</div>
           </div>
           <button type="button" className="admin-sidebar-close" onClick={() => setSidebarOpen(false)}>✕</button>
         </div>
 
         <button type="button" className="admin-nav-search-pill" onClick={() => setSidebarOpen(false)}>
-          Search menu
-        </button>
-
-        <button type="button" className={`admin-nav-item ${activeSection === "reels" ? "active" : ""}`} onClick={() => { setActiveSection("reels"); setSidebarOpen(false); }}>
-          <span className="admin-nav-icon">🎬</span>
-          Reel List
-        </button>
-        <button type="button" className={`admin-nav-item ${activeSection === "stories" ? "active" : ""}`} onClick={() => { setActiveSection("stories"); setSidebarOpen(false); }}>
-          <span className="admin-nav-icon">📚</span>
-          Stories List
+          Search users, stories...
         </button>
 
         <div className="admin-nav-group">
-          <div className="admin-nav-title">List</div>
-          <button type="button" className={`admin-nav-item ${activeSection.includes("report") ? "active" : ""}`} onClick={() => setReportsOpen((prev) => !prev)}>
+          <div className="admin-nav-title">Main</div>
+          <button type="button" className={`admin-nav-item ${activeSection === "dashboard" ? "active" : ""}`} onClick={() => { setActiveSection("dashboard"); setSidebarOpen(false); }}>
+            <span className="admin-nav-icon">🏠</span>
+            Dashboard
+          </button>
+        </div>
+
+        <div className="admin-nav-group">
+          <div className="admin-nav-title">Content</div>
+          <button type="button" className={`admin-nav-item ${activeSection === "users" ? "active" : ""}`} onClick={() => { setActiveSection("users"); setSidebarOpen(false); }}>
+            <span className="admin-nav-icon">👤</span>
+            Users
+          </button>
+          <button type="button" className={`admin-nav-item ${activeSection === "stories" ? "active" : ""}`} onClick={() => { setActiveSection("stories"); setSidebarOpen(false); }}>
+            <span className="admin-nav-icon">📚</span>
+            Stories
+          </button>
+          <button type="button" className={`admin-nav-item ${activeSection === "chapters" ? "active" : ""}`} onClick={() => { setActiveSection("chapters"); setSidebarOpen(false); }}>
+            <span className="admin-nav-icon">📄</span>
+            Chapters
+          </button>
+          <button type="button" className={`admin-nav-item ${activeSection === "comments" ? "active" : ""}`} onClick={() => { setActiveSection("comments"); setSidebarOpen(false); }}>
+            <span className="admin-nav-icon">💬</span>
+            Comments
+          </button>
+        </div>
+
+        <div className="admin-nav-group">
+          <div className="admin-nav-title">Moderation</div>
+          <button type="button" className={`admin-nav-item ${activeSection === "user-reports" ? "active" : ""}`} onClick={() => { setActiveSection("user-reports"); setSidebarOpen(false); }}>
             <span className="admin-nav-icon">🚨</span>
-            Report List
+            Reports
+          </button>
+        </div>
+
+        <div className="admin-nav-group">
+          <div className="admin-nav-title">Insights</div>
+          <button type="button" className={`admin-nav-item ${activeSection === "dashboard" ? "active" : ""}`} onClick={() => { setActiveSection("dashboard"); setSidebarOpen(false); }}>
+            <span className="admin-nav-icon">📊</span>
+            Analytics
+          </button>
+          <button
+            type="button"
+            className={`admin-nav-item ${activeSection === "settings" && settingsTab === "payment" ? "active" : ""}`}
+            onClick={() => {
+              setActiveSection("settings");
+              setSettingsTab("payment");
+              setSidebarOpen(false);
+            }}
+          >
+            <span className="admin-nav-icon">💰</span>
+            Monetization
+          </button>
+        </div>
+
+        <div className="admin-nav-group">
+          <div className="admin-nav-title">System</div>
+          <button type="button" className={`admin-nav-item ${activeSection === "push" ? "active" : ""}`} onClick={() => { setActiveSection("push"); setSidebarOpen(false); }}>
+            <span className="admin-nav-icon">🔔</span>
+            Notifications
+          </button>
+          <button type="button" className={`admin-nav-item ${activeSection === "settings" ? "active" : ""}`} onClick={() => { setActiveSection("settings"); setSidebarOpen(false); }}>
+            <span className="admin-nav-icon">⚙️</span>
+            Settings
+          </button>
+          <button type="button" className={`admin-nav-item ${reportsOpen ? "active" : ""}`} onClick={() => setReportsOpen((prev) => !prev)}>
+            <span className="admin-nav-icon">⋯</span>
+            Advanced
           </button>
           {reportsOpen && (
             <div className="admin-subnav">
-              {SIDEBAR_ITEMS.filter((item) => item.key.includes("report")).map((item) => (
-                <button type="button" key={item.key} className={`admin-subnav-item ${activeSection === item.key ? "active" : ""}`} onClick={() => { setActiveSection(item.key); setSidebarOpen(false); }}>
+              {ADVANCED_SECTIONS.map((item) => (
+                <button
+                  type="button"
+                  key={item.key}
+                  className={`admin-subnav-item ${activeSection === item.key ? "active" : ""}`}
+                  onClick={() => {
+                    setActiveSection(item.key);
+                    setSidebarOpen(false);
+                  }}
+                >
                   <span className="admin-nav-icon">{item.icon || "•"}</span>
                   {item.label}
                 </button>
               ))}
             </div>
           )}
-
-          {SIDEBAR_ITEMS.filter((item) => !["reels", "stories", "user-reports", "story-reports", "chapter-reports", "comment-reports", "post-reports", "reel-reports"].includes(item.key)).map((item) => (
-            <button type="button" key={item.key} className={`admin-nav-item ${activeSection === item.key ? "active" : ""}`} onClick={() => { setActiveSection(item.key); setSidebarOpen(false); }}>
-              <span className="admin-nav-icon">{item.icon || item.label.slice(0, 2).toUpperCase()}</span>
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="admin-nav-group">
-          <div className="admin-nav-title">Notification</div>
-          <button type="button" className={`admin-nav-item ${activeSection === "push" ? "active" : ""}`} onClick={() => { setActiveSection("push"); setSidebarOpen(false); }}>
-            <span className="admin-nav-icon">🔔</span>
-            Push Notification
-          </button>
         </div>
 
         <div className="admin-nav-group admin-nav-footer">
-          <div className="admin-nav-title">Setting</div>
-          <button type="button" className={`admin-nav-item ${activeSection === "settings" ? "active" : ""}`} onClick={() => { setActiveSection("settings"); setSidebarOpen(false); }}>
-            <span className="admin-nav-icon">⚙️</span>
-            Settings
-          </button>
-          <button type="button" className={`admin-nav-item ${activeSection === "profile" ? "active" : ""}`} onClick={() => { setActiveSection("profile"); setSidebarOpen(false); }}>
-            <span className="admin-nav-icon">👤</span>
-            Profile
-          </button>
-          <button type="button" className={`admin-nav-item ${activeSection === "cms" ? "active" : ""}`} onClick={() => { setActiveSection("cms"); setSidebarOpen(false); }}>
-            <span className="admin-nav-icon">📄</span>
-            CMS Pages
-          </button>
-          <button type="button" className={`admin-nav-item ${activeSection === "dashboard" ? "active" : ""}`} onClick={() => { setActiveSection("dashboard"); setSidebarOpen(false); }}>
-            <span className="admin-nav-icon">🏠</span>
-            Dashboard
-          </button>
-          <button type="button" className={`admin-nav-item ${activeSection === "debug" ? "active" : ""}`} onClick={() => { setActiveSection("debug"); setSidebarOpen(false); }}>
-            <span className="admin-nav-icon">🧪</span>
-            Admin Debug
-          </button>
           <button type="button" className="admin-nav-item" onClick={logout}><span className="admin-nav-icon">⏻</span>Logout</button>
         </div>
 
@@ -1065,7 +1182,7 @@ export default function AdminPage() {
           <div className="admin-topbar-left">
             <button type="button" className="admin-hamburger" onClick={() => setSidebarOpen(true)}>menu</button>
             <div className="admin-top-search">
-              <input value={searchText} onChange={(event) => setSearchText(event.target.value)} placeholder="Search by username, title, hashtag..." />
+              <input value={searchText} onChange={(event) => setSearchText(event.target.value)} placeholder="Search users, stories..." />
             </div>
           </div>
           <div className="admin-topbar-right">
@@ -1092,12 +1209,12 @@ export default function AdminPage() {
         <section className="admin-content">
           {activeSection === "dashboard" && (
             <>
-              <SectionHeader title="Dashboard" breadcrumb="Dashboard" />
+              <SectionHeader title="Dashboard" breadcrumb={`Overview · ${new Date().toLocaleDateString()}`} />
               <div className="admin-stat-grid">
                 <DashboardCard label="Total Users" value={formatCount(panelData.dashboard?.summary?.total_users || 0)} tone="sky" />
-                <DashboardCard label="Total Books" value={formatCount(panelData.dashboard?.summary?.total_books || 0)} tone="violet" />
-                <DashboardCard label="Downloads" value={formatCount(panelData.dashboard?.summary?.total_downloads || 0)} tone="amber" />
-                <DashboardCard label="Views" value={formatCount(panelData.dashboard?.summary?.total_views || 0)} tone="mint" />
+                <DashboardCard label="Total Stories" value={formatCount(panelData.dashboard?.summary?.total_books || 0)} tone="violet" />
+                <DashboardCard label="Total Reads" value={formatCount(panelData.dashboard?.summary?.total_views || 0)} tone="mint" />
+                <DashboardCard label="Revenue" value={`$${formatCount(panelData.dashboard?.summary?.total_downloads || 0)}`} tone="amber" />
               </div>
 
               <div className="admin-split-grid">
@@ -1275,6 +1392,110 @@ export default function AdminPage() {
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {activeSection === "chapters" && (
+            <section className="admin-panel">
+              <SectionHeader title="Chapters" breadcrumb="Content . Chapter management" />
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Chapter Title</th>
+                      <th>Story</th>
+                      <th>Author</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {chapterRows.map((item, index) => (
+                      <tr key={item.chapter?.id || item.id}>
+                        <td>{index + 1}</td>
+                        <td>{item.chapter?.title || "Unknown Chapter"}</td>
+                        <td>{item.story?.title || "Unknown Story"}</td>
+                        <td>{item.reported_user?.name || "Unknown"}</td>
+                        <td><StatusChip value={item.status === "resolved" ? "published" : "draft"} /></td>
+                        <td>
+                          <div className="admin-inline-actions">
+                            <ActionIconButton label="View" onClick={() => router.push(`/read/${item.story?.id || ""}`)} />
+                            <ActionIconButton label="Resolve" onClick={() => resolveReport(item.id)} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {activeSection === "comments" && (
+            <section className="admin-panel">
+              <SectionHeader
+                title="Comments"
+                breadcrumb="Moderation . Comment management"
+                actions={
+                  <div className="admin-tab-strip">
+                    <button type="button" className={`admin-tab-chip ${commentsFilter === "all" ? "active" : ""}`} onClick={() => setCommentsFilter("all")}>All</button>
+                    <button type="button" className={`admin-tab-chip ${commentsFilter === "flagged" ? "active" : ""}`} onClick={() => setCommentsFilter("flagged")}>Flagged</button>
+                    <button type="button" className={`admin-tab-chip ${commentsFilter === "spam" ? "active" : ""}`} onClick={() => setCommentsFilter("spam")}>Spam</button>
+                  </div>
+                }
+              />
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Comment</th>
+                      <th>Story</th>
+                      <th>Status</th>
+                      <th>Time</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {commentsLoading && (
+                      <tr>
+                        <td colSpan={6}>Loading comments...</td>
+                      </tr>
+                    )}
+                    {!commentsLoading && filteredAdminComments.map((item) => {
+                      const user = getUserForComment(item);
+                      const isSpam = /(https?:\/\/|www\.|spam|cheap|buy followers|telegram|porn|casino)/i.test(item.content || "");
+                      const statusLabel = isSpam ? "spam" : item.status === "hidden" ? "flagged" : "ok";
+                      return (
+                        <tr key={item.id}>
+                          <td>
+                            <div className="admin-user-identity">
+                              <MiniAvatar image={user?.profile_image || ""} text={user?.username || "U"} />
+                              <div className="admin-person-cell">
+                                <strong>{user?.username || "unknown"}</strong>
+                                <span>{user?.email || item.user_id}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td>{item.content || "-"}</td>
+                          <td>{(panelData.stories || []).find((story) => story.id === item.story_id)?.title || item.story_id || "-"}</td>
+                          <td><StatusChip value={statusLabel} /></td>
+                          <td>{formatRelativeDate(item.created_at)}</td>
+                          <td>
+                            <div className="admin-inline-actions">
+                              <ActionIconButton label="View" onClick={() => router.push(`/read/${item.story_id}`)} />
+                              {user ? <ActionIconButton label={user.is_banned ? "Unban" : "Ban"} onClick={() => updateUserBan(user)} /> : null}
+                              <ActionIconButton label={item.status === "hidden" ? "Show" : "Hide"} onClick={() => toggleCommentVisibility(item)} />
+                              <ActionIconButton label="Delete" danger onClick={() => removeComment(item)} />
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

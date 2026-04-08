@@ -2995,3 +2995,317 @@ select.bx-select-control {
     min-width: 720px;
   }
 }
+
+/* --- Admin UI refresh (screenshot style) --- */
+.admin-shell {
+  --admin-bg: #060d1a;
+  --admin-panel: #0b182b;
+  --admin-panel-2: #0d1d34;
+  --admin-soft: #12233c;
+  --admin-border: rgba(62, 92, 142, 0.3);
+  --admin-text: #d6e2f8;
+  --admin-muted: #8ca0c6;
+  --admin-accent: #6f66ff;
+  --admin-cyan: #22d3ee;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 80% -10%, rgba(34, 211, 238, 0.12), transparent 36%),
+    radial-gradient(circle at 0% 100%, rgba(111, 102, 255, 0.1), transparent 42%),
+    var(--admin-bg);
+  color: var(--admin-text);
+}
+
+.admin-sidebar {
+  background: linear-gradient(180deg, #081227 0%, #060f1f 100%);
+  border-right: 1px solid var(--admin-border);
+}
+
+.admin-sidebar-logo {
+  padding: 16px 14px;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-logo-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6f66ff, #4f8fff);
+  font-size: 10px;
+}
+
+.admin-brand-script {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.admin-brand-sub,
+.admin-nav-title {
+  color: #6f83a8;
+}
+
+.admin-nav-item,
+.admin-subnav-item {
+  color: #9ab0d4;
+  border-radius: 10px;
+}
+
+.admin-nav-item.active,
+.admin-subnav-item.active,
+.admin-nav-item:hover,
+.admin-subnav-item:hover {
+  background: linear-gradient(90deg, rgba(111, 102, 255, 0.22), rgba(111, 102, 255, 0.05));
+  color: #e8eeff;
+}
+
+.admin-nav-item.active {
+  border-left: 2px solid #7f85ff;
+}
+
+.admin-nav-search-pill,
+.admin-top-search input,
+.admin-theme-toggle,
+.admin-top-icon,
+.admin-action-menu,
+.admin-input,
+.admin-file-input,
+.admin-textarea,
+.admin-select {
+  background: rgba(15, 31, 53, 0.75);
+  border-color: var(--admin-border);
+  color: var(--admin-text);
+}
+
+.admin-main {
+  padding: 72px 18px 18px;
+}
+
+.admin-topbar,
+.admin-topbar-light {
+  height: 64px;
+  background: rgba(5, 12, 24, 0.84);
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-top-profile {
+  border-radius: 999px;
+}
+
+.admin-panel,
+.admin-stat-card,
+.admin-form-card,
+.admin-settings-panel,
+.admin-list-card,
+.admin-profile-card-hero {
+  background: linear-gradient(180deg, var(--admin-panel) 0%, var(--admin-panel-2) 100%);
+  border: 1px solid var(--admin-border);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.admin-section-head h2,
+.admin-panel-header h2,
+.admin-form-heading h3,
+.admin-settings-block h3,
+.admin-profile-meta h3,
+.admin-table td,
+.admin-list-card strong,
+.admin-person-cell strong {
+  color: #eef4ff;
+}
+
+.admin-section-head h2 {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.admin-section-head p {
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+
+.admin-section-head p,
+.admin-form-heading p,
+.admin-table th,
+.admin-page-subtitle,
+.admin-message-bar,
+.admin-person-cell span,
+.admin-list-card span,
+.admin-country-label,
+.admin-country-count,
+.admin-profile-meta p,
+.admin-inline-meta span,
+.admin-form-card label,
+.admin-settings-block label {
+  color: var(--admin-muted);
+}
+
+.admin-stat-card::before {
+  height: 3px;
+}
+
+.admin-stat-card strong {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.admin-stat-card span {
+  color: #7f94ba;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+.admin-tone-sky::before {
+  background: linear-gradient(90deg, #4f7cff, #7da4ff);
+}
+
+.admin-tone-violet::before {
+  background: linear-gradient(90deg, #8a5bff, #d06bff);
+}
+
+.admin-tone-mint::before {
+  background: linear-gradient(90deg, #21c1cf, #19e3b7);
+}
+
+.admin-tone-amber::before {
+  background: linear-gradient(90deg, #f59e0b, #f97316);
+}
+
+.admin-table-wrap {
+  border: 1px solid rgba(62, 92, 142, 0.22);
+  border-radius: 14px;
+}
+
+.admin-table {
+  min-width: 820px;
+}
+
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid rgba(62, 92, 142, 0.22);
+  padding: 12px 12px;
+}
+
+.admin-table th {
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+.admin-table td {
+  font-size: 13px;
+}
+
+.admin-status-chip.active,
+.admin-status-chip.published,
+.admin-status-chip.resolved {
+  background: rgba(6, 182, 212, 0.2);
+  color: #22d3ee;
+}
+
+.admin-status-chip.inactive,
+.admin-status-chip.draft,
+.admin-status-chip.open,
+.admin-status-chip.archived {
+  background: rgba(244, 63, 94, 0.2);
+  color: #fb7185;
+}
+
+.admin-icon-btn,
+.admin-clear-btn,
+.admin-tab-chip,
+.admin-settings-tab,
+.admin-radio-pill,
+.admin-toggle-row-card {
+  background: rgba(15, 31, 53, 0.75);
+  border-color: var(--admin-border);
+  color: var(--admin-text);
+}
+
+.admin-icon-btn {
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 11px;
+  text-transform: none;
+}
+
+.admin-inline-actions {
+  gap: 6px;
+}
+
+.admin-tab-strip {
+  gap: 8px;
+}
+
+.admin-tab-chip {
+  padding: 7px 12px;
+  font-size: 12px;
+}
+
+.admin-user-identity {
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
+}
+
+.admin-avatar,
+.admin-book-thumb {
+  width: 34px;
+  height: 34px;
+}
+
+.admin-status-chip {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.admin-main .admin-panel {
+  border-radius: 14px;
+}
+
+.admin-main .admin-table-wrap {
+  border-radius: 12px;
+}
+
+.admin-primary-btn,
+.admin-profile-tab.active,
+.admin-settings-tab.active,
+.admin-tab-chip.active {
+  background: linear-gradient(135deg, #6f66ff, #4f8fff);
+  border-color: transparent;
+  box-shadow: 0 8px 20px rgba(79, 143, 255, 0.22);
+}
+
+.admin-toggle {
+  background: #23364f;
+}
+
+.admin-toggle.active {
+  background: linear-gradient(135deg, #4f8fff, #6f66ff);
+}
+
+.admin-debug-card {
+  border-color: rgba(62, 92, 142, 0.22);
+  background: rgba(15, 31, 53, 0.62);
+  color: var(--admin-text);
+}
+
+.admin-top-search input::placeholder,
+.admin-input::placeholder,
+.admin-textarea::placeholder {
+  color: #7f94ba;
+}
+
+@media (max-width: 960px) {
+  .admin-main {
+    padding: 72px 10px 16px;
+  }
+
+  .admin-topbar {
+    left: 0;
+    padding: 8px 10px;
+  }
+}

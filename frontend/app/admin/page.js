@@ -3,6 +3,20 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest, apiUpload, clearSiteSettingsCache, readToken } from "@/lib/api";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 const DEFAULT_SETTINGS = {
   site_name: "Bixbi",
@@ -64,6 +78,7 @@ const DEFAULT_PANEL_DATA = {
   dashboard: { summary: {}, recent_books: [] },
   analytics: {},
   users: [],
+  admin_users: [],
   reels: [],
   stories: [],
   user_reports: [],
@@ -118,18 +133,24 @@ const DEFAULT_USER_FORM = {
 
 const ADVANCED_SECTIONS = [
   { key: "reels", label: "Reels", icon: "🎬" },
+  { key: "admin-users", label: "Admin Users", icon: "🛡" },
+  { key: "country-users", label: "Country Users", icon: "🌍" },
   { key: "hashtags", label: "Hashtags", icon: "#" },
   { key: "languages", label: "Languages", icon: "🈯" },
   { key: "genres", label: "Genres", icon: "🏷️" },
   { key: "blocks", label: "Blocks", icon: "⛔" },
   { key: "avatars", label: "Avatars", icon: "🖼️" },
-  { key: "story-reports", label: "Story Reports", icon: "📣" },
-  { key: "chapter-reports", label: "Chapter Reports", icon: "📝" },
-  { key: "comment-reports", label: "Comment Reports", icon: "💬" },
   { key: "profile", label: "Profile", icon: "👤" },
   { key: "cms", label: "CMS Pages", icon: "📄" },
   { key: "debug", label: "Admin Debug", icon: "🧪" },
-  { key: "country-users", label: "Country Users", icon: "🌍" },
+];
+
+const ADMIN_ROLE_OPTIONS = [
+  "super_admin",
+  "admin",
+  "moderator",
+  "editor",
+  "user",
 ];
 
 const SETTINGS_TABS = [
@@ -168,6 +189,41 @@ function formatRelativeDate(value) {
   if (diffHour < 24) return `${diffHour} hr ago`;
   if (diffDay < 30) return `${diffDay} day${diffDay === 1 ? "" : "s"} ago`;
   return date.toLocaleDateString();
+}
+
+function getReportSectionIcon(sectionKey) {
+  const map = {
+    "user-reports": "👤",
+    "story-reports": "📚",
+    "chapter-reports": "📝",
+    "comment-reports": "💬",
+    "post-reports": "📚",
+    "reel-reports": "🎬",
+  };
+  return map[sectionKey] || "🚨";
+}
+
+function formatCurrency(value) {
+  const amount = Number(value || 0);
+  return amount.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}
+
+function buildSeriesRows(labels = [], values = [], key = "value") {
+  return labels.map((label, index) => ({
+    label,
+    [key]: Number(values[index] || 0),
+  }));
+}
+
+function buildWeeklyEngagementRows(chart = {}) {
+  const labels = Array.isArray(chart.labels) ? chart.labels : [];
+  const likes = Array.isArray(chart.likes) ? chart.likes : [];
+  const comments = Array.isArray(chart.comments) ? chart.comments : [];
+  return labels.map((label, index) => ({
+    label,
+    likes: Number(likes[index] || 0),
+    comments: Number(comments[index] || 0),
+  }));
 }
 
 function splitFullName(value) {
@@ -311,6 +367,7 @@ export default function AdminPage() {
   const [adminComments, setAdminComments] = useState([]);
   const [commentsFilter, setCommentsFilter] = useState("all");
   const [commentsLoading, setCommentsLoading] = useState(false);
+  const [roleUpdatingId, setRoleUpdatingId] = useState("");
 
   const deferredSearch = useDeferredValue(searchText.trim().toLowerCase());
 
@@ -383,6 +440,13 @@ export default function AdminPage() {
       return `${item.username} ${item.name} ${item.email} ${item.mobile}`.toLowerCase().includes(deferredSearch);
     });
   }, [panelData.users, deferredSearch]);
+
+  const filteredAdminUsers = useMemo(() => {
+    return (panelData.admin_users || []).filter((item) => {
+      if (!deferredSearch) return true;
+      return `${item.username} ${item.name} ${item.email} ${item.role}`.toLowerCase().includes(deferredSearch);
+    });
+  }, [panelData.admin_users, deferredSearch]);
 
   const filteredReels = useMemo(() => {
     return (panelData.reels || []).filter((item) => {
@@ -471,6 +535,40 @@ export default function AdminPage() {
     return new Set((panelData.comment_reports || []).map((item) => item.comment?.id).filter(Boolean));
   }, [panelData.comment_reports]);
 
+  const languageButtons = useMemo(() => {
+    return (panelData.languages || [])
+      .filter((item) => String(item.status || "active").toLowerCase() !== "inactive")
+      .slice(0, 6);
+  }, [panelData.languages]);
+
+  const adminCounters = useMemo(() => {
+    return {
+      users: Number(panelData.dashboard?.summary?.total_users || panelData.users?.length || 0),
+      openReports: (panelData.user_reports || []).filter((item) => item.status !== "resolved").length
+        + (panelData.story_reports || []).filter((item) => item.status !== "resolved").length
+        + (panelData.chapter_reports || []).filter((item) => item.status !== "resolved").length
+        + (panelData.comment_reports || []).filter((item) => item.status !== "resolved").length,
+      notifications: (panelData.push_notifications || []).length,
+      admins: (panelData.admin_users || []).length,
+    };
+  }, [panelData]);
+
+  const analyticsDailyViews = useMemo(() => {
+    return buildSeriesRows(panelData.analytics?.charts?.daily_views?.labels, panelData.analytics?.charts?.daily_views?.values, "views");
+  }, [panelData.analytics]);
+
+  const analyticsMonthlyReads = useMemo(() => {
+    return buildSeriesRows(panelData.analytics?.charts?.monthly_reads?.labels, panelData.analytics?.charts?.monthly_reads?.values, "reads");
+  }, [panelData.analytics]);
+
+  const analyticsMonthlyLikes = useMemo(() => {
+    return buildSeriesRows(panelData.analytics?.charts?.monthly_likes?.labels, panelData.analytics?.charts?.monthly_likes?.values, "likes");
+  }, [panelData.analytics]);
+
+  const analyticsWeeklyEngagement = useMemo(() => {
+    return buildWeeklyEngagementRows(panelData.analytics?.charts?.weekly_engagement || {});
+  }, [panelData.analytics]);
+
   const filteredAdminComments = useMemo(() => {
     return adminComments.filter((item) => {
       const isSpam = /(https?:\/\/|www\.|spam|cheap|buy followers|telegram|porn|casino)/i.test(item.content || "");
@@ -555,6 +653,24 @@ export default function AdminPage() {
       },
       loadPanelData,
     );
+  }
+
+  async function updateAdminRole(userId, role) {
+    const token = readToken();
+    if (!token || !userId || !role) return;
+    setRoleUpdatingId(userId);
+    await performAction(
+      async () => {
+        const response = await apiRequest(`/admin/users/${userId}/role`, {
+          method: "PATCH",
+          token,
+          body: { role },
+        });
+        setMessage(response.message || "Role updated.");
+      },
+      loadPanelData,
+    );
+    setRoleUpdatingId("");
   }
 
   async function updateStoryStatus(storyId, status) {
@@ -1085,6 +1201,7 @@ export default function AdminPage() {
           <button type="button" className={`admin-nav-item ${activeSection === "users" ? "active" : ""}`} onClick={() => { setActiveSection("users"); setSidebarOpen(false); }}>
             <span className="admin-nav-icon">👤</span>
             Users
+            <span className="admin-nav-badge admin-nav-badge-blue">{formatCount(adminCounters.users)}</span>
           </button>
           <button type="button" className={`admin-nav-item ${activeSection === "stories" ? "active" : ""}`} onClick={() => { setActiveSection("stories"); setSidebarOpen(false); }}>
             <span className="admin-nav-icon">📚</span>
@@ -1102,24 +1219,42 @@ export default function AdminPage() {
 
         <div className="admin-nav-group">
           <div className="admin-nav-title">Moderation</div>
-          <button type="button" className={`admin-nav-item ${activeSection === "user-reports" ? "active" : ""}`} onClick={() => { setActiveSection("user-reports"); setSidebarOpen(false); }}>
+          <button type="button" className={`admin-nav-item ${["user-reports", "story-reports", "chapter-reports", "comment-reports"].includes(activeSection) ? "active" : ""}`} onClick={() => { setActiveSection("user-reports"); setSidebarOpen(false); }}>
             <span className="admin-nav-icon">🚨</span>
             Reports
+            {adminCounters.openReports > 0 ? <span className="admin-nav-badge">{adminCounters.openReports}</span> : null}
           </button>
+          <div className="admin-subnav">
+            <button type="button" className={`admin-subnav-item ${activeSection === "user-reports" ? "active" : ""}`} onClick={() => { setActiveSection("user-reports"); setSidebarOpen(false); }}>
+              <span className="admin-nav-icon">•</span>
+              User Report
+            </button>
+            <button type="button" className={`admin-subnav-item ${activeSection === "story-reports" ? "active" : ""}`} onClick={() => { setActiveSection("story-reports"); setSidebarOpen(false); }}>
+              <span className="admin-nav-icon">•</span>
+              Story Report
+            </button>
+            <button type="button" className={`admin-subnav-item ${activeSection === "chapter-reports" ? "active" : ""}`} onClick={() => { setActiveSection("chapter-reports"); setSidebarOpen(false); }}>
+              <span className="admin-nav-icon">•</span>
+              Chapter Report
+            </button>
+            <button type="button" className={`admin-subnav-item ${activeSection === "comment-reports" ? "active" : ""}`} onClick={() => { setActiveSection("comment-reports"); setSidebarOpen(false); }}>
+              <span className="admin-nav-icon">•</span>
+              Comment Report
+            </button>
+          </div>
         </div>
 
         <div className="admin-nav-group">
           <div className="admin-nav-title">Insights</div>
-          <button type="button" className={`admin-nav-item ${activeSection === "dashboard" ? "active" : ""}`} onClick={() => { setActiveSection("dashboard"); setSidebarOpen(false); }}>
+          <button type="button" className={`admin-nav-item ${activeSection === "analytics" ? "active" : ""}`} onClick={() => { setActiveSection("analytics"); setSidebarOpen(false); }}>
             <span className="admin-nav-icon">📊</span>
             Analytics
           </button>
           <button
             type="button"
-            className={`admin-nav-item ${activeSection === "settings" && settingsTab === "payment" ? "active" : ""}`}
+            className={`admin-nav-item ${activeSection === "monetization" ? "active" : ""}`}
             onClick={() => {
-              setActiveSection("settings");
-              setSettingsTab("payment");
+              setActiveSection("monetization");
               setSidebarOpen(false);
             }}
           >
@@ -1133,6 +1268,7 @@ export default function AdminPage() {
           <button type="button" className={`admin-nav-item ${activeSection === "push" ? "active" : ""}`} onClick={() => { setActiveSection("push"); setSidebarOpen(false); }}>
             <span className="admin-nav-icon">🔔</span>
             Notifications
+            <span className="admin-nav-badge">{formatCount(adminCounters.notifications)}</span>
           </button>
           <button type="button" className={`admin-nav-item ${activeSection === "settings" ? "active" : ""}`} onClick={() => { setActiveSection("settings"); setSidebarOpen(false); }}>
             <span className="admin-nav-icon">⚙️</span>
@@ -1186,8 +1322,26 @@ export default function AdminPage() {
             </div>
           </div>
           <div className="admin-topbar-right">
+            {languageButtons.length > 0 ? (
+              <div className="admin-lang-buttons" aria-label="Language Buttons">
+                {languageButtons.map((item) => (
+                  <button
+                    key={item.name}
+                    type="button"
+                    className="admin-lang-btn"
+                    onClick={() => {
+                      setActiveSection("languages");
+                      setSearchText(String(item.name || ""));
+                    }}
+                  >
+                    {item.name}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <button type="button" className="admin-theme-toggle">🌙 Dark</button>
             <div className="admin-top-icon">🔔</div>
+            <div className="admin-top-icon">❔</div>
             <div className="admin-action-menu-wrap">
               <button type="button" className="admin-top-profile admin-top-profile-btn" onClick={() => setUserMenuOpen((prev) => !prev)}>
                 {(me?.full_name || me?.username || "AD").slice(0, 2).toUpperCase()}
@@ -1302,6 +1456,108 @@ export default function AdminPage() {
             </>
           )}
 
+          {activeSection === "analytics" && (
+            <>
+              <SectionHeader title="Analytics" breadcrumb="Insights . Engagement and growth" />
+              <div className="admin-stat-grid">
+                <DashboardCard label="Total Users" value={formatCount(panelData.analytics?.total_users || 0)} tone="sky" />
+                <DashboardCard label="Total Stories" value={formatCount(panelData.analytics?.total_stories || 0)} tone="violet" />
+                <DashboardCard label="Total Reads" value={formatCount(panelData.analytics?.total_comments || 0)} tone="mint" />
+                <DashboardCard label="Revenue" value={`$${formatCurrency(panelData.analytics?.total_likes || 0)}`} tone="amber" />
+              </div>
+
+              <div className="admin-split-grid">
+                <section className="admin-panel">
+                  <div className="admin-panel-header"><h2>Daily Views (30 Days)</h2></div>
+                  <div className="admin-chart-wrap">
+                    <ResponsiveContainer width="100%" height={220}>
+                      <AreaChart data={analyticsDailyViews}>
+                        <defs>
+                          <linearGradient id="adminViewsGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#00d2d3" stopOpacity={0.45} />
+                            <stop offset="95%" stopColor="#00d2d3" stopOpacity={0.05} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
+                        <XAxis dataKey="label" stroke="#94a3b8" />
+                        <YAxis stroke="#94a3b8" />
+                        <Tooltip />
+                        <Area type="monotone" dataKey="views" stroke="#00d2d3" fill="url(#adminViewsGradient)" strokeWidth={2.2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </section>
+
+                <section className="admin-panel">
+                  <div className="admin-panel-header"><h2>Weekly Engagement</h2></div>
+                  <div className="admin-chart-wrap">
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={analyticsWeeklyEngagement}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
+                        <XAxis dataKey="label" stroke="#94a3b8" />
+                        <YAxis stroke="#94a3b8" />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="likes" fill="#7c3aed" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="comments" fill="#22c55e" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </section>
+              </div>
+            </>
+          )}
+
+          {activeSection === "monetization" && (
+            <>
+              <SectionHeader title="Monetization" breadcrumb="Insights . Revenue and payouts" />
+              <div className="admin-list-grid admin-list-grid-compact">
+                <div className="admin-list-card"><span>Read Events</span><strong>{formatCount(panelData.analytics?.total_comments || 0)}</strong></div>
+                <div className="admin-list-card"><span>Like Events</span><strong>{formatCount(panelData.analytics?.total_likes || 0)}</strong></div>
+                <div className="admin-list-card"><span>Open Reports</span><strong>{formatCount(panelData.analytics?.open_reports || 0)}</strong></div>
+                <div className="admin-list-card"><span>Banned Users</span><strong>{formatCount(panelData.analytics?.banned_users || 0)}</strong></div>
+              </div>
+
+              <div className="admin-split-grid">
+                <section className="admin-panel">
+                  <div className="admin-panel-header"><h2>Monthly Reads</h2></div>
+                  <div className="admin-chart-wrap">
+                    <ResponsiveContainer width="100%" height={220}>
+                      <LineChart data={analyticsMonthlyReads}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
+                        <XAxis dataKey="label" stroke="#94a3b8" />
+                        <YAxis stroke="#94a3b8" />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="reads" stroke="#2563eb" strokeWidth={2.4} dot={{ r: 2.5 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </section>
+
+                <section className="admin-panel">
+                  <div className="admin-panel-header"><h2>Monthly Likes</h2></div>
+                  <div className="admin-chart-wrap">
+                    <ResponsiveContainer width="100%" height={220}>
+                      <AreaChart data={analyticsMonthlyLikes}>
+                        <defs>
+                          <linearGradient id="adminLikesGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.45} />
+                            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.08} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
+                        <XAxis dataKey="label" stroke="#94a3b8" />
+                        <YAxis stroke="#94a3b8" />
+                        <Tooltip />
+                        <Area type="monotone" dataKey="likes" stroke="#f59e0b" fill="url(#adminLikesGradient)" strokeWidth={2.2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </section>
+              </div>
+            </>
+          )}
+
           {activeSection === "reels" && (
             <section className="admin-panel">
               <SectionHeader title="Reel List" breadcrumb="Dashboard . Reel List" />
@@ -1353,7 +1609,7 @@ export default function AdminPage() {
 
           {activeSection === "stories" && (
             <section className="admin-panel">
-              <SectionHeader title="Stories List" breadcrumb="Dashboard . Stories List" />
+              <SectionHeader title="Story Management" breadcrumb="Content . 8,320 stories" />
               <div className="admin-table-wrap">
                 <table className="admin-table">
                   <thead>
@@ -1483,7 +1739,12 @@ export default function AdminPage() {
                           </td>
                           <td>{item.content || "-"}</td>
                           <td>{(panelData.stories || []).find((story) => story.id === item.story_id)?.title || item.story_id || "-"}</td>
-                          <td><StatusChip value={statusLabel} /></td>
+                          <td>
+                            <div className="admin-row-meta">
+                              <span className="admin-row-icon">{statusLabel === "spam" ? "⚠️" : statusLabel === "flagged" ? "🚩" : "✅"}</span>
+                              <StatusChip value={statusLabel} />
+                            </div>
+                          </td>
                           <td>{formatRelativeDate(item.created_at)}</td>
                           <td>
                             <div className="admin-inline-actions">
@@ -1563,7 +1824,12 @@ export default function AdminPage() {
                             </div>
                           </div>
                         </td>
-                        <td>{item.reason}</td>
+                        <td>
+                          <div className="admin-row-meta">
+                            <span className="admin-row-icon">{getReportSectionIcon(activeSection)}</span>
+                            <span>{item.reason}</span>
+                          </div>
+                        </td>
                         <td>
                           <div className="admin-user-identity">
                             <MiniAvatar image={item.reported_by?.image} text={item.reported_by?.name} />
@@ -1573,7 +1839,12 @@ export default function AdminPage() {
                             </div>
                           </div>
                         </td>
-                        <td><StatusChip value={item.reported_user?.status || item.status || item.report_kind} /></td>
+                        <td>
+                          <div className="admin-row-meta">
+                            <span className="admin-row-icon">📌</span>
+                            <StatusChip value={item.reported_user?.status || item.status || item.report_kind} />
+                          </div>
+                        </td>
                         <td>
                           <div className="admin-inline-actions">
                             <ActionIconButton label="Resolve" onClick={() => resolveReport(item.id)} />
@@ -1589,7 +1860,7 @@ export default function AdminPage() {
 
           {activeSection === "users" && (
             <section className="admin-panel">
-              <SectionHeader title="User List" breadcrumb="Dashboard . User List" actions={<button type="button" className="admin-primary-btn" onClick={resetUserEditor}>{editingUserId ? "New User" : "Add User"}</button>} />
+              <SectionHeader title="Users" breadcrumb={`Manage . ${formatCount(panelData.dashboard?.summary?.total_users || panelData.users?.length || 0)} total users`} actions={<button type="button" className="admin-primary-btn" onClick={resetUserEditor}>{editingUserId ? "New User" : "Add User"}</button>} />
               <div className="admin-form-split admin-form-split-wide">
                 <div className="admin-table-wrap">
                   <table className="admin-table">
@@ -1698,9 +1969,74 @@ export default function AdminPage() {
             </section>
           )}
 
+          {activeSection === "admin-users" && (
+            <section className="admin-panel">
+              <SectionHeader
+                title="Admin Users"
+                breadcrumb={`System . ${formatCount(adminCounters.admins)} privileged accounts`}
+                actions={<button type="button" className="admin-primary-btn" onClick={() => setActiveSection("users")}>Manage All Users</button>}
+              />
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>S.L</th>
+                      <th>Profile</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Created</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredAdminUsers.map((item, index) => (
+                      <tr key={item.id || `${item.email}-${index}`}>
+                        <td>{index + 1}</td>
+                        <td>
+                          <div className="admin-user-identity">
+                            <MiniAvatar image={item.profile_image} text={item.username || item.name} />
+                            <div className="admin-person-cell">
+                              <strong>{item.username || item.name || "unknown"}</strong>
+                              <span>{item.email || "-"}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <select
+                            className="admin-input admin-role-select"
+                            value={String(item.role || "admin")}
+                            disabled={roleUpdatingId === item.id}
+                            onChange={(event) => updateAdminRole(item.id, event.target.value)}
+                          >
+                            {ADMIN_ROLE_OPTIONS.map((role) => (
+                              <option key={role} value={role}>{role.replace(/_/g, " ")}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td><StatusChip value={item.is_banned ? "inactive" : "active"} /></td>
+                        <td>{formatDateTime(item.created_at)}</td>
+                        <td>
+                          <div className="admin-inline-actions">
+                            <ActionIconButton label="Edit" onClick={() => { startUserEdit(item); setActiveSection("users"); }} />
+                            <ActionIconButton label={item.is_banned ? "Unban" : "Ban"} onClick={() => updateUserBan(item)} />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredAdminUsers.length === 0 && (
+                      <tr>
+                        <td colSpan={6}>No admin users found for your current search.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
           {activeSection === "country-users" && (
             <section className="admin-panel">
-              <SectionHeader title="Country Wise Users" breadcrumb="Dashboard . Country Wise Users" />
+              <SectionHeader title="Country Wise Users" breadcrumb="Insights . User location distribution" />
               <div className="admin-country-list">
                 {filteredCountries.map((item) => {
                   const maxCount = Math.max(...(panelData.country_users || []).map((entry) => Number(entry.count || 0)), 1);
@@ -1720,8 +2056,8 @@ export default function AdminPage() {
           {activeSection === "hashtags" && (
             <section className="admin-panel">
               <SectionHeader
-                title="Hashtag List"
-                breadcrumb="Dashboard . Hashtag List"
+                title="Hashtags"
+                breadcrumb="For search . Story and reel discovery"
                 actions={
                   <div className="admin-inline-form compact">
                     <input className="admin-input" value={hashtagName} onChange={(event) => setHashtagName(event.target.value)} placeholder="Add hashtag word..." />
@@ -1762,7 +2098,7 @@ export default function AdminPage() {
 
           {activeSection === "languages" && (
             <section className="admin-panel">
-              <SectionHeader title="Language List" breadcrumb="Dashboard . Language List" actions={<button type="button" className="admin-primary-btn" onClick={resetLanguageEditor}>{editingLanguageName ? "New Language" : "Add Language"}</button>} />
+              <SectionHeader title="Languages" breadcrumb="System . Multi-language controls" actions={<button type="button" className="admin-primary-btn" onClick={resetLanguageEditor}>{editingLanguageName ? "New Language" : "Add Language"}</button>} />
               <div className="admin-form-split admin-form-split-wide">
                 <div className="admin-table-wrap">
                   <table className="admin-table">
@@ -1839,7 +2175,7 @@ export default function AdminPage() {
 
           {activeSection === "genres" && (
             <section className="admin-panel">
-              <SectionHeader title="Genre List" breadcrumb="Dashboard . Genre List" actions={<button type="button" className="admin-primary-btn" onClick={resetGenreEditor}>{editingGenreName ? "New Genre" : "Add Genre"}</button>} />
+              <SectionHeader title="Genres" breadcrumb="Content . Name and icon management" actions={<button type="button" className="admin-primary-btn" onClick={resetGenreEditor}>{editingGenreName ? "New Genre" : "Add Genre"}</button>} />
               <div className="admin-form-split admin-form-split-wide">
                 <div className="admin-table-wrap">
                   <table className="admin-table">

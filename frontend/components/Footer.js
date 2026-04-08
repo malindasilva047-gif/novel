@@ -23,9 +23,10 @@ export default function Footer() {
         </div>
 
         <div className="bx-footer-col">
-          <h4>Discover</h4>
+          <h4>Quick Links</h4>
           <Link href="/">Home</Link>
-          <Link href="/discover">Explore Stories</Link>
+          <Link href="/discover">Discover</Link>
+          <Link href="/library">Library</Link>
           <Link href="/reviews">Top Reviews</Link>
           <Link href="/authors">Authors</Link>
         </div>

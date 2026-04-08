@@ -1,12 +1,11 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { apiRequest, fetchSiteSettings, readToken } from '@/lib/api';
 
 export default function Navbar() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -165,12 +164,6 @@ export default function Navbar() {
     setMobileOpen(false);
   };
 
-  const currentGenre = searchParams.get('genre');
-
-  const nav = [
-    { href: '/discover', label: 'Discover', isActive: pathname === '/discover' && !currentGenre },
-  ];
-
   const initials = user?.username
     ? user.username.slice(0, 2).toUpperCase()
     : user?.email?.slice(0, 2).toUpperCase() ?? 'U';
@@ -186,25 +179,6 @@ export default function Navbar() {
               <>{branding.site_name}</>
             )}
           </Link>
-
-          <div className="bx-nav-search-inline">
-            <button className="bx-btn-icon" onClick={submitSearch} aria-label="Search">
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-              </svg>
-            </button>
-            <input
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  submitSearch();
-                }
-              }}
-              placeholder="Search stories, author..."
-            />
-          </div>
         </div>
 
         <nav className="bx-nav">
@@ -213,7 +187,7 @@ export default function Navbar() {
               Browse
               <svg style={{width:'11px',height:'11px',marginLeft:'6px',opacity:0.7}} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M6 9l6 6 6-6"/></svg>
             </button>
-            <div className={`bx-dd${browseDd ? ' open' : ''}`} style={{minWidth:'420px',left:0,right:'auto'}}>
+            <div className={`bx-dd bx-dd-light${browseDd ? ' open' : ''}`} style={{minWidth:'420px',left:0,right:'auto'}}>
               <div className="bx-dd-sec" style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:'4px 14px'}}>
                 {browseCategories.map((category) => (
                   <div
@@ -240,12 +214,24 @@ export default function Navbar() {
             Community
           </button>
 
-          {nav.map(({ href, label, isActive }) => (
-            <Link key={href} href={href} className={isActive ? 'active' : ''}>
-              {label}
-            </Link>
-          ))}
-          {user && <Link href="/library" className={pathname === '/library' ? 'active' : ''}>Library</Link>}
+          <div className="bx-nav-search-inline bx-nav-search-inline-main">
+            <button className="bx-btn-icon" onClick={submitSearch} aria-label="Search">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+              </svg>
+            </button>
+            <input
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  submitSearch();
+                }
+              }}
+              placeholder="Search stories, author..."
+            />
+          </div>
         </nav>
 
         <div className="bx-hdr-right">
@@ -383,10 +369,6 @@ export default function Navbar() {
           </button>
           <Link href="/discover">Browse</Link>
           <Link href="/discover">Community</Link>
-          {nav.map(({ href, label, isActive }) => (
-            <Link key={href} href={href} className={isActive ? 'active' : ''}>{label}</Link>
-          ))}
-          {user && <Link href="/library" className={pathname === '/library' ? 'active' : ''}>Library</Link>}
           <Link href={user ? '/write' : '/auth/signin?next=%2Fwrite'}>New Story</Link>
           <Link href={user ? '/profile' : '/auth/signin?next=%2Fprofile'}>My Works</Link>
           <div className="bx-mobile-search-row">

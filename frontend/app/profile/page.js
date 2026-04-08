@@ -29,6 +29,7 @@ export default function ProfilePage() {
   const [badges, setBadges] = useState([]);
   const [history, setHistory] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
+  const [stats, setStats] = useState({ reads: 0, stories: 0, followers: 0, following: 0, likes: 0 });
   const [loading, setLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState('');
@@ -65,7 +66,8 @@ export default function ProfilePage() {
       apiRequest('/reader/badges', { token }).catch(() => []),
       apiRequest('/reader/history', { token }).catch(() => []),
       apiRequest('/reader/bookmarks', { token }).catch(() => []),
-    ]).then(([me, mine, badgeData, historyData, bookmarkData]) => {
+      apiRequest('/users/me/stats', { token }).catch(() => null),
+    ]).then(([me, mine, badgeData, historyData, bookmarkData, statsData]) => {
       if (me) {
         setUser(me);
         localStorage.setItem('user', JSON.stringify(me));
@@ -74,7 +76,38 @@ export default function ProfilePage() {
       setBadges(Array.isArray(badgeData) ? badgeData : []);
       setHistory(Array.isArray(historyData) ? historyData : []);
       setBookmarks(Array.isArray(bookmarkData) ? bookmarkData : []);
+      if (statsData) {
+        setStats({
+          reads: Number(statsData.reads || 0),
+          stories: Number(statsData.stories || 0),
+          followers: Number(statsData.followers || 0),
+          following: Number(statsData.following || 0),
+          likes: Number(statsData.likes || 0),
+        });
+      }
     }).finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const token = readToken();
+    if (!token) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const statsData = await apiRequest('/users/me/stats', { token });
+        setStats({
+          reads: Number(statsData.reads || 0),
+          stories: Number(statsData.stories || 0),
+          followers: Number(statsData.followers || 0),
+          following: Number(statsData.following || 0),
+          likes: Number(statsData.likes || 0),
+        });
+      } catch {
+        // Ignore polling errors
+      }
+    }, 12000);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -183,11 +216,11 @@ export default function ProfilePage() {
       <div className="bx-profile-sec" style={{ paddingTop: '16px', paddingBottom: '0' }}>
         <div className="bx-stats-row">
           {[
-            [String(stories.reduce((acc, s) => acc + Number(s.views || 0), 0)), 'Reads'],
-            [String(stories.length), 'Stories'],
-            [String(user?.followers_count || 0), 'Followers'],
-            [String(user?.following_count || 0), 'Following'],
-            [String(stories.reduce((acc, s) => acc + Number(s.likes || 0), 0)), 'Likes'],
+            [String(stats.reads || 0), 'Reads'],
+            [String(stats.stories || 0), 'Stories'],
+            [String(stats.followers || 0), 'Followers'],
+            [String(stats.following || 0), 'Following'],
+            [String(stats.likes || 0), 'Likes'],
           ].map(([n, l]) => (
             <div className="bx-sti" key={l}>
               <span className="bx-stn">{n}</span>

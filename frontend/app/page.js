@@ -607,6 +607,11 @@ export default function Home() {
     return displayStories[currentSlide % displayStories.length];
   };
 
+  const getHeroStoryByIndex = (index) => {
+    if (!displayStories.length) return null;
+    return displayStories[index % displayStories.length];
+  };
+
   const handleHeroSaveToList = async () => {
     const activeStory = getActiveHeroStory();
     const storyId = activeStory?.id || activeStory?._id;
@@ -660,7 +665,13 @@ export default function Home() {
                 <div className="bx-hero-actions">
                   <button
                     className="bx-hero-btn-read"
-                    onClick={() => router.push(`/read/${slide.id}`)}
+                    onClick={() => {
+                      const targetStory = getHeroStoryByIndex(idx);
+                      const targetId = targetStory?.id || targetStory?._id;
+                      if (targetId) {
+                        router.push(`/read/${targetId}`);
+                      }
+                    }}
                   >
                     Start Reading
                   </button>
@@ -807,7 +818,7 @@ export default function Home() {
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#2F4F4F' }}>
                   {story.image ? (
-                    <img src={story.image} alt={story.title} loading="lazy" />
+                    <img src={story.image} alt={story.title} loading="eager" />
                   ) : (
                     <div className="bx-book-fallback">{story.title}</div>
                   )}
@@ -860,7 +871,7 @@ export default function Home() {
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#663399' }}>
                   {story.image ? (
-                    <img src={story.image} alt={story.title} loading="lazy" />
+                    <img src={story.image} alt={story.title} loading="eager" />
                   ) : (
                     <div className="bx-book-fallback">{story.title}</div>
                   )}
@@ -913,7 +924,7 @@ export default function Home() {
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#DC143C' }}>
                   {story.image ? (
-                    <img src={story.image} alt={story.title} loading="lazy" />
+                    <img src={story.image} alt={story.title} loading="eager" />
                   ) : (
                     <div className="bx-book-fallback">{story.title}</div>
                   )}
@@ -970,7 +981,7 @@ export default function Home() {
                 <div className="bx-book-cover" style={{ backgroundColor: '#4169E1' }}>
                   <span className="bx-book-sub-badge">PRO</span>
                   {story.image ? (
-                    <img src={story.image} alt={story.title} loading="lazy" />
+                    <img src={story.image} alt={story.title} loading="eager" />
                   ) : (
                     <div className="bx-book-fallback">{story.title}</div>
                   )}
@@ -1029,7 +1040,7 @@ export default function Home() {
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#8B4513' }}>
                   {story.cover_image || story.image ? (
-                    <img src={story.cover_image || story.image} alt={story.title} loading="lazy" />
+                    <img src={story.cover_image || story.image} alt={story.title} loading="eager" />
                   ) : (
                     <div className="bx-book-fallback" style={{ fontSize: '10px' }}>
                       {story.title}
@@ -1040,6 +1051,7 @@ export default function Home() {
                   <h4 className="bx-book-title">{story.title}</h4>
                   <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
                   <p className="bx-book-progress">Last read part: {story.chapter_id || 'Chapter 1'}</p>
+                  <p className="bx-book-progress">Views: {Number(story.views || 0).toLocaleString()}</p>
                   <div className="bx-continue-progress-wrap">
                     <div className="bx-continue-progress-bar">
                       <div
@@ -1100,7 +1112,7 @@ export default function Home() {
               >
                 <div className="bx-readlist-cover" style={{ backgroundColor: '#2F4F4F' }}>
                   {story.image ? (
-                    <img src={story.image} alt={story.title} loading="lazy" />
+                    <img src={story.image} alt={story.title} loading="eager" />
                   ) : (
                     <div className="bx-book-fallback">{story.title}</div>
                   )}
@@ -1108,6 +1120,7 @@ export default function Home() {
                 <div className="bx-readlist-info">
                   <h4 className="bx-readlist-title">{story.title}</h4>
                   <p className="bx-readlist-meta">{story.author}</p>
+                  <p className="bx-readlist-meta">Views: {Number(story.views || 0).toLocaleString()}</p>
                   <span className={`bx-readlist-status ${idx % 2 === 0 ? 'ongoing' : 'complete'}`}>
                     {idx % 2 === 0 ? 'Ongoing' : 'Complete'}
                   </span>

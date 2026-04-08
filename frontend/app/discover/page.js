@@ -83,7 +83,7 @@ function DiscoverInner() {
     const params = new URLSearchParams({ limit: String(LIMIT), skip: String((page-1)*LIMIT), sort_by: sort });
     if (q) params.set('q', q);
     if (genre !== 'All') params.set('genre', genre);
-    apiRequest(`/stories/?${params}`).then(data => {
+    apiRequest(`/stories?${params}`).then(data => {
       const rawItems = Array.isArray(data) ? data : data?.stories || [];
       const filteredItems = applyFilters(rawItems, q, genre);
       setStories((prev) => (page === 1 ? filteredItems : [...prev, ...filteredItems]));
@@ -94,6 +94,29 @@ function DiscoverInner() {
       setHasMore(false);
     }).finally(() => setLoading(false));
   }, [genre, sort, q, page]);
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const payload = await apiRequest('/stories?limit=120&sort_by=views');
+        const rows = Array.isArray(payload?.stories) ? payload.stories : [];
+        if (!rows.length) return;
+
+        const viewMap = new Map(rows.map((item) => [String(item._id || item.id), Number(item.views || 0)]));
+        setStories((prev) =>
+          (Array.isArray(prev) ? prev : []).map((item) => {
+            const key = String(item._id || item.id || '');
+            if (!viewMap.has(key)) return item;
+            return { ...item, views: viewMap.get(key) };
+          })
+        );
+      } catch {
+        // Ignore polling errors
+      }
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const doSearch = (e) => { e.preventDefault(); setQ(search); setPage(1); };
 
@@ -202,7 +225,7 @@ function DiscoverInner() {
             <div className="bx-modal-inner">
               <div className="bx-modal-cover">
                 {selected.cover_image ? (
-                  <img src={selected.cover_image} alt={selected.title} />
+                  <img src={selected.cover_image} alt={selected.title} loading="eager" />
                 ) : (
                   <div style={{width:'100%',height:'100%',background:'linear-gradient(160deg,#1a0a2e,#3d1a5e)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Cormorant Garamond,serif',fontSize:'14px',fontWeight:600,color:'#fff',textAlign:'center',padding:'10px',lineHeight:1.3}}>
                     {selected.title}
@@ -215,7 +238,7 @@ function DiscoverInner() {
                 <div className="bx-modal-author">by {selected.author_name || 'Unknown'}</div>
                 <div className="bx-modal-stats">
                   <span className="bx-modal-stat">? {Number(selected.avg_rating || 4.5).toFixed(1)}</span>
-                  <span className="bx-modal-stat">{selected.reads || '12K'} reads</span>
+                  <span className="bx-modal-stat">{Number(selected.views || 0).toLocaleString()} views</span>
                   <span className="bx-modal-stat" style={{color: selected.status === 'completed' ? 'var(--gold)' : 'var(--teal)'}}>{selected.status || 'Ongoing'}</span>
                 </div>
               </div>

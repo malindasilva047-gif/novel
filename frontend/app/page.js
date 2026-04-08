@@ -556,14 +556,15 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // Hero auto-play
+  // Hero auto-play – dep uses `stories.length` (state var) to avoid TDZ:
+  // `displayStories` is a derived const declared later in the render body.
   useEffect(() => {
-    const heroSlideCount = Math.max(1, displayStories.length ? Math.min(displayStories.length, 4) : HERO_SLIDES.length);
+    const slideCount = Math.max(1, stories.length ? Math.min(stories.length, 4) : HERO_SLIDES.length);
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroSlideCount);
+      setCurrentSlide((prev) => (prev + 1) % slideCount);
     }, 5000);
     return () => clearInterval(interval);
-  }, [displayStories.length]);
+  }, [stories.length]);
 
   useEffect(() => {
     if (!toast) return;

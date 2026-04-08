@@ -13,6 +13,7 @@ router = APIRouter(prefix="/engagement", tags=["engagement"])
 
 class CommentPayload(BaseModel):
     content: str = Field(min_length=2, max_length=1000)
+    rating: int | None = Field(default=None, ge=1, le=5)
 
 
 class ReportPayload(BaseModel):
@@ -66,6 +67,7 @@ async def add_comment(
             "story_id": story_id,
             "user_id": current_user["_id"],
             "content": payload.content,
+            "rating": payload.rating,
             "status": "visible",
             "created_at": datetime.now(timezone.utc),
         }
@@ -100,6 +102,7 @@ async def get_comments(story_id: str, database: AsyncIOMotorDatabase = Depends(g
                 "story_id": comment["story_id"],
                 "user_id": comment["user_id"],
                 "content": comment["content"],
+                "rating": comment.get("rating"),
                 "created_at": comment["created_at"],
             }
         )

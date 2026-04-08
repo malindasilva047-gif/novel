@@ -171,17 +171,18 @@ export default function Navbar() {
   return (
     <>
       <header className="bx-header" style={{ boxShadow: scrolled ? '0 2px 18px rgba(0,0,0,0.3)' : 'none' }}>
-        <div className="bx-hdr-left">
-          <Link href="/" className="bx-logo">
-            {branding.logo_url ? (
-              <img src={branding.logo_url} alt={branding.site_name} className="bx-nav-logo-img" />
-            ) : (
-              <>{branding.site_name}</>
-            )}
-          </Link>
-        </div>
+        <div className="bx-hdr-main-left">
+          <div className="bx-hdr-left">
+            <Link href="/" className="bx-logo">
+              {branding.logo_url ? (
+                <img src={branding.logo_url} alt={branding.site_name} className="bx-nav-logo-img" />
+              ) : (
+                <>{branding.site_name}</>
+              )}
+            </Link>
+          </div>
 
-        <nav className="bx-nav">
+          <nav className="bx-nav">
           <div className="bx-dd-wrap" ref={browseRef}>
             <button className="bx-btn-ghost" style={{fontSize:'13px'}} onClick={() => setBrowseDd(v => !v)}>
               Browse
@@ -232,7 +233,8 @@ export default function Navbar() {
               placeholder="Search stories, author..."
             />
           </div>
-        </nav>
+          </nav>
+        </div>
 
         <div className="bx-hdr-right">
           <div className="bx-dd-wrap" ref={writeRef}>

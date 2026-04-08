@@ -12,6 +12,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userDd, setUserDd] = useState(false);
   const [writeDd, setWriteDd] = useState(false);
+  const [browseDd, setBrowseDd] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [branding, setBranding] = useState({ site_name: 'Wingsaga', logo_url: '' });
@@ -20,7 +21,33 @@ export default function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0);
   const userRef = useRef(null);
   const writeRef = useRef(null);
+  const browseRef = useRef(null);
   const notifRef = useRef(null);
+
+  const browseCategories = [
+    "Romance",
+    "Wattpad Originals",
+    "Fantasy",
+    "Historical Fiction",
+    "Horror",
+    "Science Fiction",
+    "Non-Fiction",
+    "Fan Fiction",
+    "Werewolf",
+    "Short Story",
+    "Paranormal",
+    "Mystery",
+    "Poetry",
+    "LGBTQ+",
+    "New Adult",
+    "Teen Fiction",
+    "Editor's Picks",
+    "Contemporary Lit",
+    "Thriller",
+    "Adventure",
+    "Drama",
+    "Comedy",
+  ];
 
   const refreshNotifications = async (markRead = false) => {
     const token = readToken();
@@ -95,6 +122,7 @@ export default function Navbar() {
     const handler = (e) => {
       if (userRef.current && !userRef.current.contains(e.target)) setUserDd(false);
       if (writeRef.current && !writeRef.current.contains(e.target)) setWriteDd(false);
+      if (browseRef.current && !browseRef.current.contains(e.target)) setBrowseDd(false);
       if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
     };
     document.addEventListener('mousedown', handler);
@@ -137,16 +165,10 @@ export default function Navbar() {
     setMobileOpen(false);
   };
 
-  const currentSort = searchParams.get('sort');
   const currentGenre = searchParams.get('genre');
-  const currentHash = typeof window !== 'undefined' ? window.location.hash : '';
 
   const nav = [
-    { href: '/discover', label: 'Discover', isActive: pathname === '/discover' && !currentSort && !currentGenre && !currentHash },
-    { href: '/discover?sort=new', label: 'New', isActive: pathname === '/discover' && currentSort === 'new' },
-    { href: '/discover?sort=popular', label: 'Popular', isActive: pathname === '/discover' && currentSort === 'popular' },
-    { href: '/discover?genre=fan%20fiction', label: 'Fan Fiction', isActive: pathname === '/discover' && currentGenre === 'fan fiction' },
-    { href: '/discover#genres', label: 'Genres', isActive: pathname === '/discover' && currentHash === '#genres' },
+    { href: '/discover', label: 'Discover', isActive: pathname === '/discover' && !currentGenre },
   ];
 
   const initials = user?.username
@@ -186,6 +208,38 @@ export default function Navbar() {
         </div>
 
         <nav className="bx-nav">
+          <div className="bx-dd-wrap" ref={browseRef}>
+            <button className="bx-btn-ghost" style={{fontSize:'13px'}} onClick={() => setBrowseDd(v => !v)}>
+              Browse
+              <svg style={{width:'11px',height:'11px',marginLeft:'6px',opacity:0.7}} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <div className={`bx-dd${browseDd ? ' open' : ''}`} style={{minWidth:'420px',left:0,right:'auto'}}>
+              <div className="bx-dd-sec" style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:'4px 14px'}}>
+                {browseCategories.map((category) => (
+                  <div
+                    key={category}
+                    className="bx-dd-row"
+                    onClick={() => {
+                      setBrowseDd(false);
+                      router.push(`/discover?genre=${encodeURIComponent(category.toLowerCase())}`);
+                    }}
+                    style={{padding:'6px 4px',fontSize:'12px'}}
+                  >
+                    {category}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <button
+            className="bx-btn-ghost"
+            style={{fontSize:'13px'}}
+            onClick={() => router.push('/discover')}
+          >
+            Community
+          </button>
+
           {nav.map(({ href, label, isActive }) => (
             <Link key={href} href={href} className={isActive ? 'active' : ''}>
               {label}
@@ -327,6 +381,8 @@ export default function Navbar() {
           <button className="bx-mobile-nav-close" onClick={() => setMobileOpen(false)}>
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{width:'22px',height:'22px'}}><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
+          <Link href="/discover">Browse</Link>
+          <Link href="/discover">Community</Link>
           {nav.map(({ href, label, isActive }) => (
             <Link key={href} href={href} className={isActive ? 'active' : ''}>{label}</Link>
           ))}

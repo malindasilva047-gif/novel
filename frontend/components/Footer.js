@@ -50,11 +50,6 @@ export default function Footer() {
 
       <div className="bx-footer-bottom">
         <p>{branding.copyright_text}</p>
-        <div className="bx-footer-langs">
-          <button type="button" className="bx-lang-btn active">EN</button>
-          <button type="button" className="bx-lang-btn">SI</button>
-          <button type="button" className="bx-lang-btn">TA</button>
-        </div>
       </div>
     </footer>
   );

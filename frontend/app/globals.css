@@ -1677,21 +1677,19 @@ select.bx-select-control {
 .admin-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 260px 1fr;
-  background:
-    radial-gradient(circle at top left, rgba(84, 163, 255, 0.2), transparent 24%),
-    linear-gradient(180deg, #eff6ff 0%, #f7fbff 42%, #eef4fb 100%);
-  color: #162033;
+  grid-template-columns: 240px 1fr;
+  background: #080c14;
+  color: #e2e8f0;
 }
 
 .admin-sidebar {
-  background: linear-gradient(180deg, #0d1b35 0%, #102448 48%, #0f2d5c 100%);
-  color: #d9e1ef;
-  padding: 18px 14px 22px;
+  background: linear-gradient(180deg, #0b1120 0%, #080d18 100%);
+  color: #cbd5e1;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  border-right: 1px solid rgba(255,255,255,0.06);
+  gap: 0;
+  border-right: 1px solid rgba(99, 120, 170, 0.14);
 }
 
 .admin-brand-row {
@@ -1699,6 +1697,30 @@ select.bx-select-control {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.admin-sidebar-logo {
+  padding: 20px 16px;
+  border-bottom: 1px solid rgba(99, 120, 170, 0.14);
+}
+
+.admin-logo-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.admin-brand-block {
+  display: grid;
+  gap: 2px;
+  margin-right: auto;
 }
 
 .admin-brand {
@@ -1717,13 +1739,14 @@ select.bx-select-control {
   border: 0;
   background: transparent;
   color: inherit;
-  font-size: 24px;
+  font-size: 18px;
   cursor: pointer;
 }
 
 .admin-nav-group {
   display: grid;
   gap: 6px;
+  padding: 10px;
 }
 
 .admin-nav-footer {
@@ -1731,44 +1754,63 @@ select.bx-select-control {
 }
 
 .admin-nav-title {
-  font-size: 12px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(217,225,239,0.55);
-  padding: 8px 10px 4px;
+  letter-spacing: 0.14em;
+  color: #64748b;
+  padding: 8px 10px 6px;
 }
 
 .admin-nav-item {
   border: 0;
   background: transparent;
-  color: #d9e1ef;
+  color: #94a3b8;
   text-align: left;
-  border-radius: 10px;
-  padding: 12px 14px;
+  border-radius: 8px;
+  padding: 9px 12px;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .admin-nav-item.active,
 .admin-nav-item:hover {
-  background: linear-gradient(90deg, rgba(31, 139, 255, 0.24), rgba(96, 183, 255, 0.16));
-  color: #fff;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.06));
+  color: #dbeafe;
+}
+
+.admin-nav-icon {
+  width: 18px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .admin-main {
   min-width: 0;
-  padding: 18px 18px 28px;
+  padding: 62px 24px 24px;
 }
 
 .admin-topbar {
-  background: #1d2638;
+  background: rgba(8, 12, 20, 0.86);
   color: #fff;
-  border-radius: 16px;
-  padding: 14px 18px;
+  border-radius: 0;
+  padding: 10px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  position: fixed;
+  top: 0;
+  left: 240px;
+  right: 0;
+  height: 62px;
+  border-bottom: 1px solid rgba(99, 120, 170, 0.14);
+  z-index: 30;
+  backdrop-filter: blur(14px);
 }
 
 .admin-topbar-left,
@@ -1798,7 +1840,7 @@ select.bx-select-control {
 }
 
 .admin-content {
-  padding-top: 18px;
+  padding-top: 14px;
   display: grid;
   gap: 18px;
 }
@@ -1815,10 +1857,10 @@ select.bx-select-control {
 
 .admin-stat-card,
 .admin-panel {
-  background: #ffffff;
-  border: 1px solid #dfeaf8;
-  border-radius: 16px;
-  box-shadow: 0 16px 38px rgba(33, 71, 122, 0.08);
+  background: #0f1824;
+  border: 1px solid rgba(99, 120, 170, 0.14);
+  border-radius: 14px;
+  box-shadow: none;
 }
 
 .admin-stat-card {
@@ -1828,13 +1870,15 @@ select.bx-select-control {
 }
 
 .admin-stat-card span {
-  color: #6c7a94;
-  font-size: 13px;
+  color: #64748b;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .admin-stat-card strong {
-  font-size: 36px;
-  color: #1b2333;
+  font-size: 30px;
+  color: #fff;
 }
 
 .admin-panel {
@@ -1850,8 +1894,8 @@ select.bx-select-control {
 }
 
 .admin-panel-header h2 {
-  font-size: 24px;
-  color: #1b2333;
+  font-size: 15px;
+  color: #e2e8f0;
 }
 
 .admin-toolbar {
@@ -1874,10 +1918,10 @@ select.bx-select-control {
 .admin-input,
 .admin-search-box input,
 .admin-file-input {
-  border: 1px solid #cfd7e6;
-  background: #fff;
-  color: #1b2333;
-  border-radius: 10px;
+  border: 1px solid rgba(99, 120, 170, 0.2);
+  background: #111827;
+  color: #e2e8f0;
+  border-radius: 8px;
   padding: 10px 12px;
   font-size: 14px;
 }
@@ -1888,23 +1932,23 @@ select.bx-select-control {
 
 .admin-clear-btn,
 .admin-primary-btn {
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 10px 14px;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
 }
 
 .admin-clear-btn {
-  border: 1px solid #cfd7e6;
-  background: #fff;
-  color: #34415c;
+  border: 1px solid rgba(99, 120, 170, 0.2);
+  background: #111827;
+  color: #cbd5e1;
 }
 
 .admin-primary-btn {
   border: 0;
-  background: linear-gradient(135deg, #1278ff 0%, #35a0ff 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   color: #fff;
-  box-shadow: 0 10px 22px rgba(18, 120, 255, 0.22);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.2);
 }
 
 .admin-primary-btn:hover {
@@ -1929,18 +1973,18 @@ select.bx-select-control {
 .admin-table td {
   text-align: left;
   padding: 14px 12px;
-  border-bottom: 1px solid #edf0f6;
+  border-bottom: 1px solid rgba(99, 120, 170, 0.14);
   vertical-align: middle;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .admin-table th {
-  color: #52627f;
+  color: #94a3b8;
   font-weight: 700;
 }
 
 .admin-table td {
-  color: #1b2333;
+  color: #e2e8f0;
 }
 
 .admin-status-chip {
@@ -1996,7 +2040,7 @@ select.bx-select-control {
 .admin-action-trigger {
   border: 0;
   background: transparent;
-  color: #5d6780;
+  color: #94a3b8;
   font-size: 20px;
   cursor: pointer;
 }
@@ -2006,10 +2050,10 @@ select.bx-select-control {
   right: 0;
   top: calc(100% + 6px);
   min-width: 150px;
-  border: 1px solid #d9dfeb;
-  background: #fff;
+  border: 1px solid rgba(99, 120, 170, 0.2);
+  background: #0f1824;
   border-radius: 12px;
-  box-shadow: 0 14px 40px rgba(15, 31, 61, 0.12);
+  box-shadow: 0 14px 40px rgba(1, 5, 13, 0.35);
   padding: 6px;
   z-index: 10;
 }
@@ -2018,7 +2062,7 @@ select.bx-select-control {
   width: 100%;
   border: 0;
   background: transparent;
-  color: #243149;
+  color: #e2e8f0;
   text-align: left;
   padding: 10px 12px;
   border-radius: 8px;
@@ -2026,7 +2070,7 @@ select.bx-select-control {
 }
 
 .admin-action-menu-item:hover {
-  background: #f3f6fb;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .admin-action-menu-item.danger {
@@ -2080,20 +2124,20 @@ select.bx-select-control {
 }
 
 .admin-topbar-light {
-  background: #ffffff;
-  color: #162033;
-  border: 1px solid #dfeaf8;
-  box-shadow: 0 10px 24px rgba(33, 71, 122, 0.06);
+  background: rgba(8, 12, 20, 0.86);
+  color: #e2e8f0;
+  border: 0;
+  box-shadow: none;
 }
 
 .admin-top-search input {
-  width: min(520px, 70vw);
-  border: 1px solid #d7deea;
-  border-radius: 999px;
-  background: #f7f8fb;
-  padding: 12px 16px;
-  font-size: 14px;
-  color: #172133;
+  width: min(380px, 60vw);
+  border: 1px solid rgba(99, 120, 170, 0.2);
+  border-radius: 8px;
+  background: #111827;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #e2e8f0;
 }
 
 .admin-top-icon,
@@ -2149,20 +2193,28 @@ select.bx-select-control {
 }
 
 .admin-brand-script {
-  font-size: 34px;
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: -0.06em;
+  letter-spacing: -0.02em;
   color: #ffffff;
 }
 
+.admin-brand-sub {
+  font-size: 10px;
+  color: #64748b;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .admin-nav-search-pill {
-  border: 0;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.12);
-  color: #d9e1ef;
-  padding: 11px 14px;
+  border: 1px solid rgba(99, 120, 170, 0.2);
+  border-radius: 8px;
+  background: #111827;
+  color: #94a3b8;
+  padding: 10px 12px;
   text-align: left;
-  font-size: 14px;
+  font-size: 13px;
+  margin: 10px;
 }
 
 .admin-subnav {
@@ -2174,38 +2226,39 @@ select.bx-select-control {
 .admin-subnav-item {
   border: 0;
   background: transparent;
-  color: rgba(217,225,239,0.9);
+  color: #94a3b8;
   text-align: left;
   padding: 9px 12px;
-  border-radius: 10px;
-  font-size: 14px;
+  border-radius: 8px;
+  font-size: 13px;
   cursor: pointer;
 }
 
 .admin-subnav-item.active,
 .admin-subnav-item:hover {
-  background: linear-gradient(90deg, rgba(31, 139, 255, 0.24), rgba(96, 183, 255, 0.16));
-  color: #fff;
+  background: rgba(59, 130, 246, 0.14);
+  color: #dbeafe;
 }
 
 .admin-top-icon,
 .admin-top-profile {
-  min-width: 42px;
-  height: 42px;
-  border-radius: 50%;
+  min-width: 38px;
+  height: 38px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
-  border: 1px solid #dbe2ee;
-  background: #fff;
-  color: #33415c;
+  border: 1px solid rgba(99, 120, 170, 0.2);
+  background: #111827;
+  color: #94a3b8;
   font-size: 12px;
   text-transform: uppercase;
 }
 
 .admin-top-profile {
-  background: #172133;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
   color: #fff;
   font-weight: 700;
+  border-radius: 50%;
 }
 
 .admin-top-profile-btn {
@@ -2218,13 +2271,59 @@ select.bx-select-control {
   place-items: center;
   min-height: 100vh;
   font-size: 18px;
-  color: #44516b;
+  color: #94a3b8;
 }
 
 .admin-message-bar {
   margin-top: 14px;
-  color: #53627d;
+  color: #94a3b8;
   font-size: 13px;
+}
+
+.admin-theme-toggle {
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid rgba(99, 120, 170, 0.2);
+  background: #111827;
+  color: #94a3b8;
+  font-size: 12px;
+  padding: 0 12px;
+}
+
+.admin-sidebar-bottom {
+  padding: 12px 10px;
+  border-top: 1px solid rgba(99, 120, 170, 0.14);
+}
+
+.admin-sidebar .admin-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.admin-sidebar .admin-info {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-sidebar .admin-name {
+  font-size: 12px;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.admin-sidebar .admin-role {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.admin-avatar-mini {
+  width: 34px;
+  height: 34px;
+  font-size: 11px;
 }
 
 .admin-section-head {
@@ -2267,11 +2366,11 @@ select.bx-select-control {
 
 .admin-form-heading h3 {
   font-size: 22px;
-  color: #172133;
+  color: #e2e8f0;
 }
 
 .admin-form-heading p {
-  color: #6c7a94;
+  color: #94a3b8;
   font-size: 13px;
   line-height: 1.5;
 }
@@ -2281,9 +2380,9 @@ select.bx-select-control {
 }
 
 .admin-icon-btn {
-  border: 1px solid #d6ddeb;
-  background: #fff;
-  color: #22304b;
+  border: 1px solid rgba(99, 120, 170, 0.2);
+  background: #111827;
+  color: #cbd5e1;
   border-radius: 999px;
   padding: 8px 12px;
   font-size: 12px;
@@ -2314,11 +2413,11 @@ select.bx-select-control {
 }
 
 .admin-person-cell strong {
-  color: #172133;
+  color: #e2e8f0;
 }
 
 .admin-person-cell span {
-  color: #72809b;
+  color: #94a3b8;
   font-size: 12px;
 }
 
@@ -2327,8 +2426,8 @@ select.bx-select-control {
   align-items: center;
   padding: 6px 10px;
   border-radius: 999px;
-  background: #eef3ff;
-  color: #3d53a6;
+  background: rgba(59, 130, 246, 0.15);
+  color: #bfdbfe;
   font-size: 12px;
   font-weight: 700;
 }
@@ -2347,13 +2446,13 @@ select.bx-select-control {
 .admin-country-label,
 .admin-country-count {
   font-size: 14px;
-  color: #1d2940;
+  color: #cbd5e1;
 }
 
 .admin-country-bar {
   height: 14px;
   border-radius: 999px;
-  background: #edf1f8;
+  background: #111827;
   overflow: hidden;
 }
 
@@ -2361,7 +2460,7 @@ select.bx-select-control {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #3866ff, #24b1ff);
+  background: linear-gradient(90deg, #2563eb, #1d4ed8);
 }
 
 .admin-form-split,
@@ -2385,23 +2484,23 @@ select.bx-select-control {
 }
 
 .admin-form-card {
-  background: #fbfcfe;
-  border: 1px solid #e6ebf3;
+  background: #0f1824;
+  border: 1px solid rgba(99, 120, 170, 0.14);
   border-radius: 16px;
   padding: 18px;
 }
 
 .admin-form-card label,
 .admin-settings-block label {
-  color: #64748b;
+  color: #94a3b8;
   font-size: 13px;
 }
 
 .admin-textarea {
   width: 100%;
-  border: 1px solid #cfd7e6;
-  background: #fff;
-  color: #1b2333;
+  border: 1px solid rgba(99, 120, 170, 0.2);
+  background: #111827;
+  color: #e2e8f0;
   border-radius: 10px;
   padding: 12px;
   font-size: 14px;
@@ -2417,9 +2516,9 @@ select.bx-select-control {
 }
 
 .admin-settings-tab {
-  border: 1px solid #dde3ef;
-  background: #fff;
-  color: #2a3752;
+  border: 1px solid rgba(99, 120, 170, 0.2);
+  background: #111827;
+  color: #cbd5e1;
   border-radius: 14px;
   padding: 13px 14px;
   text-align: left;
@@ -2427,21 +2526,21 @@ select.bx-select-control {
 }
 
 .admin-settings-tab.active {
-  background: #172133;
+  background: #1d4ed8;
   color: #fff;
-  border-color: #172133;
+  border-color: #1d4ed8;
 }
 
 .admin-settings-panel {
-  background: #fbfcfe;
-  border: 1px solid #e6ebf3;
+  background: #0f1824;
+  border: 1px solid rgba(99, 120, 170, 0.14);
   border-radius: 16px;
   padding: 18px;
 }
 
 .admin-settings-block h3 {
   font-size: 22px;
-  color: #172133;
+  color: #e2e8f0;
 }
 
 .admin-field-grid {
@@ -2454,17 +2553,17 @@ select.bx-select-control {
 }
 
 .admin-tab-chip {
-  border: 1px solid #d8dfe9;
-  background: #fff;
-  color: #33415c;
+  border: 1px solid rgba(99, 120, 170, 0.2);
+  background: #111827;
+  color: #cbd5e1;
   border-radius: 999px;
   padding: 9px 14px;
   cursor: pointer;
 }
 
 .admin-tab-chip.active {
-  background: #3866ff;
-  border-color: #3866ff;
+  background: #1d4ed8;
+  border-color: #1d4ed8;
   color: #fff;
 }
 
@@ -2487,7 +2586,7 @@ select.bx-select-control {
   height: 28px;
   border: 0;
   border-radius: 999px;
-  background: #d8dfe9;
+  background: #334155;
   padding: 3px;
   cursor: pointer;
   position: relative;
@@ -2503,7 +2602,7 @@ select.bx-select-control {
 }
 
 .admin-toggle.active {
-  background: #3866ff;
+  background: #1d4ed8;
 }
 
 .admin-toggle.active span {
@@ -2528,15 +2627,15 @@ select.bx-select-control {
 
 .admin-profile-card-hero {
   padding: 22px;
-  border: 1px solid #dbe8f9;
+  border: 1px solid rgba(99, 120, 170, 0.14);
   border-radius: 18px;
-  background: linear-gradient(135deg, #f4f9ff 0%, #ffffff 60%);
+  background: linear-gradient(135deg, #0f1824 0%, #111827 60%);
 }
 
 .admin-tab-row {
   gap: 0;
-  border: 1px solid #dbe8f9;
-  background: #f8fbff;
+  border: 1px solid rgba(99, 120, 170, 0.14);
+  background: #0f1824;
   border-radius: 14px;
   padding: 4px;
   width: fit-content;
@@ -2545,7 +2644,7 @@ select.bx-select-control {
 .admin-profile-tab {
   border: 0;
   background: transparent;
-  color: #6c7a94;
+  color: #94a3b8;
   border-radius: 10px;
   padding: 12px 18px;
   cursor: pointer;
@@ -2554,9 +2653,9 @@ select.bx-select-control {
 }
 
 .admin-profile-tab.active {
-  background: linear-gradient(135deg, #1278ff 0%, #35a0ff 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   color: #fff;
-  box-shadow: 0 10px 22px rgba(18, 120, 255, 0.18);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.2);
 }
 
 .admin-radio-row {
@@ -2593,12 +2692,12 @@ select.bx-select-control {
 
 .admin-profile-meta h3 {
   font-size: 28px;
-  color: #172133;
+  color: #e2e8f0;
 }
 
 .admin-profile-meta p,
 .admin-inline-meta span {
-  color: #6c7a94;
+  color: #94a3b8;
 }
 
 .admin-list-grid {
@@ -2609,20 +2708,20 @@ select.bx-select-control {
 
 .admin-list-card {
   border-radius: 16px;
-  background: #f6f8fc;
-  border: 1px solid #e5ebf4;
+  background: #111827;
+  border: 1px solid rgba(99, 120, 170, 0.14);
   padding: 18px;
   display: grid;
   gap: 6px;
 }
 
 .admin-list-card span {
-  color: #74809a;
+  color: #94a3b8;
   font-size: 13px;
 }
 
 .admin-list-card strong {
-  color: #172133;
+  color: #e2e8f0;
   font-size: 26px;
 }
 
@@ -2634,29 +2733,29 @@ select.bx-select-control {
   display: grid;
   gap: 4px;
   padding: 10px 12px 12px;
-  border-bottom: 1px solid #edf2f8;
+  border-bottom: 1px solid rgba(99, 120, 170, 0.14);
   margin-bottom: 4px;
 }
 
 .admin-user-menu-head strong {
-  color: #172133;
+  color: #e2e8f0;
 }
 
 .admin-user-menu-head span {
-  color: #72809b;
+  color: #94a3b8;
   font-size: 12px;
 }
 
 .admin-link-btn {
   border: 0;
   background: transparent;
-  color: #3866ff;
+  color: #93c5fd;
   font-weight: 700;
   cursor: pointer;
 }
 
 .admin-row-active {
-  background: #f3f7ff;
+  background: rgba(59, 130, 246, 0.12);
 }
 
 .admin-cms-public {
@@ -2674,14 +2773,14 @@ select.bx-select-control {
 }
 
 .admin-cms-excerpt {
-  color: #55637f;
+  color: #94a3b8;
   font-size: 18px;
   margin-top: 10px;
 }
 
 .admin-cms-body {
   margin-top: 24px;
-  color: #1d2940;
+  color: #e2e8f0;
   line-height: 1.7;
 }
 
@@ -2723,11 +2822,15 @@ select.bx-select-control {
   .admin-sidebar {
     position: fixed;
     inset: 0 auto 0 0;
-    width: 260px;
+    width: 240px;
     transform: translateX(-100%);
     transition: transform 0.2s ease;
     z-index: 20;
     min-height: 100vh;
+  }
+
+  .admin-topbar {
+    left: 0;
   }
 
   .admin-sidebar.open {
@@ -2766,11 +2869,11 @@ select.bx-select-control {
 
 @media (max-width: 640px) {
   .admin-main {
-    padding: 10px 10px 22px;
+    padding: 62px 10px 22px;
   }
 
   .admin-topbar {
-    padding: 12px;
+    padding: 10px;
   }
 
   .admin-page-title {

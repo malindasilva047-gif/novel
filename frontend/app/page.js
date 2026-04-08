@@ -279,7 +279,7 @@ function getDeterministicProgress(story, idx) {
 
 function toFixedLengthStories(list, length) {
   if (!Array.isArray(list) || list.length === 0) {
-    return MOCK_STORIES.slice(0, length);
+    return [];
   }
   const output = [];
   for (let i = 0; i < length; i += 1) {
@@ -302,7 +302,6 @@ export default function Home() {
   const [recommendationMeta, setRecommendationMeta] = useState({ reason: 'Based on what readers love', location_hint: '' });
   const [continueHistory, setContinueHistory] = useState([]);
   const [branding, setBranding] = useState({ site_name: 'Wingsaga', logo_url: '' });
-  const [activeTab, setActiveTab] = useState('All');
   const [followed, setFollowed] = useState(new Set());
   const [bookmarkedStoryIds, setBookmarkedStoryIds] = useState(new Set());
   const [toast, setToast] = useState('');
@@ -410,17 +409,24 @@ export default function Home() {
           const feedStories = Array.isArray(feedRes) ? feedRes : (feedRes?.stories || []);
           const mergedStories = [...trendingStories, ...feedStories].map((story, idx) => ({
             id: story?.id || story?._id || `api-story-${idx}`,
+            _id: story?.id || story?._id || `api-story-${idx}`,
             title: story?.title || `Story ${idx + 1}`,
             author: story?.author_name || story?.author || 'Wingsaga',
+            author_name: story?.author_name || story?.author || 'Wingsaga',
             genre: story?.genre || (Array.isArray(story?.categories) && story.categories[0]) || 'Fiction',
-            rating: Number(story?.avg_rating || 4.5),
-            reviews: Number(story?.likes || 0),
+            categories: Array.isArray(story?.categories) ? story.categories : [],
+            views: Number(story?.views || 0),
+            likes: Number(story?.likes || 0),
+            avg_rating: Number(story?.avg_rating || 0),
+            created_at: story?.created_at || story?.updated_at || null,
+            is_premium: Boolean(story?.is_premium),
             image: story?.cover_image || story?.image || '',
+            cover_image: story?.cover_image || story?.image || '',
           }));
-          setStories(mergedStories.length > 0 ? mergedStories : MOCK_STORIES);
+          setStories(mergedStories);
         } catch (err) {
-          setStories(MOCK_STORIES);
-          setRecommended(MOCK_STORIES.slice(0, 10));
+          setStories([]);
+          setRecommended([]);
         }
 
         // Fetch continue reading history
@@ -549,30 +555,25 @@ export default function Home() {
       .catch(() => setBookmarkedStoryIds(new Set()));
   }, []);
 
-  // FILTER STORIES BY TAB
-  const allStories = stories.length > 0 ? stories : MOCK_STORIES;
-  const displayStories = activeTab === 'All'
-    ? allStories
-    : allStories.filter((story) => {
-      const storyGenre = String(story.genre || '').toLowerCase();
-      const selectedGenre = activeTab.toLowerCase();
-      const categories = Array.isArray(story.categories)
-        ? story.categories.map((category) => String(category).toLowerCase())
-        : [];
-      return storyGenre === selectedGenre || categories.includes(selectedGenre);
-    });
+  const allStories = stories;
+  const displayStories = allStories;
+
+  const byViewsDesc = [...displayStories].sort((a, b) => Number(b?.views || 0) - Number(a?.views || 0));
+  const byLikesDesc = [...displayStories].sort((a, b) => Number(b?.likes || 0) - Number(a?.likes || 0));
+  const byCreatedDesc = [...displayStories].sort((a, b) => {
+    const aTs = new Date(a?.created_at || 0).getTime() || 0;
+    const bTs = new Date(b?.created_at || 0).getTime() || 0;
+    return bTs - aTs;
+  });
+
   // DATA FOR SECTIONS
-  const continueReading = continueHistory.length > 0 ? continueHistory : MOCK_STORIES.slice(0, 4);
-  const readingList = continueHistory.slice(0, 4).length > 0 ? continueHistory.slice(0, 4) : MOCK_STORIES.slice(2, 6);
+  const continueReading = continueHistory;
+  const readingList = continueHistory.slice(0, 4);
   const recommendedStories = toFixedLengthStories(recommended.length > 0 ? recommended : displayStories, 10);
-  const popularStories = toFixedLengthStories(displayStories, 12);
-  const newReleases = displayStories.filter((s) => s.badge === 'New').length > 0
-    ? toFixedLengthStories(displayStories.filter((s) => s.badge === 'New'), 10)
-    : toFixedLengthStories(MOCK_STORIES.filter((s) => s.badge === 'New'), 10);
-  const trendingStories = displayStories.filter((s) => s.badge === 'Trending').length > 0
-    ? toFixedLengthStories(displayStories.filter((s) => s.badge === 'Trending'), 10)
-    : toFixedLengthStories(MOCK_STORIES.filter((s) => s.badge === 'Trending'), 10);
-  const subscriptionStories = toFixedLengthStories(displayStories, 12);
+  const popularStories = toFixedLengthStories(byViewsDesc, 12);
+  const newReleases = toFixedLengthStories(byCreatedDesc, 10);
+  const trendingStories = toFixedLengthStories(byLikesDesc, 10);
+  const subscriptionStories = toFixedLengthStories(displayStories.filter((item) => item?.is_premium), 12);
 
   // Hero handlers
   const handlePrevSlide = () => {
@@ -722,9 +723,6 @@ export default function Home() {
               {recommendationMeta.location_hint ? ` • ${recommendationMeta.location_hint}` : ''}
             </p>
           </div>
-          <Link href="/discover" className="bx-sec-more">
-            See All →
-          </Link>
         </div>
 
         <div className="bx-carousel">
@@ -753,7 +751,7 @@ export default function Home() {
                 <h4 className="bx-book-title">{story.title}</h4>
                 <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
                 <div className="bx-book-meta bx-book-meta-rich">
-                  <span>{Number(story.views || 0).toLocaleString()} views</span>
+                  <span>👁 {Number(story.views || 0).toLocaleString()}</span>
                 </div>
               </div>
             ))}
@@ -770,34 +768,11 @@ export default function Home() {
       </section>
 
       {/* ───────────────────────────────────────────────────
-          3. GENRE TABS FILTER
-      ─────────────────────────────────────────────────── */}
-      <section className="bx-section bx-filter-section">
-        <div className="bx-tabs" role="tablist">
-          {['All', ...GENRES.map((g) => g.name)].map((genre, idx) => (
-            <button
-              key={genre}
-              className={`bx-tab ${activeTab === genre ? 'active' : ''}`}
-              onClick={() => setActiveTab(genre)}
-              role="tab"
-              aria-selected={activeTab === genre}
-            >
-              {genre}
-            </button>
-          ))}
-        </div>
-
-      </section>
-
-      {/* ───────────────────────────────────────────────────
           5. POPULAR RIGHT NOW CAROUSEL
       ─────────────────────────────────────────────────── */}
       <section className="bx-section">
         <div className="bx-sec-header">
           <h2 className="bx-sec-title">Popular Right Now</h2>
-          <Link href="/discover?sort=popular" className="bx-sec-more">
-            See All →
-          </Link>
         </div>
 
         <div className="bx-carousel">
@@ -826,7 +801,7 @@ export default function Home() {
                 <h4 className="bx-book-title">{story.title}</h4>
                 <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
                 <div className="bx-book-meta bx-book-meta-rich">
-                  <span>{Number(story.views || 0).toLocaleString()} views</span>
+                  <span>👁 {Number(story.views || 0).toLocaleString()}</span>
                 </div>
               </div>
             ))}
@@ -848,9 +823,6 @@ export default function Home() {
       <section className="bx-section">
         <div className="bx-sec-header">
           <h2 className="bx-sec-title">New Releases</h2>
-          <Link href="/discover?sort=new" className="bx-sec-more">
-            See All →
-          </Link>
         </div>
 
         <div className="bx-carousel">
@@ -879,7 +851,7 @@ export default function Home() {
                 <h4 className="bx-book-title">{story.title}</h4>
                 <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
                 <div className="bx-book-meta bx-book-meta-rich">
-                  <span>{Number(story.views || 0).toLocaleString()} views</span>
+                  <span>👁 {Number(story.views || 0).toLocaleString()}</span>
                 </div>
               </div>
             ))}
@@ -901,9 +873,6 @@ export default function Home() {
       <section className="bx-section">
         <div className="bx-sec-header">
           <h2 className="bx-sec-title">🔥 Trending This Week</h2>
-          <Link href="/discover?sort=trending" className="bx-sec-more">
-            See All →
-          </Link>
         </div>
 
         <div className="bx-carousel">
@@ -932,7 +901,7 @@ export default function Home() {
                 <h4 className="bx-book-title">{story.title}</h4>
                 <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
                 <div className="bx-book-meta bx-book-meta-rich">
-                  <span>{Number(story.views || 0).toLocaleString()} views</span>
+                  <span>👁 {Number(story.views || 0).toLocaleString()}</span>
                 </div>
               </div>
             ))}
@@ -992,7 +961,7 @@ export default function Home() {
                 <h4 className="bx-book-title">{story.title}</h4>
                 <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
                 <div className="bx-book-meta bx-book-meta-rich">
-                  <span>{Number(story.views || 0).toLocaleString()} views</span>
+                  <span>👁 {Number(story.views || 0).toLocaleString()}</span>
                 </div>
               </div>
             ))}
@@ -1014,9 +983,6 @@ export default function Home() {
       <section className="bx-section">
         <div className="bx-sec-header">
           <h2 className="bx-sec-title">▶ Continue Reading</h2>
-          <Link href="/library?tab=Reading" className="bx-sec-more">
-            View All →
-          </Link>
         </div>
 
         <div className="bx-carousel">
@@ -1051,7 +1017,7 @@ export default function Home() {
                   <h4 className="bx-book-title">{story.title}</h4>
                   <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
                   <p className="bx-book-progress">Last read part: {story.chapter_id || 'Chapter 1'}</p>
-                  <p className="bx-book-progress">Views: {Number(story.views || 0).toLocaleString()}</p>
+                  <p className="bx-book-progress">👁 {Number(story.views || 0).toLocaleString()}</p>
                   <div className="bx-continue-progress-wrap">
                     <div className="bx-continue-progress-bar">
                       <div
@@ -1086,9 +1052,6 @@ export default function Home() {
       <section className="bx-section">
         <div className="bx-sec-header">
           <h2 className="bx-sec-title">🔖 My Reading List</h2>
-          <Link href="/library?tab=Saved" className="bx-sec-more">
-            Manage List →
-          </Link>
         </div>
 
         <div className="bx-carousel">
@@ -1120,7 +1083,7 @@ export default function Home() {
                 <div className="bx-readlist-info">
                   <h4 className="bx-readlist-title">{story.title}</h4>
                   <p className="bx-readlist-meta">{story.author}</p>
-                  <p className="bx-readlist-meta">Views: {Number(story.views || 0).toLocaleString()}</p>
+                  <p className="bx-readlist-meta">👁 {Number(story.views || 0).toLocaleString()}</p>
                   <span className={`bx-readlist-status ${idx % 2 === 0 ? 'ongoing' : 'complete'}`}>
                     {idx % 2 === 0 ? 'Ongoing' : 'Complete'}
                   </span>
@@ -1156,9 +1119,6 @@ export default function Home() {
       <section className="bx-section">
         <div className="bx-sec-header">
           <h2 className="bx-sec-title">⭐ Top Reviews</h2>
-          <Link href="/reviews" className="bx-sec-more">
-            Browse All →
-          </Link>
         </div>
 
         <div className="bx-carousel">
@@ -1259,7 +1219,7 @@ export default function Home() {
                 key={genre.name}
                 className="bx-genre-card"
                 style={{ backgroundColor: genre.bg }}
-                onClick={() => setActiveTab(genre.name)}
+                onClick={() => router.push(`/discover?genre=${encodeURIComponent(genre.name.toLowerCase())}`)}
               >
                 <div className="bx-genre-overlay" />
                 <span className="bx-genre-icon">{genre.icon}</span>

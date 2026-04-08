@@ -874,25 +874,32 @@ export default function AdminPage() {
   return (
     <main className="admin-shell">
       <aside className={`admin-sidebar ${sidebarOpen ? "open" : ""}`}>
-        <div className="admin-brand-row">
-          <div className="admin-brand-script">Bixbi</div>
+        <div className="admin-brand-row admin-sidebar-logo">
+          <div className="admin-logo-icon">BX</div>
+          <div className="admin-brand-block">
+            <div className="admin-brand-script">Bixbi</div>
+            <div className="admin-brand-sub">Control Panel</div>
+          </div>
           <button type="button" className="admin-sidebar-close" onClick={() => setSidebarOpen(false)}>x</button>
         </div>
 
         <button type="button" className="admin-nav-search-pill" onClick={() => setSidebarOpen(false)}>
-          Search
+          Search menu
         </button>
 
         <button type="button" className={`admin-nav-item ${activeSection === "reels" ? "active" : ""}`} onClick={() => { setActiveSection("reels"); setSidebarOpen(false); }}>
+          <span className="admin-nav-icon">RL</span>
           Reel List
         </button>
         <button type="button" className={`admin-nav-item ${activeSection === "stories" ? "active" : ""}`} onClick={() => { setActiveSection("stories"); setSidebarOpen(false); }}>
+          <span className="admin-nav-icon">ST</span>
           Stories List
         </button>
 
         <div className="admin-nav-group">
           <div className="admin-nav-title">List</div>
           <button type="button" className={`admin-nav-item ${activeSection.includes("report") ? "active" : ""}`} onClick={() => setReportsOpen((prev) => !prev)}>
+            <span className="admin-nav-icon">RP</span>
             Report List
           </button>
           {reportsOpen && (
@@ -907,6 +914,7 @@ export default function AdminPage() {
 
           {SIDEBAR_ITEMS.filter((item) => !["reels", "stories", "user-reports", "post-reports", "reel-reports"].includes(item.key)).map((item) => (
             <button type="button" key={item.key} className={`admin-nav-item ${activeSection === item.key ? "active" : ""}`} onClick={() => { setActiveSection(item.key); setSidebarOpen(false); }}>
+              <span className="admin-nav-icon">{item.label.slice(0, 2).toUpperCase()}</span>
               {item.label}
             </button>
           ))}
@@ -915,6 +923,7 @@ export default function AdminPage() {
         <div className="admin-nav-group">
           <div className="admin-nav-title">Notification</div>
           <button type="button" className={`admin-nav-item ${activeSection === "push" ? "active" : ""}`} onClick={() => { setActiveSection("push"); setSidebarOpen(false); }}>
+            <span className="admin-nav-icon">PN</span>
             Push Notification
           </button>
         </div>
@@ -922,21 +931,36 @@ export default function AdminPage() {
         <div className="admin-nav-group admin-nav-footer">
           <div className="admin-nav-title">Setting</div>
           <button type="button" className={`admin-nav-item ${activeSection === "settings" ? "active" : ""}`} onClick={() => { setActiveSection("settings"); setSidebarOpen(false); }}>
+            <span className="admin-nav-icon">SE</span>
             Settings
           </button>
           <button type="button" className={`admin-nav-item ${activeSection === "profile" ? "active" : ""}`} onClick={() => { setActiveSection("profile"); setSidebarOpen(false); }}>
+            <span className="admin-nav-icon">PR</span>
             Profile
           </button>
           <button type="button" className={`admin-nav-item ${activeSection === "cms" ? "active" : ""}`} onClick={() => { setActiveSection("cms"); setSidebarOpen(false); }}>
+            <span className="admin-nav-icon">CM</span>
             CMS Pages
           </button>
           <button type="button" className={`admin-nav-item ${activeSection === "dashboard" ? "active" : ""}`} onClick={() => { setActiveSection("dashboard"); setSidebarOpen(false); }}>
+            <span className="admin-nav-icon">DB</span>
             Dashboard
           </button>
           <button type="button" className={`admin-nav-item ${activeSection === "debug" ? "active" : ""}`} onClick={() => { setActiveSection("debug"); setSidebarOpen(false); }}>
+            <span className="admin-nav-icon">DG</span>
             Admin Debug
           </button>
-          <button type="button" className="admin-nav-item" onClick={logout}>Logout</button>
+          <button type="button" className="admin-nav-item" onClick={logout}><span className="admin-nav-icon">LO</span>Logout</button>
+        </div>
+
+        <div className="admin-sidebar-bottom">
+          <div className="admin-profile">
+            <div className="admin-avatar admin-avatar-mini">{(me?.full_name || me?.username || "AD").slice(0, 2).toUpperCase()}</div>
+            <div className="admin-info">
+              <div className="admin-name">{me?.full_name || me?.username || "Admin"}</div>
+              <div className="admin-role">Administrator</div>
+            </div>
+          </div>
         </div>
       </aside>
 
@@ -949,8 +973,8 @@ export default function AdminPage() {
             </div>
           </div>
           <div className="admin-topbar-right">
-            <div className="admin-top-icon">theme</div>
-            <div className="admin-top-icon">bell</div>
+            <button type="button" className="admin-theme-toggle">Theme</button>
+            <div className="admin-top-icon">NT</div>
             <div className="admin-action-menu-wrap">
               <button type="button" className="admin-top-profile admin-top-profile-btn" onClick={() => setUserMenuOpen((prev) => !prev)}>
                 {(me?.full_name || me?.username || "AD").slice(0, 2).toUpperCase()}

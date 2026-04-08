@@ -117,19 +117,19 @@ const DEFAULT_USER_FORM = {
 };
 
 const SIDEBAR_ITEMS = [
-  { key: "reels", label: "Reel List" },
-  { key: "stories", label: "Stories List" },
-  { key: "user-reports", label: "User Report List" },
-  { key: "story-reports", label: "Story Report List" },
-  { key: "chapter-reports", label: "Chapter Report List" },
-  { key: "comment-reports", label: "Comment Report List" },
-  { key: "users", label: "User List" },
-  { key: "country-users", label: "Countrywise Users" },
-  { key: "hashtags", label: "Hashtag List" },
-  { key: "languages", label: "Language List" },
-  { key: "genres", label: "Genre List" },
-  { key: "blocks", label: "Block List" },
-  { key: "avatars", label: "Avatar List" },
+  { key: "reels", label: "Reel List", icon: "🎬" },
+  { key: "stories", label: "Stories List", icon: "📚" },
+  { key: "user-reports", label: "User Report List", icon: "🚨" },
+  { key: "story-reports", label: "Story Report List", icon: "📣" },
+  { key: "chapter-reports", label: "Chapter Report List", icon: "📝" },
+  { key: "comment-reports", label: "Comment Report List", icon: "💬" },
+  { key: "users", label: "User List", icon: "👤" },
+  { key: "country-users", label: "Countrywise Users", icon: "🌍" },
+  { key: "hashtags", label: "Hashtag List", icon: "#" },
+  { key: "languages", label: "Language List", icon: "🈯" },
+  { key: "genres", label: "Genre List", icon: "🏷️" },
+  { key: "blocks", label: "Block List", icon: "⛔" },
+  { key: "avatars", label: "Avatar List", icon: "🖼️" },
 ];
 
 const SETTINGS_TABS = [
@@ -214,8 +214,15 @@ function toUserForm(user = {}) {
 }
 
 function DashboardCard({ label, value, tone = "primary" }) {
+  const iconMap = {
+    "Total Users": "👤",
+    "Total Books": "📚",
+    Downloads: "⬇",
+    Views: "👁",
+  };
   return (
     <article className={`admin-stat-card admin-tone-${tone}`}>
+      <span className="admin-stat-icon-bg">{iconMap[label] || "•"}</span>
       <span>{label}</span>
       <strong>{value}</strong>
     </article>
@@ -968,7 +975,7 @@ export default function AdminPage() {
             <div className="admin-brand-script">Bixbi</div>
             <div className="admin-brand-sub">Control Panel</div>
           </div>
-          <button type="button" className="admin-sidebar-close" onClick={() => setSidebarOpen(false)}>x</button>
+          <button type="button" className="admin-sidebar-close" onClick={() => setSidebarOpen(false)}>✕</button>
         </div>
 
         <button type="button" className="admin-nav-search-pill" onClick={() => setSidebarOpen(false)}>
@@ -976,24 +983,25 @@ export default function AdminPage() {
         </button>
 
         <button type="button" className={`admin-nav-item ${activeSection === "reels" ? "active" : ""}`} onClick={() => { setActiveSection("reels"); setSidebarOpen(false); }}>
-          <span className="admin-nav-icon">RL</span>
+          <span className="admin-nav-icon">🎬</span>
           Reel List
         </button>
         <button type="button" className={`admin-nav-item ${activeSection === "stories" ? "active" : ""}`} onClick={() => { setActiveSection("stories"); setSidebarOpen(false); }}>
-          <span className="admin-nav-icon">ST</span>
+          <span className="admin-nav-icon">📚</span>
           Stories List
         </button>
 
         <div className="admin-nav-group">
           <div className="admin-nav-title">List</div>
           <button type="button" className={`admin-nav-item ${activeSection.includes("report") ? "active" : ""}`} onClick={() => setReportsOpen((prev) => !prev)}>
-            <span className="admin-nav-icon">RP</span>
+            <span className="admin-nav-icon">🚨</span>
             Report List
           </button>
           {reportsOpen && (
             <div className="admin-subnav">
               {SIDEBAR_ITEMS.filter((item) => item.key.includes("report")).map((item) => (
                 <button type="button" key={item.key} className={`admin-subnav-item ${activeSection === item.key ? "active" : ""}`} onClick={() => { setActiveSection(item.key); setSidebarOpen(false); }}>
+                  <span className="admin-nav-icon">{item.icon || "•"}</span>
                   {item.label}
                 </button>
               ))}
@@ -1002,7 +1010,7 @@ export default function AdminPage() {
 
           {SIDEBAR_ITEMS.filter((item) => !["reels", "stories", "user-reports", "story-reports", "chapter-reports", "comment-reports", "post-reports", "reel-reports"].includes(item.key)).map((item) => (
             <button type="button" key={item.key} className={`admin-nav-item ${activeSection === item.key ? "active" : ""}`} onClick={() => { setActiveSection(item.key); setSidebarOpen(false); }}>
-              <span className="admin-nav-icon">{item.label.slice(0, 2).toUpperCase()}</span>
+              <span className="admin-nav-icon">{item.icon || item.label.slice(0, 2).toUpperCase()}</span>
               {item.label}
             </button>
           ))}
@@ -1011,7 +1019,7 @@ export default function AdminPage() {
         <div className="admin-nav-group">
           <div className="admin-nav-title">Notification</div>
           <button type="button" className={`admin-nav-item ${activeSection === "push" ? "active" : ""}`} onClick={() => { setActiveSection("push"); setSidebarOpen(false); }}>
-            <span className="admin-nav-icon">PN</span>
+            <span className="admin-nav-icon">🔔</span>
             Push Notification
           </button>
         </div>
@@ -1019,26 +1027,26 @@ export default function AdminPage() {
         <div className="admin-nav-group admin-nav-footer">
           <div className="admin-nav-title">Setting</div>
           <button type="button" className={`admin-nav-item ${activeSection === "settings" ? "active" : ""}`} onClick={() => { setActiveSection("settings"); setSidebarOpen(false); }}>
-            <span className="admin-nav-icon">SE</span>
+            <span className="admin-nav-icon">⚙️</span>
             Settings
           </button>
           <button type="button" className={`admin-nav-item ${activeSection === "profile" ? "active" : ""}`} onClick={() => { setActiveSection("profile"); setSidebarOpen(false); }}>
-            <span className="admin-nav-icon">PR</span>
+            <span className="admin-nav-icon">👤</span>
             Profile
           </button>
           <button type="button" className={`admin-nav-item ${activeSection === "cms" ? "active" : ""}`} onClick={() => { setActiveSection("cms"); setSidebarOpen(false); }}>
-            <span className="admin-nav-icon">CM</span>
+            <span className="admin-nav-icon">📄</span>
             CMS Pages
           </button>
           <button type="button" className={`admin-nav-item ${activeSection === "dashboard" ? "active" : ""}`} onClick={() => { setActiveSection("dashboard"); setSidebarOpen(false); }}>
-            <span className="admin-nav-icon">DB</span>
+            <span className="admin-nav-icon">🏠</span>
             Dashboard
           </button>
           <button type="button" className={`admin-nav-item ${activeSection === "debug" ? "active" : ""}`} onClick={() => { setActiveSection("debug"); setSidebarOpen(false); }}>
-            <span className="admin-nav-icon">DG</span>
+            <span className="admin-nav-icon">🧪</span>
             Admin Debug
           </button>
-          <button type="button" className="admin-nav-item" onClick={logout}><span className="admin-nav-icon">LO</span>Logout</button>
+          <button type="button" className="admin-nav-item" onClick={logout}><span className="admin-nav-icon">⏻</span>Logout</button>
         </div>
 
         <div className="admin-sidebar-bottom">
@@ -1061,8 +1069,8 @@ export default function AdminPage() {
             </div>
           </div>
           <div className="admin-topbar-right">
-            <button type="button" className="admin-theme-toggle">Theme</button>
-            <div className="admin-top-icon">NT</div>
+            <button type="button" className="admin-theme-toggle">🌙 Dark</button>
+            <div className="admin-top-icon">🔔</div>
             <div className="admin-action-menu-wrap">
               <button type="button" className="admin-top-profile admin-top-profile-btn" onClick={() => setUserMenuOpen((prev) => !prev)}>
                 {(me?.full_name || me?.username || "AD").slice(0, 2).toUpperCase()}

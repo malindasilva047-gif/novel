@@ -288,12 +288,30 @@ function toFixedLengthStories(list, length) {
   return output;
 }
 
+function dedupeStoriesById(list) {
+  if (!Array.isArray(list)) {
+    return [];
+  }
+  const seen = new Set();
+  const output = [];
+  for (const item of list) {
+    const key = String(item?.id || item?._id || '');
+    if (!key || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    output.push(item);
+  }
+  return output;
+}
+
 /* ═══════════════════════════════════════════════════════
    MAIN COMPONENT
 ═══════════════════════════════════════════════════════ */
 
 export default function Home() {
   const router = useRouter();
+  const isLoggedIn = Boolean(readToken());
 
   // HEROES & HERO NAV
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -407,7 +425,7 @@ export default function Home() {
 
           const trendingStories = Array.isArray(trendingRes) ? trendingRes : (trendingRes?.stories || []);
           const feedStories = Array.isArray(feedRes) ? feedRes : (feedRes?.stories || []);
-          const mergedStories = [...trendingStories, ...feedStories].map((story, idx) => ({
+          const mergedStories = dedupeStoriesById([...trendingStories, ...feedStories]).map((story, idx) => ({
             id: story?.id || story?._id || `api-story-${idx}`,
             _id: story?.id || story?._id || `api-story-${idx}`,
             title: story?.title || `Story ${idx + 1}`,
@@ -472,6 +490,9 @@ export default function Home() {
   // REAL-TIME STORY METRICS POLLING (views/likes from live stories endpoint)
   useEffect(() => {
     const interval = setInterval(async () => {
+      if (document.hidden) {
+        return;
+      }
       try {
         const livePayload = await apiRequest('/stories?limit=80&sort_by=views');
         const liveStories = Array.isArray(livePayload?.stories) ? livePayload.stories : [];
@@ -518,7 +539,7 @@ export default function Home() {
       } catch {
         // Ignore polling errors
       }
-    }, 8000);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, []);
@@ -569,11 +590,11 @@ export default function Home() {
   // DATA FOR SECTIONS
   const continueReading = continueHistory;
   const readingList = continueHistory.slice(0, 4);
-  const recommendedStories = toFixedLengthStories(recommended.length > 0 ? recommended : displayStories, 10);
-  const popularStories = toFixedLengthStories(byViewsDesc, 12);
-  const newReleases = toFixedLengthStories(byCreatedDesc, 10);
-  const trendingStories = toFixedLengthStories(byLikesDesc, 10);
-  const subscriptionStories = toFixedLengthStories(displayStories.filter((item) => item?.is_premium), 12);
+  const recommendedStories = dedupeStoriesById(recommended.length > 0 ? recommended : displayStories).slice(0, 12);
+  const popularStories = dedupeStoriesById(byViewsDesc).slice(0, 12);
+  const newReleases = dedupeStoriesById(byCreatedDesc).slice(0, 12);
+  const trendingStories = dedupeStoriesById(byLikesDesc).slice(0, 12);
+  const subscriptionStories = dedupeStoriesById(displayStories.filter((item) => item?.is_premium)).slice(0, 12);
 
   // Hero handlers
   const handlePrevSlide = () => {
@@ -743,7 +764,7 @@ export default function Home() {
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#3f7a6a' }}>
                   {story.image || story.cover_image ? (
-                    <img src={story.image || story.cover_image} alt={story.title} loading="eager" />
+                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
                   ) : (
                     <div className="bx-book-fallback">{story.title}</div>
                   )}
@@ -793,7 +814,7 @@ export default function Home() {
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#2F4F4F' }}>
                   {story.image ? (
-                    <img src={story.image} alt={story.title} loading="eager" />
+                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
                   ) : (
                     <div className="bx-book-fallback">{story.title}</div>
                   )}
@@ -843,7 +864,7 @@ export default function Home() {
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#663399' }}>
                   {story.image ? (
-                    <img src={story.image} alt={story.title} loading="eager" />
+                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
                   ) : (
                     <div className="bx-book-fallback">{story.title}</div>
                   )}
@@ -893,7 +914,7 @@ export default function Home() {
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#DC143C' }}>
                   {story.image ? (
-                    <img src={story.image} alt={story.title} loading="eager" />
+                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
                   ) : (
                     <div className="bx-book-fallback">{story.title}</div>
                   )}
@@ -950,7 +971,7 @@ export default function Home() {
                 <div className="bx-book-cover" style={{ backgroundColor: '#4169E1' }}>
                   <span className="bx-book-sub-badge">PRO</span>
                   {story.image ? (
-                    <img src={story.image} alt={story.title} loading="eager" />
+                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
                   ) : (
                     <div className="bx-book-fallback">{story.title}</div>
                   )}
@@ -980,6 +1001,7 @@ export default function Home() {
       {/* ───────────────────────────────────────────────────
           10. CONTINUE READING SECTION
       ─────────────────────────────────────────────────── */}
+      {isLoggedIn && (
       <section className="bx-section">
         <div className="bx-sec-header">
           <h2 className="bx-sec-title">▶ Continue Reading</h2>
@@ -1045,10 +1067,12 @@ export default function Home() {
           </button>
         </div>
       </section>
+      )}
 
       {/* ───────────────────────────────────────────────────
           11. MY READING LIST SECTION
       ─────────────────────────────────────────────────── */}
+      {isLoggedIn && (
       <section className="bx-section">
         <div className="bx-sec-header">
           <h2 className="bx-sec-title">🔖 My Reading List</h2>
@@ -1112,6 +1136,7 @@ export default function Home() {
           </button>
         </div>
       </section>
+      )}
 
       {/* ───────────────────────────────────────────────────
           12. TOP REVIEWS SECTION

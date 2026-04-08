@@ -36,6 +36,7 @@ export default function ReadPage() {
   const [bookmarked, setBookmarked] = useState(false);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isReadingMode, setIsReadingMode] = useState(false);
   const [accessChecked, setAccessChecked] = useState(false);
   const [hasPremiumAccess, setHasPremiumAccess] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -46,6 +47,7 @@ export default function ReadPage() {
 
   useEffect(() => {
     if (!storyId) return;
+    setIsReadingMode(false);
 
     if (isNumericDemoId) {
       setStory({
@@ -337,6 +339,11 @@ export default function ReadPage() {
   };
   const activeTheme = themeStyles[theme];
 
+  const readCount = Number(story?.views || 0);
+  const voteCount = Number(story?.likes || 0);
+  const partCount = Number(chapters?.length || 0);
+  const estimatedMinutes = Math.max(4, Math.round(((chapters || []).reduce((acc, ch) => acc + Number(ch?.word_count || 0), 0) || 900) / 200));
+
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ink)' }}>
@@ -378,6 +385,126 @@ export default function ReadPage() {
     return (
       <div style={{ minHeight: 'calc(100vh - 60px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ color: 'var(--muted)', fontSize: '15px' }}>Checking access...</div>
+      </div>
+    );
+  }
+
+  if (!isReadingMode) {
+    return (
+      <div style={{ minHeight: 'calc(100vh - 60px)', background: '#f5f5f7' }}>
+        <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '28px 20px 40px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 300px) 1fr', gap: '26px', alignItems: 'start' }}>
+            <div style={{ borderRadius: '10px', overflow: 'hidden', boxShadow: '0 14px 30px rgba(0,0,0,0.16)', background: '#fff' }}>
+              {story?.cover_image ? (
+                <img src={story.cover_image} alt={story?.title || 'Story cover'} style={{ width: '100%', display: 'block', aspectRatio: '2 / 3', objectFit: 'cover' }} />
+              ) : (
+                <div style={{ aspectRatio: '2 / 3', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(160deg,#1a0a2e,#3d1a5e)', color: '#fff', padding: '16px', textAlign: 'center', fontFamily: 'Cormorant Garamond,serif', fontSize: '28px' }}>
+                  {story?.title || 'Story'}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <h1 style={{ fontSize: '48px', lineHeight: 1.1, fontWeight: 700, color: '#0f1420', marginBottom: '16px' }}>{story?.title}</h1>
+              <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', color: '#4a5568', fontSize: '14px', marginBottom: '18px' }}>
+                <span>👁 Reads <strong style={{ color: '#111827', marginLeft: '6px' }}>{readCount.toLocaleString()}</strong></span>
+                <span>☆ Votes <strong style={{ color: '#111827', marginLeft: '6px' }}>{voteCount.toLocaleString()}</strong></span>
+                <span>☰ Parts <strong style={{ color: '#111827', marginLeft: '6px' }}>{partCount}</strong></span>
+                <span>⏱ Time <strong style={{ color: '#111827', marginLeft: '6px' }}>{estimatedMinutes} min</strong></span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '22px' }}>
+                <button
+                  onClick={() => {
+                    setIsReadingMode(true);
+                    setChapterIndex(0);
+                  }}
+                  style={{
+                    background: '#0d1117',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '999px',
+                    padding: '14px 26px',
+                    fontWeight: 700,
+                    fontSize: '16px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Start Reading
+                </button>
+                <button onClick={bookmarkAction} style={{ border: '1px solid #d0d7de', background: '#fff', borderRadius: '999px', padding: '14px 18px', cursor: 'pointer', fontWeight: 600 }}>+ Add</button>
+              </div>
+
+              <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '16px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                  <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#111827', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px' }}>
+                    {(story?.author_name || 'AU').slice(0, 2).toUpperCase()}
+                  </div>
+                  <div style={{ color: '#111827', fontWeight: 600 }}>{story?.author_name || 'Unknown Author'}</div>
+                </div>
+                <p style={{ color: '#1f2937', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>{story?.description || 'No description available yet.'}</p>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
+                {(story?.tags || []).map((tag) => (
+                  <span key={tag} style={{ background: '#eceff4', color: '#1f2937', borderRadius: '999px', padding: '5px 10px', fontSize: '12px' }}>#{tag}</span>
+                ))}
+                {(story?.categories || []).map((category) => (
+                  <span key={category} style={{ background: '#eef6ff', color: '#16467b', borderRadius: '999px', padding: '5px 10px', fontSize: '12px' }}>{category}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr minmax(260px, 300px)', gap: '24px', marginTop: '26px' }}>
+            <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+              <div style={{ padding: '18px 18px 12px', fontWeight: 700, color: '#111827', fontSize: '28px', fontFamily: 'Cormorant Garamond, serif' }}>Table of Contents</div>
+              <div>
+                {(chapters || []).map((chapter, idx) => (
+                  <button
+                    key={chapter?._id || chapter?.id || idx}
+                    onClick={() => {
+                      setChapterIndex(idx);
+                      setIsReadingMode(true);
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      textAlign: 'left',
+                      border: 'none',
+                      borderTop: '1px solid #f0f2f5',
+                      background: '#fff',
+                      padding: '14px 18px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span style={{ color: '#0f172a', fontWeight: 500 }}>Ch. {chapter?.chapter_number || idx + 1}: {chapter?.title || `Chapter ${idx + 1}`}</span>
+                    <span style={{ color: '#6b7280', fontSize: '12px' }}>{chapter?.word_count ? `${chapter.word_count} words` : ''}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <aside style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', padding: '14px' }}>
+              <div style={{ fontWeight: 700, fontSize: '36px', lineHeight: 1, fontFamily: 'Cormorant Garamond, serif', color: '#0f172a', marginBottom: '12px' }}>You may also like</div>
+              <div style={{ display: 'grid', gap: '12px' }}>
+                {recoStories.map((rs, i) => (
+                  <a key={`${rs.id || rs._id}-${i}`} href={`/read/${rs.id || rs._id}`} style={{ display: 'grid', gridTemplateColumns: '68px 1fr', gap: '10px', textDecoration: 'none', color: 'inherit' }}>
+                    <div style={{ borderRadius: '8px', overflow: 'hidden', background: 'linear-gradient(160deg,#1a0a2e,#3d1a5e)', height: '94px' }}>
+                      {rs.cover_image ? <img src={rs.cover_image} alt={rs.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+                    </div>
+                    <div>
+                      <div style={{ color: '#0f172a', fontWeight: 700, fontSize: '14px', lineHeight: 1.3 }}>{rs.title}</div>
+                      <div style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px' }}>{(rs.categories || [])[0] || 'Fiction'}</div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </aside>
+          </div>
+        </div>
       </div>
     );
   }

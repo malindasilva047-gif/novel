@@ -1,9 +1,6 @@
 import "./globals.css";
 import "@/components/CookieConsentModal.css";
-import { Suspense } from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import CookieConsentModal from "@/components/CookieConsentModal";
+import AppChrome from "@/components/AppChrome";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://127.0.0.1:3000";
 
@@ -68,12 +65,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        <Suspense fallback={<header className="bx-hdr" />}>
-          <Navbar />
-        </Suspense>
-        {children}
-        <Footer />
-        <CookieConsentModal />
+        <AppChrome>{children}</AppChrome>
       </body>
     </html>
   );

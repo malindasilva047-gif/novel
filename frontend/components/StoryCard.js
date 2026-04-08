@@ -19,6 +19,8 @@ function palette(seed) {
 export default function StoryCard({ story, index = 0, onClick }) {
   const router = useRouter();
   const isPremium = !!story?.is_premium;
+  const rating = Number(story?.avg_rating || 0);
+  const genre = String(story?.genre || story?.categories?.[0] || "Fiction");
 
   function handleClick() {
     if (isPremium && !readToken()) {
@@ -43,8 +45,14 @@ export default function StoryCard({ story, index = 0, onClick }) {
             {story.title}
           </div>
         )}
+        <div className="bx-book-overlay" />
+        <div className="bx-book-top-meta">
+          <span className="bx-book-genre-pill">{genre}</span>
+          {rating > 0 ? <span className="bx-book-rating-pill">{rating.toFixed(1)} ★</span> : null}
+        </div>
         {isPremium && <span className="bx-book-premium">PRO</span>}
         {isPremium && <div className="bx-book-locked">Premium</div>}
+        <span className="bx-book-cta">Read Story</span>
       </div>
       <div className="bx-book-title">{story.title}</div>
       <div className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</div>

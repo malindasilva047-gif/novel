@@ -28,8 +28,34 @@ async def ensure_indexes(database: AsyncIOMotorDatabase) -> None:
 
     await database.views.create_index([("story_id", ASCENDING), ("viewed_at", DESCENDING)])
 
+    # User activity tracking for recommendation engine
+    await database.user_activity.create_index([("user_id", ASCENDING), ("created_at", DESCENDING)])
+    await database.user_activity.create_index([("user_id", ASCENDING), ("category_id", ASCENDING)])
+    await database.user_activity.create_index([("user_id", ASCENDING), ("post_id", ASCENDING), ("action_type", ASCENDING)])
+    await database.user_activity.create_index([("post_id", ASCENDING), ("action_type", ASCENDING), ("created_at", DESCENDING)])
+    await database.user_activity.create_index([("created_at", DESCENDING)])  # For trending calculations
+
     await database.reports.create_index([("status", ASCENDING), ("updated_at", DESCENDING)])
     await database.reports.create_index([("story_id", ASCENDING), ("status", ASCENDING)])
+    await database.reports.create_index([("report_kind", ASCENDING), ("status", ASCENDING), ("updated_at", DESCENDING)])
+
+    await database.notifications.create_index([("user_id", ASCENDING), ("created_at", DESCENDING)])
+    await database.notifications.create_index([("is_read", ASCENDING), ("created_at", DESCENDING)])
+
+    await database.push_notifications.create_index([("created_at", DESCENDING)])
+    await database.push_notifications.create_index([("status", ASCENDING), ("created_at", DESCENDING)])
+
+    await database.user_blocks.create_index([("blocked_user_id", ASCENDING), ("blocked_by_user_id", ASCENDING)], unique=True)
+    await database.user_blocks.create_index([("created_at", DESCENDING)])
+
+    await database.avatar_library.create_index([("name", ASCENDING)], unique=True)
+    await database.avatar_library.create_index([("created_at", DESCENDING)])
+
+    await database.hashtag_catalog.create_index([("name", ASCENDING)], unique=True)
+    await database.language_catalog.create_index([("name", ASCENDING)], unique=True)
+
+    await database.cms_pages.create_index([("slug", ASCENDING)], unique=True)
+    await database.cms_pages.create_index([("is_published", ASCENDING), ("updated_at", DESCENDING)])
 
     await database.email_verification_tokens.create_index([("expires_at", ASCENDING)], expireAfterSeconds=0)
     await database.password_reset_tokens.create_index([("expires_at", ASCENDING)], expireAfterSeconds=0)

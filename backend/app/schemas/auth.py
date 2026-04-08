@@ -12,6 +12,10 @@ class UserLogin(BaseModel):
     password: str
 
 
+class GoogleAuthRequest(BaseModel):
+    credential: str = Field(min_length=20)
+
+
 class VerifyEmailRequest(BaseModel):
     email: EmailStr
     token: str
@@ -30,6 +34,7 @@ class ResetPasswordRequest(BaseModel):
 class UserSignupResponse(BaseModel):
     message: str
     verification_token: str
+    auto_verified: bool = False
 
 
 class ActionMessageResponse(BaseModel):
@@ -44,3 +49,9 @@ class ForgotPasswordResponse(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    onboarding_status: str = "pending_profile"
+    onboarding_required: bool = True
+
+
+class GoogleAuthResponse(TokenResponse):
+    is_new_user: bool = False

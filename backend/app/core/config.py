@@ -1,5 +1,9 @@
 from functools import lru_cache
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+ENV_FILE_PATH = Path(__file__).resolve().parents[2] / ".env"
 
 
 class Settings(BaseSettings):
@@ -7,6 +11,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
 
     mongodb_uri: str = "mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority"
+    mongodb_uri_local: str = "mongodb://127.0.0.1:27017"
     mongodb_db_name: str = "novel_platform"
 
     jwt_secret_key: str = "change-me"
@@ -36,7 +41,22 @@ class Settings(BaseSettings):
     smtp_from_name: str = "Novel Platform"
     smtp_use_tls: bool = True
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    # Mailjet Configuration
+    mailjet_api_key: str = ""
+    mailjet_secret_key: str = ""
+    mailjet_from_email: str = ""
+    mailjet_from_name: str = "Bixbi"
+    strict_email_delivery: bool = False
+
+    google_oauth_client_id: str = ""
+    google_oauth_client_secret: str = ""
+
+    geolocation_provider: str = "auto"
+    geolocation_timeout_seconds: float = 2.0
+    geolocation_retries: int = 2
+    ipinfo_token: str = ""
+
+    model_config = SettingsConfigDict(env_file=str(ENV_FILE_PATH), env_file_encoding="utf-8", extra="ignore")
 
 
 @lru_cache

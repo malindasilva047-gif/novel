@@ -4,18 +4,86 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.config import get_settings
 from app.core.security import hash_password
+from app.db.seed_home_categories import ensure_home_category_seed
+
+SAMPLE_USERS: list[dict] = [
+    {
+        "_id": "sample-user-1",
+        "username": "elena_rose",
+        "email": "elena@example.com",
+        "full_name": "Elena Rose",
+        "phone": "+94 71 111 2233",
+        "preferred_language": "English",
+        "favorite_genres": ["Fantasy", "Romance"],
+    },
+    {
+        "_id": "sample-user-2",
+        "username": "marcus_stone",
+        "email": "marcus@example.com",
+        "full_name": "Marcus Stone",
+        "phone": "+94 77 555 8877",
+        "preferred_language": "English",
+        "favorite_genres": ["Sci-Fi", "Thriller"],
+    },
+    {
+        "_id": "sample-user-3",
+        "username": "aurora_sky",
+        "email": "aurora@example.com",
+        "full_name": "Aurora Sky",
+        "phone": "+94 75 220 7788",
+        "preferred_language": "Sinhala",
+        "favorite_genres": ["Drama", "Mystery"],
+    },
+]
+
+SAMPLE_AVATARS: list[dict] = [
+    {"name": "Shruti", "gender": "female", "image_url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80"},
+    {"name": "Kabir", "gender": "male", "image_url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80"},
+    {"name": "Mitali", "gender": "female", "image_url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80"},
+    {"name": "Meet", "gender": "male", "image_url": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=400&q=80"},
+]
+
+SAMPLE_CMS_PAGES: list[dict] = [
+    {
+        "slug": "about",
+        "title": "About Bixbi",
+        "excerpt": "Learn about the platform, our mission, and the creator community behind Bixbi.",
+        "content": "<h1>About Bixbi</h1><p>Bixbi is a reading and writing platform built for serialized stories, bold voices, and passionate communities.</p><p>We help readers discover stories they actually want to keep following and give writers a clean place to publish, grow, and connect.</p>",
+    },
+    {
+        "slug": "privacy-policy",
+        "title": "Privacy Policy",
+        "excerpt": "How Bixbi stores, processes, and protects reader and author data.",
+        "content": "<h1>Privacy Policy</h1><p>We store only the information required to operate your account, personalize recommendations, and keep the platform secure.</p><p>You can update your profile details at any time from your account settings.</p>",
+    },
+    {
+        "slug": "terms-of-service",
+        "title": "Terms of Service",
+        "excerpt": "Guidelines for using the Bixbi platform responsibly.",
+        "content": "<h1>Terms of Service</h1><p>Users are responsible for the content they publish. Accounts that violate platform policies may be restricted or removed.</p><p>By using Bixbi, you agree to respect creators, readers, and community standards.</p>",
+    },
+]
+
+SAMPLE_GENRES: list[dict] = [
+    {"name": "Fantasy", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f9d9.png"},
+    {"name": "Romance", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f495.png"},
+    {"name": "Mystery", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f50d.png"},
+    {"name": "Sci-Fi", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f680.png"},
+    {"name": "Thriller", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/26a1.png"},
+    {"name": "Adventure", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f5fa.png"},
+]
 
 DUMMY_STORIES: list[dict] = [
     {
         "_id": "demo-story-neon-monsoon",
-        "title": "Neon Monsoon City",
-        "description": "A runaway coder uncovers a weather AI conspiracy in a rain-soaked megacity.",
-        "cover_image": "https://images.unsplash.com/photo-1545239351-1141bd82e8a6?auto=format&fit=crop&w=1300&q=80",
-        "tags": ["cyberpunk", "thriller"],
-        "categories": ["Sci-Fi", "Thriller"],
+        "title": "Fallen to the Enigmatic Mafia Lord",
+        "description": "Ollie Grey had always harbored a secret — a deep, undeniable love for his best friend, Lucas Pierre. There was just one catch: Lucas wasn't just any ordinary guy; he was a formidable mafia lord, known for his sharp edge and cold demeanor. To make matters complicated, he also happened to be the straightest man Ollie had ever known.\n\nWith Lucas now dating the stunning Cassandra Lim, the quintessential beauty adored by many, Ollie found himself teetering on the brink. How long could he keep his feelings buried deep inside? As tension builds and emotions boil over, Ollie risks everything to reveal his heart. What will happen when the truth threatens to upend their friendship — and Lucas's entire world?",
+        "cover_image": "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1300&q=80",
+        "tags": ["BxB", "Mafia", "Angst", "Romance", "Happy Ending", "Mature"],
+        "categories": ["Romance", "Mafia"],
         "likes": 340,
         "views": 1800,
-        "chapter_title": "Chapter 1: Streetlight Ghost",
+        "chapter_title": "Chapter 1: Welcome to the Family",
     },
     {
         "_id": "demo-story-coral-kingdom",
@@ -174,6 +242,8 @@ async def ensure_default_admin(database: AsyncIOMotorDatabase) -> dict:
         "website": "",
         "favorite_genres": ["Admin"],
         "reading_goal": "Keep quality high",
+        "preferred_language": "English",
+        "created_at": datetime.now(timezone.utc),
     }
 
     if admin_user:
@@ -186,15 +256,13 @@ async def ensure_default_admin(database: AsyncIOMotorDatabase) -> dict:
 
 
 async def ensure_dummy_stories(database: AsyncIOMotorDatabase, author_id: str) -> None:
-    existing = await database.stories.count_documents({"_id": {"$in": [story["_id"] for story in DUMMY_STORIES]}})
-    if existing >= len(DUMMY_STORIES):
-        return
-
     now = datetime.now(timezone.utc)
+    sample_author_ids = [author_id] + [user["_id"] for user in SAMPLE_USERS]
     for idx, story in enumerate(DUMMY_STORIES):
+        assigned_author_id = sample_author_ids[idx % len(sample_author_ids)]
         story_doc = {
             "_id": story["_id"],
-            "author_id": author_id,
+            "author_id": assigned_author_id,
             "title": story["title"],
             "description": story["description"],
             "cover_image": story["cover_image"],
@@ -212,9 +280,11 @@ async def ensure_dummy_stories(database: AsyncIOMotorDatabase, author_id: str) -
             "_id": f"{story_doc['_id']}-chapter-1",
             "story_id": story_doc["_id"],
             "title": story["chapter_title"],
-            "content": (
-                "This is seeded demo content for client previews. "
-                "You can edit or replace it from Writer Studio at any time."
+            "content": story.get("chapter_content") or (
+                f"<h2>{story['chapter_title']}</h2>"
+                f"<p>{story['description']}</p>"
+                "<p>The scene opens with tension already in the air. Every small detail matters, and the protagonist senses that today's choice will change the path ahead.</p>"
+                "<p>By the time the chapter closes, the promise of a larger mystery has fully taken shape.</p>"
             ),
             "chapter_number": 1,
         }
@@ -232,6 +302,394 @@ async def ensure_dummy_stories(database: AsyncIOMotorDatabase, author_id: str) -
         )
 
 
+async def ensure_site_settings(database: AsyncIOMotorDatabase) -> None:
+    await database.site_settings.update_one(
+        {"_id": "default"},
+        {
+            "$setOnInsert": {
+                "_id": "default",
+                "site_name": "Bixbi",
+                "logo_url": "",
+                "contact_email": "support@bixbi.app",
+                "dark_logo_url": "",
+                "light_logo_url": "",
+                "splash_image_url": "",
+                "copyright_text": f"Copyright {datetime.now(timezone.utc).year} Bixbi. All rights reserved.",
+                "primary_color": "#1278ff",
+                "secondary_color": "#35a0ff",
+                "sms_config": {
+                    "provider": "Twilio",
+                    "provider_secondary": "MSG 91",
+                    "account_sid": "",
+                    "auth_token": "",
+                    "phone_number": "",
+                },
+                "mail_setup": {
+                    "mailer": "smtp",
+                    "host": "",
+                    "port": "587",
+                    "encryption": "tls",
+                    "username": "",
+                    "password": "",
+                    "from_address": "",
+                },
+                "aws_media": {
+                    "access_key": "",
+                    "secret_access_key": "",
+                    "bucket_name": "",
+                    "bucket_url": "",
+                },
+                "firebase": {
+                    "credentials_file_url": "",
+                    "info_text": "Open Firebase Console, create a service account key, and upload the JSON file here.",
+                },
+                "payment": {
+                    "active_provider": "razorpay",
+                    "razorpay_enabled": False,
+                    "stripe_public_key": "",
+                    "stripe_secret_key": "",
+                    "paypal_enabled": False,
+                },
+                "login_config": {
+                    "email_enabled": True,
+                    "mobile_otp_enabled": True,
+                    "facebook_enabled": False,
+                    "google_enabled": True,
+                    "apple_enabled": False,
+                },
+                "purchase_code": {
+                    "code": "",
+                    "status": "active",
+                },
+                "created_at": datetime.now(timezone.utc),
+            }
+        },
+        upsert=True,
+    )
+
+
+async def ensure_catalogs(database: AsyncIOMotorDatabase) -> None:
+    now = datetime.now(timezone.utc)
+
+    for user in SAMPLE_USERS:
+        await database.language_catalog.update_one(
+            {"name": user["preferred_language"]},
+            {
+                "$setOnInsert": {
+                    "name": user["preferred_language"],
+                    "country": "LK",
+                    "status": "active",
+                    "is_default": user["preferred_language"] == "English",
+                    "created_at": now,
+                }
+            },
+            upsert=True,
+        )
+
+    for genre in SAMPLE_GENRES:
+        await database.genre_catalog.update_one(
+            {"name": genre["name"]},
+            {
+                "$set": {
+                    "icon_url": genre.get("icon_url", ""),
+                    "status": "active",
+                    "updated_at": now,
+                },
+                "$setOnInsert": {
+                    "name": genre["name"],
+                    "created_at": now,
+                },
+            },
+            upsert=True,
+        )
+
+    for story in DUMMY_STORIES:
+        for category in story.get("categories", []):
+            await database.genre_catalog.update_one(
+                {"name": category},
+                {
+                    "$setOnInsert": {
+                        "name": category,
+                        "icon_url": "",
+                        "status": "active",
+                        "created_at": now,
+                    },
+                    "$set": {"updated_at": now},
+                },
+                upsert=True,
+            )
+
+        for tag in story.get("tags", []):
+            await database.hashtag_catalog.update_one(
+                {"name": tag.lower()},
+                {
+                    "$setOnInsert": {
+                        "name": tag.lower(),
+                        "status": "active",
+                        "created_at": now,
+                    }
+                },
+                upsert=True,
+            )
+
+    for index, avatar in enumerate(SAMPLE_AVATARS, start=1):
+        await database.avatar_library.update_one(
+            {"name": avatar["name"]},
+            {
+                "$set": {
+                    "_id": f"avatar-{index}",
+                    "name": avatar["name"],
+                    "gender": avatar["gender"],
+                    "image_url": avatar["image_url"],
+                    "created_at": now,
+                }
+            },
+            upsert=True,
+        )
+
+    for page in SAMPLE_CMS_PAGES:
+        await database.cms_pages.update_one(
+            {"slug": page["slug"]},
+            {
+                "$set": {
+                    "slug": page["slug"],
+                    "title": page["title"],
+                    "excerpt": page["excerpt"],
+                    "content": page["content"],
+                    "is_published": True,
+                    "updated_at": now,
+                },
+                "$setOnInsert": {
+                    "created_at": now,
+                },
+            },
+            upsert=True,
+        )
+
+
+async def ensure_admin_support_data(database: AsyncIOMotorDatabase) -> None:
+    now = datetime.now(timezone.utc)
+
+    await database.user_blocks.update_one(
+        {"_id": "sample-user-2::sample-user-1"},
+        {
+            "$setOnInsert": {
+                "_id": "sample-user-2::sample-user-1",
+                "blocked_user_id": "sample-user-2",
+                "blocked_by_user_id": "sample-user-1",
+                "created_at": now,
+            }
+        },
+        upsert=True,
+    )
+
+    await database.push_notifications.update_one(
+        {"_id": "seed-push-1"},
+        {
+            "$setOnInsert": {
+                "_id": "seed-push-1",
+                "title": "Welcome to Bixbi",
+                "description": "Explore new stories, notifications, and recommendations personalized for you.",
+                "status": "sent",
+                "recipient_count": len(SAMPLE_USERS) + 1,
+                "created_at": now,
+            }
+        },
+        upsert=True,
+    )
+
+    for user_id in ["sample-user-1", "sample-user-2", "sample-user-3", "admin-user"]:
+        await database.notifications.update_one(
+            {"_id": f"seed-push-1::{user_id}"},
+            {
+                "$setOnInsert": {
+                    "_id": f"seed-push-1::{user_id}",
+                    "user_id": user_id,
+                    "type": "broadcast",
+                    "message": "Welcome to Bixbi. Your dashboard, alerts, and recommendations are ready.",
+                    "is_read": False,
+                    "created_at": now,
+                }
+            },
+            upsert=True,
+        )
+
+    await database.reports.update_one(
+        {"_id": "sample-user-report-1"},
+        {
+            "$setOnInsert": {
+                "_id": "sample-user-report-1",
+                "user_id": "sample-user-2",
+                "target_user_id": "sample-user-3",
+                "report_kind": "user",
+                "reason": "Bullying or harassment",
+                "status": "open",
+                "created_at": now,
+                "updated_at": now,
+            }
+        },
+        upsert=True,
+    )
+
+    await database.reports.update_one(
+        {"_id": "sample-reel-report-1"},
+        {
+            "$setOnInsert": {
+                "_id": "sample-reel-report-1",
+                "user_id": "sample-user-1",
+                "story_id": "demo-story-neon-monsoon",
+                "report_kind": "reel",
+                "reported_entity_type": "reel",
+                "reason": "Violence or dangerous organisations",
+                "status": "open",
+                "created_at": now,
+                "updated_at": now,
+            }
+        },
+        upsert=True,
+    )
+
+    await database.reports.update_one(
+        {"_id": "sample-story-report-1"},
+        {
+            "$setOnInsert": {
+                "_id": "sample-story-report-1",
+                "user_id": "sample-user-1",
+                "story_id": "demo-story-coral-kingdom",
+                "report_kind": "story",
+                "reported_entity_type": "story",
+                "reason": "Misleading title and metadata",
+                "status": "open",
+                "created_at": now,
+                "updated_at": now,
+            }
+        },
+        upsert=True,
+    )
+
+    await database.reports.update_one(
+        {"_id": "sample-chapter-report-1"},
+        {
+            "$setOnInsert": {
+                "_id": "sample-chapter-report-1",
+                "user_id": "sample-user-2",
+                "story_id": "demo-story-midnight-library",
+                "chapter_id": "demo-story-midnight-library-chapter-1",
+                "report_kind": "chapter",
+                "reported_entity_type": "chapter",
+                "reason": "Copied content from external source",
+                "status": "open",
+                "created_at": now,
+                "updated_at": now,
+            }
+        },
+        upsert=True,
+    )
+
+    await database.reports.update_one(
+        {"_id": "sample-comment-report-1"},
+        {
+            "$setOnInsert": {
+                "_id": "sample-comment-report-1",
+                "user_id": "sample-user-3",
+                "story_id": "demo-story-neon-monsoon",
+                "comment_id": "seed-comment-1",
+                "report_kind": "comment",
+                "reported_entity_type": "comment",
+                "reason": "Abusive language in discussion",
+                "status": "open",
+                "created_at": now,
+                "updated_at": now,
+            }
+        },
+        upsert=True,
+    )
+
+
+async def ensure_sample_users(database: AsyncIOMotorDatabase) -> None:
+    now = datetime.now(timezone.utc)
+    for idx, user in enumerate(SAMPLE_USERS):
+        await database.users.update_one(
+            {"_id": user["_id"]},
+            {
+                "$set": {
+                    "username": user["username"],
+                    "email": user["email"],
+                    "password_hash": hash_password("password123"),
+                    "is_email_verified": True,
+                    "is_admin": False,
+                    "is_banned": False,
+                    "followers_count": idx * 3,
+                    "following_count": idx * 2,
+                    "full_name": user["full_name"],
+                    "phone": user["phone"],
+                    "preferred_language": user["preferred_language"],
+                    "favorite_genres": user["favorite_genres"],
+                    "bio": f"{user['full_name']} is part of the Bixbi sample community.",
+                    "location": "Colombo",
+                    "country": "Sri Lanka",
+                    "reading_goal": "Read 20 books this year",
+                    "created_at": now,
+                    "profile_completed": True,
+                    "onboarding_status": "active",
+                }
+            },
+            upsert=True,
+        )
+
+
+async def ensure_story_reviews(database: AsyncIOMotorDatabase) -> None:
+    now = datetime.now(timezone.utc)
+    seeded_comments = [
+        {
+            "_id": "seed-comment-1",
+            "story_id": "demo-story-neon-monsoon",
+            "user_id": "sample-user-1",
+            "content": "This opening chapter hooked me instantly. The city atmosphere feels alive.",
+            "status": "visible",
+        },
+        {
+            "_id": "seed-comment-2",
+            "story_id": "demo-story-coral-kingdom",
+            "user_id": "sample-user-2",
+            "content": "Beautiful premise and strong world building. Looking forward to chapter two.",
+            "status": "visible",
+        },
+        {
+            "_id": "seed-comment-3",
+            "story_id": "demo-story-midnight-library",
+            "user_id": "sample-user-3",
+            "content": "The writing style is vivid and cinematic. Great pacing so far.",
+            "status": "visible",
+        },
+        {
+            "_id": "seed-comment-4",
+            "story_id": "demo-story-sky-garden",
+            "user_id": "admin-user",
+            "content": "Love the hopefulness in this story. The concept is unique and emotional.",
+            "status": "visible",
+        },
+    ]
+
+    for row in seeded_comments:
+        await database.comments.update_one(
+            {"_id": row["_id"]},
+            {
+                "$set": {
+                    **row,
+                    "created_at": now,
+                }
+            },
+            upsert=True,
+        )
+
+
 async def ensure_seed_data(database: AsyncIOMotorDatabase) -> None:
     admin = await ensure_default_admin(database)
+    await ensure_site_settings(database)
+    await ensure_sample_users(database)
     await ensure_dummy_stories(database, author_id=admin["_id"])
+    await ensure_home_category_seed(database, author_id=admin["_id"])
+    await ensure_catalogs(database)
+    await ensure_story_reviews(database)
+    await ensure_admin_support_data(database)

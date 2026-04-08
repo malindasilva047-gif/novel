@@ -22,6 +22,10 @@ async def toggle_bookmark(
     current_user: dict = Depends(get_current_user),
     database: AsyncIOMotorDatabase = Depends(get_database),
 ) -> dict:
+    story = await database.stories.find_one({"_id": story_id}, {"_id": 1})
+    if not story:
+        return {"message": "Story not found"}
+
     bookmark_id = f"{current_user['_id']}::{story_id}"
     existing = await database.bookmarks.find_one({"_id": bookmark_id})
 
@@ -55,6 +59,7 @@ async def list_bookmarks(
                     "story_id": story["_id"],
                     "title": story["title"],
                     "cover_image": story["cover_image"],
+                    "views": story.get("views", 0),
                     "bookmarked_at": bookmark["created_at"],
                 }
             )
@@ -98,11 +103,20 @@ async def list_reading_history(
     async for item in cursor:
         story = await database.stories.find_one({"_id": item["story_id"]})
         if story:
+            author_id = story.get("author_id", "")
+            author_name = "Author"
+            if author_id:
+                author = await database.users.find_one({"_id": author_id}, {"username": 1})
+                if author and author.get("username"):
+                    author_name = author["username"]
             history.append(
                 {
                     "story_id": story["_id"],
                     "title": story["title"],
                     "cover_image": story["cover_image"],
+                    "views": story.get("views", 0),
+                    "author_id": author_id,
+                    "author_name": author_name,
                     "chapter_id": item.get("chapter_id"),
                     "progress_pct": item.get("progress_pct", 0),
                     "updated_at": item["updated_at"],

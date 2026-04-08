@@ -26,6 +26,10 @@ async def toggle_like(
     current_user: dict = Depends(get_current_user),
     database: AsyncIOMotorDatabase = Depends(get_database),
 ) -> dict:
+    story = await database.stories.find_one({"_id": story_id}, {"_id": 1})
+    if not story:
+        raise HTTPException(status_code=404, detail="Story not found")
+
     like_id = f"{current_user['_id']}::{story_id}"
     existing = await database.likes.find_one({"_id": like_id})
 
@@ -66,6 +70,22 @@ async def add_comment(
             "created_at": datetime.now(timezone.utc),
         }
     )
+
+    story = await database.stories.find_one({"_id": story_id}, {"author_id": 1})
+    story_author_id = story.get("author_id") if story else None
+    if story_author_id and story_author_id != current_user["_id"]:
+        await database.notifications.insert_one(
+            {
+                "_id": str(uuid4()),
+                "user_id": story_author_id,
+                "actor_user_id": current_user["_id"],
+                "story_id": story_id,
+                "type": "comment",
+                "message": f"{current_user.get('username', 'Someone')} commented on your story.",
+                "is_read": False,
+                "created_at": datetime.now(timezone.utc),
+            }
+        )
     return {"message": "Comment added", "comment_id": comment_id}
 
 
@@ -99,6 +119,8 @@ async def report_story(
             "$set": {
                 "user_id": current_user["_id"],
                 "story_id": payload.story_id,
+                "report_kind": "post",
+                "reported_entity_type": "story",
                 "reason": payload.reason.strip(),
                 "status": "open",
                 "updated_at": datetime.now(timezone.utc),

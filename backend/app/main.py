@@ -11,6 +11,7 @@ from app.core.config import get_settings
 from app.core.rate_limit import rate_limiter
 from app.db.mongodb import close_mongo_connection, connect_to_mongo
 from app.db.mongodb import db
+from app.services.email import check_smtp_connection
 
 settings = get_settings()
 
@@ -28,6 +29,7 @@ origins = [origin.strip() for origin in settings.cors_origins.split(",") if orig
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"^https?://.*$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -65,10 +67,13 @@ async def global_rate_limit(request: Request, call_next):
 
 @app.get("/health")
 async def health_check() -> dict:
+    smtp_connected, smtp_error = check_smtp_connection()
     return {
         "status": "ok",
         "database_connected": db.database is not None,
         "database_error": db.connection_error,
+        "smtp_connected": smtp_connected,
+        "smtp_error": smtp_error,
     }
 
 

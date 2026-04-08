@@ -9,6 +9,8 @@ class StoryCreate(BaseModel):
     tags: list[str] = []
     categories: list[str] = []
     is_draft: bool = False
+    is_premium: bool = False
+    premium_price: float | None = Field(default=None, ge=0)
 
 
 class StoryUpdate(BaseModel):
@@ -18,6 +20,8 @@ class StoryUpdate(BaseModel):
     tags: list[str] | None = None
     categories: list[str] | None = None
     is_draft: bool | None = None
+    is_premium: bool | None = None
+    premium_price: float | None = Field(default=None, ge=0)
 
 
 class ChapterCreate(BaseModel):

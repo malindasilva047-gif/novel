@@ -35,5 +35,15 @@ class TTLCache:
         for key in to_delete:
             self._store.pop(key, None)
 
+    def keys(self, prefix: str | None = None) -> list[str]:
+        now = datetime.now(timezone.utc)
+        expired = [key for key, item in self._store.items() if item.expires_at <= now]
+        for key in expired:
+            self._store.pop(key, None)
+
+        if prefix is None:
+            return list(self._store.keys())
+        return [key for key in self._store if key.startswith(prefix)]
+
 
 cache = TTLCache()

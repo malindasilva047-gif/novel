@@ -325,15 +325,18 @@ export default function Home() {
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
   const [sliderNav, setSliderNav] = useState({
-    recommended: { left: false, right: true },
-    popular: { left: false, right: true },
-    newReleases: { left: false, right: true },
-    trending: { left: false, right: true },
-    subscription: { left: false, right: true },
-    continue: { left: false, right: true },
-    readingList: { left: false, right: true },
-    reviews: { left: false, right: true },
-    genres: { left: false, right: true },
+    recommended: { left: false, right: false },
+    popular: { left: false, right: false },
+    newReleases: { left: false, right: false },
+    trending: { left: false, right: false },
+    romance: { left: false, right: false },
+    mystery: { left: false, right: false },
+    adventure: { left: false, right: false },
+    subscription: { left: false, right: false },
+    continue: { left: false, right: false },
+    readingList: { left: false, right: false },
+    reviews: { left: false, right: false },
+    genres: { left: false, right: false },
   });
 
   // CAROUSEL REFS
@@ -341,6 +344,9 @@ export default function Home() {
   const popularRef = useRef(null);
   const newReleasesRef = useRef(null);
   const trendingRef = useRef(null);
+  const romanceRef = useRef(null);
+  const mysteryRef = useRef(null);
+  const adventureRef = useRef(null);
   const subscriptionRef = useRef(null);
   const continueRef = useRef(null);
   const readingListRef = useRef(null);
@@ -352,6 +358,9 @@ export default function Home() {
   useDragScroll(popularRef);
   useDragScroll(newReleasesRef);
   useDragScroll(trendingRef);
+  useDragScroll(romanceRef);
+  useDragScroll(mysteryRef);
+  useDragScroll(adventureRef);
   useDragScroll(subscriptionRef);
   useDragScroll(continueRef);
   useDragScroll(readingListRef);
@@ -364,6 +373,9 @@ export default function Home() {
       popular: popularRef,
       newReleases: newReleasesRef,
       trending: trendingRef,
+      romance: romanceRef,
+      mystery: mysteryRef,
+      adventure: adventureRef,
       subscription: subscriptionRef,
       continue: continueRef,
       readingList: readingListRef,
@@ -595,6 +607,18 @@ export default function Home() {
   const newReleases = dedupeStoriesById(byCreatedDesc).slice(0, 12);
   const trendingStories = dedupeStoriesById(byLikesDesc).slice(0, 12);
   const subscriptionStories = dedupeStoriesById(displayStories.filter((item) => item?.is_premium)).slice(0, 12);
+  const romanceStories = dedupeStoriesById(displayStories.filter((item) =>
+    String(item?.genre || '').toLowerCase().includes('romance')
+    || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('romance')))
+  )).slice(0, 12);
+  const mysteryStories = dedupeStoriesById(displayStories.filter((item) =>
+    String(item?.genre || '').toLowerCase().includes('mystery')
+    || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('mystery')))
+  )).slice(0, 12);
+  const adventureStories = dedupeStoriesById(displayStories.filter((item) =>
+    String(item?.genre || '').toLowerCase().includes('adventure')
+    || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('adventure')))
+  )).slice(0, 12);
 
   // Hero handlers
   const handlePrevSlide = () => {
@@ -623,6 +647,11 @@ export default function Home() {
     }
     return !sliderNav[key]?.right;
   };
+
+  const hasOverflow = (key) => Boolean(sliderNav[key]?.left || sliderNav[key]?.right);
+
+  const showContinueSection = isLoggedIn && continueReading.length > 0;
+  const showReadingListSection = isLoggedIn && readingList.length > 0;
 
   const getActiveHeroStory = () => {
     if (!displayStories.length) return null;
@@ -746,7 +775,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="bx-carousel">
+        <div className={`bx-carousel ${hasOverflow('recommended') ? 'has-overflow' : 'no-overflow'}`}>
           <button
             className="bx-carousel-arrow left"
             onClick={() => scrollCarousel(recommendedRef, 'left')}
@@ -796,7 +825,7 @@ export default function Home() {
           <h2 className="bx-sec-title">Popular Right Now</h2>
         </div>
 
-        <div className="bx-carousel">
+        <div className={`bx-carousel ${hasOverflow('popular') ? 'has-overflow' : 'no-overflow'}`}>
           <button
             className="bx-carousel-arrow left"
             onClick={() => scrollCarousel(popularRef, 'left')}
@@ -846,7 +875,7 @@ export default function Home() {
           <h2 className="bx-sec-title">New Releases</h2>
         </div>
 
-        <div className="bx-carousel">
+        <div className={`bx-carousel ${hasOverflow('newReleases') ? 'has-overflow' : 'no-overflow'}`}>
           <button
             className="bx-carousel-arrow left"
             onClick={() => scrollCarousel(newReleasesRef, 'left')}
@@ -896,7 +925,7 @@ export default function Home() {
           <h2 className="bx-sec-title">🔥 Trending This Week</h2>
         </div>
 
-        <div className="bx-carousel">
+        <div className={`bx-carousel ${hasOverflow('trending') ? 'has-overflow' : 'no-overflow'}`}>
           <button
             className="bx-carousel-arrow left"
             onClick={() => scrollCarousel(trendingRef, 'left')}
@@ -938,6 +967,147 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">Romance Spotlight</h2>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('romance') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(romanceRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('romance', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-book-scroll" ref={romanceRef}>
+            {romanceStories.map((story, idx) => (
+              <div
+                key={`romance-${story.id || story._id || 'story'}-${idx}`}
+                className="bx-book-card"
+                onClick={() => router.push(`/read/${story.id || story._id}`)}
+              >
+                <div className="bx-book-cover" style={{ backgroundColor: '#cc4c8f' }}>
+                  {story.image ? (
+                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
+                  ) : (
+                    <div className="bx-book-fallback">{story.title}</div>
+                  )}
+                </div>
+                <h4 className="bx-book-title">{story.title}</h4>
+                <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+                <div className="bx-book-meta bx-book-meta-rich">
+                  <span>👁 {Number(story.views || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(romanceRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('romance', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">Mystery Vault</h2>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('mystery') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(mysteryRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('mystery', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-book-scroll" ref={mysteryRef}>
+            {mysteryStories.map((story, idx) => (
+              <div
+                key={`mystery-${story.id || story._id || 'story'}-${idx}`}
+                className="bx-book-card"
+                onClick={() => router.push(`/read/${story.id || story._id}`)}
+              >
+                <div className="bx-book-cover" style={{ backgroundColor: '#4a4d89' }}>
+                  {story.image ? (
+                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
+                  ) : (
+                    <div className="bx-book-fallback">{story.title}</div>
+                  )}
+                </div>
+                <h4 className="bx-book-title">{story.title}</h4>
+                <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+                <div className="bx-book-meta bx-book-meta-rich">
+                  <span>👁 {Number(story.views || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(mysteryRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('mystery', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">Adventure Trails</h2>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('adventure') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(adventureRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('adventure', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-book-scroll" ref={adventureRef}>
+            {adventureStories.map((story, idx) => (
+              <div
+                key={`adventure-${story.id || story._id || 'story'}-${idx}`}
+                className="bx-book-card"
+                onClick={() => router.push(`/read/${story.id || story._id}`)}
+              >
+                <div className="bx-book-cover" style={{ backgroundColor: '#2f8f9a' }}>
+                  {story.image ? (
+                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
+                  ) : (
+                    <div className="bx-book-fallback">{story.title}</div>
+                  )}
+                </div>
+                <h4 className="bx-book-title">{story.title}</h4>
+                <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+                <div className="bx-book-meta bx-book-meta-rich">
+                  <span>👁 {Number(story.views || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(adventureRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('adventure', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
       {/* ───────────────────────────────────────────────────
           9. SUBSCRIPTION STORIES SECTION
       ─────────────────────────────────────────────────── */}
@@ -952,7 +1122,7 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="bx-carousel">
+        <div className={`bx-carousel ${hasOverflow('subscription') ? 'has-overflow' : 'no-overflow'}`}>
           <button
             className="bx-carousel-arrow left"
             onClick={() => scrollCarousel(subscriptionRef, 'left')}
@@ -1001,13 +1171,13 @@ export default function Home() {
       {/* ───────────────────────────────────────────────────
           10. CONTINUE READING SECTION
       ─────────────────────────────────────────────────── */}
-      {isLoggedIn && (
+      {showContinueSection && (
       <section className="bx-section">
         <div className="bx-sec-header">
-          <h2 className="bx-sec-title">▶ Continue Reading</h2>
+          <h2 className="bx-sec-title">Continue Reading</h2>
         </div>
 
-        <div className="bx-carousel">
+        <div className={`bx-carousel ${hasOverflow('continue') ? 'has-overflow' : 'no-overflow'}`}>
           <button
             className="bx-carousel-arrow left"
             onClick={() => scrollCarousel(continueRef, 'left')}
@@ -1072,13 +1242,13 @@ export default function Home() {
       {/* ───────────────────────────────────────────────────
           11. MY READING LIST SECTION
       ─────────────────────────────────────────────────── */}
-      {isLoggedIn && (
+      {showReadingListSection && (
       <section className="bx-section">
         <div className="bx-sec-header">
-          <h2 className="bx-sec-title">🔖 My Reading List</h2>
+          <h2 className="bx-sec-title">My Reading List</h2>
         </div>
 
-        <div className="bx-carousel">
+        <div className={`bx-carousel ${hasOverflow('readingList') ? 'has-overflow' : 'no-overflow'}`}>
           <button
             className="bx-carousel-arrow left"
             onClick={() => scrollCarousel(readingListRef, 'left')}
@@ -1146,7 +1316,7 @@ export default function Home() {
           <h2 className="bx-sec-title">⭐ Top Reviews</h2>
         </div>
 
-        <div className="bx-carousel">
+        <div className={`bx-carousel ${hasOverflow('reviews') ? 'has-overflow' : 'no-overflow'}`}>
           <button
             className="bx-carousel-arrow left"
             onClick={() => scrollCarousel(reviewsRef, 'left')}
@@ -1229,7 +1399,7 @@ export default function Home() {
           <h2 className="bx-sec-title">Browse Genres</h2>
         </div>
 
-        <div className="bx-carousel">
+        <div className={`bx-carousel ${hasOverflow('genres') ? 'has-overflow' : 'no-overflow'}`}>
           <button
             className="bx-carousel-arrow left"
             onClick={() => scrollCarousel(genresRef, 'left')}

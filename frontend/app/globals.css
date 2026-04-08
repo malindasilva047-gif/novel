@@ -1551,8 +1551,114 @@ select.bx-select-control {
 }
 
 .bx-genres-row .bx-genre-card {
-  flex: 0 0 160px;
-  aspect-ratio: 16 / 10;
+  flex: 0 0 124px;
+  aspect-ratio: 2 / 3;
+}
+
+@media (min-width: 768px) {
+  .bx-genres-row .bx-genre-card {
+    flex: 0 0 138px;
+  }
+}
+
+.bx-carousel.no-overflow .bx-carousel-arrow {
+  display: none;
+}
+
+.bx-carousel.has-overflow .bx-carousel-arrow {
+  background: linear-gradient(135deg, #5a78ff 0%, #2ec5ff 100%);
+  color: #ffffff;
+  border: 0;
+  box-shadow: 0 8px 20px rgba(52, 116, 255, 0.28);
+}
+
+.bx-carousel.has-overflow .bx-carousel-arrow:hover {
+  transform: translateY(-50%) scale(1.06);
+  filter: saturate(1.1);
+}
+
+[data-theme="light"] .bx-book-card,
+[data-theme="light"] .bx-readlist-card,
+[data-theme="light"] .bx-review-card,
+[data-theme="light"] .bx-continue-card,
+[data-theme="light"] .bx-genre-card {
+  background: #ffffff;
+  border: 1px solid rgba(38, 64, 112, 0.12);
+  box-shadow: 0 12px 28px rgba(43, 66, 107, 0.1);
+}
+
+[data-theme="light"] .bx-book-title,
+[data-theme="light"] .bx-readlist-title,
+[data-theme="light"] .bx-genre-name,
+[data-theme="light"] .bx-review-username,
+[data-theme="light"] .bx-sec-title {
+  color: #202b42;
+}
+
+[data-theme="light"] .bx-book-author,
+[data-theme="light"] .bx-book-meta,
+[data-theme="light"] .bx-book-progress,
+[data-theme="light"] .bx-readlist-meta,
+[data-theme="light"] .bx-sec-subtitle,
+[data-theme="light"] .bx-review-text,
+[data-theme="light"] .bx-review-date {
+  color: #5c6885;
+}
+
+[data-theme="light"] .bx-header {
+  border-bottom: 1px solid rgba(38, 64, 112, 0.12);
+}
+
+[data-theme="light"] .bx-search input,
+[data-theme="light"] .bx-nav-search-inline,
+[data-theme="light"] .bx-nav-search-inline-main,
+[data-theme="light"] .bx-btn-ghost {
+  border-color: rgba(38, 64, 112, 0.18);
+  background: #ffffff;
+}
+
+[data-theme="light"] .bx-auth-page {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(75, 153, 255, 0.12), transparent 32%),
+    radial-gradient(circle at 90% 100%, rgba(255, 156, 121, 0.14), transparent 40%),
+    linear-gradient(180deg, #f7faff 0%, #eef4ff 100%);
+}
+
+[data-theme="light"] .bx-auth-card {
+  background: #ffffff;
+  border-color: rgba(38, 64, 112, 0.16);
+  box-shadow: 0 22px 52px rgba(37, 65, 112, 0.14);
+}
+
+[data-theme="light"] .bx-auth-logo,
+[data-theme="light"] .bx-auth-title,
+[data-theme="light"] .bx-auth-label,
+[data-theme="light"] .bx-auth-link,
+[data-theme="light"] .bx-auth-link a {
+  color: #202b42;
+}
+
+[data-theme="light"] .bx-auth-sub {
+  color: #5d6881;
+}
+
+[data-theme="light"] .bx-auth-input {
+  background: #f7f9ff;
+  border-color: rgba(54, 86, 148, 0.2);
+  color: #1d2740;
+}
+
+[data-theme="light"] .bx-auth-input::placeholder {
+  color: #7c88a6;
+}
+
+[data-theme="light"] .bx-auth-submit {
+  background: linear-gradient(135deg, #3f6bff 0%, #2ec5ff 100%);
+  color: #ffffff;
+}
+
+[data-theme="light"] .bx-auth-submit:hover {
+  background: linear-gradient(135deg, #345be0 0%, #1fafdc 100%);
 }
 
 .bx-auth-grid-2 {

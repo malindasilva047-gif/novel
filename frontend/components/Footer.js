@@ -1,11 +1,24 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { fetchSiteSettings } from '@/lib/api';
 
 export default function Footer() {
+  const [branding, setBranding] = useState({
+    site_name: 'Bixbi',
+    copyright_text: `Copyright ${new Date().getFullYear()} Bixbi. All rights reserved.`,
+  });
+
+  useEffect(() => {
+    fetchSiteSettings().then(setBranding).catch(() => {});
+  }, []);
+
   return (
     <footer className="bx-footer">
       <div className="bx-footer-grid">
         <div className="bx-footer-brand">
-          <Link href="/" className="bx-logo">Bi<span>x</span>bi</Link>
+          <Link href="/" className="bx-logo">{branding.site_name}</Link>
           <p>Stories that stay with you. Read, write, and connect with readers worldwide.</p>
         </div>
 
@@ -29,13 +42,14 @@ export default function Footer() {
           <h4>Account</h4>
           <Link href="/auth/signin">Sign In</Link>
           <Link href="/auth/signup">Sign Up</Link>
-          <Link href="/discover?sort=popular">Popular</Link>
-          <Link href="/discover?sort=new">New Releases</Link>
+          <Link href="/cms/about">About</Link>
+          <Link href="/cms/privacy-policy">Privacy</Link>
+          <Link href="/cms/terms-of-service">Terms</Link>
         </div>
       </div>
 
       <div className="bx-footer-bottom">
-        <p>Copyright {new Date().getFullYear()} Bixbi. All rights reserved.</p>
+        <p>{branding.copyright_text}</p>
         <div className="bx-footer-langs">
           <button type="button" className="bx-lang-btn active">EN</button>
           <button type="button" className="bx-lang-btn">SI</button>

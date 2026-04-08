@@ -187,13 +187,35 @@ export function clearToken() {
 }
 
 export async function fetchSiteSettings() {
-  const fallback = { site_name: "Wingsaga", logo_url: "" };
+  const fallback = {
+    site_name: "Bixbi",
+    logo_url: "",
+    dark_logo_url: "",
+    light_logo_url: "",
+    splash_image_url: "",
+    contact_email: "support@bixbi.app",
+    copyright_text: `Copyright ${new Date().getFullYear()} Bixbi. All rights reserved.`,
+    primary_color: "#1278ff",
+    secondary_color: "#35a0ff",
+    login_config: {
+      email_enabled: true,
+      mobile_otp_enabled: true,
+      facebook_enabled: false,
+      google_enabled: true,
+      apple_enabled: false,
+    },
+  };
 
   if (typeof window !== "undefined") {
     const cached = localStorage.getItem("site_settings");
     if (cached) {
       try {
-        return JSON.parse(cached);
+        const parsed = JSON.parse(cached);
+        const cachedAt = Number(parsed?._cachedAt || 0);
+        if (cachedAt && Date.now() - cachedAt < 5 * 60 * 1000) {
+          return parsed;
+        }
+        localStorage.removeItem("site_settings");
       } catch {
         localStorage.removeItem("site_settings");
       }
@@ -203,8 +225,20 @@ export async function fetchSiteSettings() {
   try {
     const data = await apiRequest("/discovery/site-settings");
     const normalized = {
-      site_name: data?.site_name || "Wingsaga",
+      site_name: data?.site_name || fallback.site_name,
       logo_url: data?.logo_url || "",
+      dark_logo_url: data?.dark_logo_url || "",
+      light_logo_url: data?.light_logo_url || "",
+      splash_image_url: data?.splash_image_url || "",
+      contact_email: data?.contact_email || fallback.contact_email,
+      copyright_text: data?.copyright_text || fallback.copyright_text,
+      primary_color: data?.primary_color || fallback.primary_color,
+      secondary_color: data?.secondary_color || fallback.secondary_color,
+      login_config: {
+        ...fallback.login_config,
+        ...(data?.login_config || {}),
+      },
+      _cachedAt: Date.now(),
     };
     if (typeof window !== "undefined") {
       localStorage.setItem("site_settings", JSON.stringify(normalized));
@@ -213,6 +247,13 @@ export async function fetchSiteSettings() {
   } catch {
     return fallback;
   }
+}
+
+export function clearSiteSettingsCache() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  localStorage.removeItem("site_settings");
 }
 
 export async function trackUserActivity({

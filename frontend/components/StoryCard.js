@@ -37,7 +37,7 @@ export default function StoryCard({ story, index = 0, onClick }) {
     <div className="bx-book-card" onClick={handleClick}>
       <div className="bx-book-cover">
         {story.cover_image ? (
-          <img src={story.cover_image} alt={story.title} />
+          <img src={story.cover_image} alt={story.title} loading="eager" />
         ) : (
           <div className="bx-book-fallback" style={{ background: palette(story._id || story.id || index) }}>
             {story.title}

@@ -57,7 +57,7 @@ function loadGoogleScript() {
   });
 }
 
-export default function GoogleSignInButton({ onCredential, disabled = false, text = 'continue_with', useRedirect = false }) {
+export default function GoogleSignInButton({ onCredential, disabled = false, text = 'continue_with', useRedirect = true }) {
   const clientId = (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '').trim();
   const buttonRef = useRef(null);
   const callbackRef = useRef(onCredential);

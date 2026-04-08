@@ -15,7 +15,7 @@ function isLocalOrPrivateHost(hostname = "") {
 }
 
 function normalizeApiBaseUrl(rawUrl) {
-  const value = rawUrl.trim();
+  const value = String(rawUrl || "").trim().replace(/\s+/g, "");
   if (!value) {
     return "http://localhost:8000";
   }
@@ -116,7 +116,12 @@ export async function apiRequest(path, { method = "GET", body, token } = {}) {
     headers.Authorization = `Bearer ${authToken}`;
   }
 
-  const response = await fetch(buildApiUrl(path), {
+  let requestUrl = buildApiUrl(path);
+  if (typeof window !== "undefined" && window.location.protocol === "https:" && /^http:\/\//i.test(requestUrl)) {
+    requestUrl = requestUrl.replace(/^http:\/\//i, "https://");
+  }
+
+  const response = await fetch(requestUrl, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,

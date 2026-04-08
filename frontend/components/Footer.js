@@ -19,7 +19,12 @@ export default function Footer() {
       <div className="bx-footer-grid">
         <div className="bx-footer-brand">
           <Link href="/" className="bx-logo">{branding.site_name}</Link>
-          <p>Stories that stay with you. Read, write, and connect with readers worldwide.</p>
+          <p>Stories that stay with you. Read, write, and connect with Geeks worldwide.</p>
+          <div className="bx-footer-socials">
+            <a href="https://www.facebook.com/profile.php?id=100077340543704" target="_blank" rel="noreferrer">Facebook</a>
+            <a href="https://www.instagram.com" target="_blank" rel="noreferrer">Instagram</a>
+            <a href="https://www.youtube.com" target="_blank" rel="noreferrer">YouTube</a>
+          </div>
         </div>
 
         <div className="bx-footer-col">

@@ -293,7 +293,7 @@ export default function Navbar() {
                           className="bx-dd-row"
                           onClick={() => {
                             setNotifOpen(false);
-                            if (item.story_id) router.push(`/read/${item.story_id}`);
+                            if (item.story_id) router.push(`/story/${item.story_id}`);
                           }}
                           style={{alignItems:'flex-start'}}
                         >

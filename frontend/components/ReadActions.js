@@ -6,7 +6,7 @@ import { apiRequest, readToken } from "@/lib/api";
 export default function ReadActions({ storyId, authorId }) {
   const [comment, setComment] = useState("");
   const [comments, setComments] = useState([]);
-  const [message, setMessage] = useState("Like, bookmark, comment, and follow the writer.");
+  const [message, setMessage] = useState("Like, bookmark, comment, and Geek the writer.");
 
   useEffect(() => {
     async function loadComments() {
@@ -85,7 +85,7 @@ export default function ReadActions({ storyId, authorId }) {
       <div className="card-actions">
         <button className="cta ghost small" onClick={() => doAuthedCall(`/engagement/stories/${storyId}/like`)}>Like / React</button>
         <button className="cta ghost small" onClick={() => doAuthedCall(`/reader/bookmarks/${storyId}`)}>Bookmark</button>
-        <button className="cta ghost small" onClick={() => doAuthedCall(`/users/${authorId}/follow`)}>Follow Writer</button>
+        <button className="cta ghost small" onClick={() => doAuthedCall(`/users/${authorId}/follow`)}>Geek Writer</button>
       </div>
 
       <form className="mini-form" onSubmit={submitComment}>

@@ -24,7 +24,7 @@ export default function StoryCard({ story, index = 0, onClick }) {
 
   function handleClick() {
     if (isPremium && !readToken()) {
-      router.push(`/auth/signin?next=${encodeURIComponent(`/read/${story._id || story.id}`)}`);
+      router.push(`/auth/signin?next=${encodeURIComponent(`/story/${story._id || story.id}`)}`);
       return;
     }
 
@@ -32,7 +32,7 @@ export default function StoryCard({ story, index = 0, onClick }) {
       onClick(story);
       return;
     }
-    router.push(`/read/${story._id || story.id}`);
+    router.push(`/story/${story._id || story.id}`);
   }
 
   return (

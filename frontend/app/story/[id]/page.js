@@ -313,19 +313,20 @@ export default function StoryDemoPage() {
     const id = item?.id || item?._id;
     if (!id) return null;
     return (
-      <button
+      <div
         key={`${keyPrefix}-${id}-${idx}`}
-        className="story-card"
-        type="button"
+        className="bx-book-card"
         onClick={() => router.push(`/story/${id}`)}
       >
-        <div className="story-cover">
-          {item?.cover_image ? <img src={item.cover_image} alt={item.title} /> : <span>📘</span>}
+        <div className="bx-book-cover" style={{ backgroundColor: '#2f3f59' }}>
+          {item?.cover_image ? <img src={item.cover_image} alt={item.title || 'Story cover'} loading="lazy" /> : <span>📘</span>}
         </div>
-        <strong>{item?.title || 'Story'}</strong>
-        <small>{item?.author_name || item?.author || 'Unknown Author'}</small>
-        <small>👁 {formatCompact(item?.views || 0)}</small>
-      </button>
+        <h4 className="bx-book-title">{item?.title || 'Story'}</h4>
+        <p className="bx-book-author">{item?.author_name || item?.author || 'Unknown Author'}</p>
+        <div className="bx-book-meta bx-book-meta-rich">
+          <span>👁 {formatCompact(item?.views || 0)}</span>
+        </div>
+      </div>
     );
   }
 
@@ -581,8 +582,10 @@ export default function StoryDemoPage() {
             </div>
             <button type="button" onClick={() => router.push('/discover')}>View all →</button>
           </div>
-          <div className="story-grid series-grid">
+          <div className="bx-carousel no-overflow story-home-row series-home-row">
+            <div className="bx-book-scroll">
             {seriesStories.map((item, idx) => renderStoryCard(item, idx, 'series'))}
+            </div>
             {!seriesStories.length && <p className="empty-note">No series stories found for this tag yet.</p>}
           </div>
 
@@ -593,8 +596,10 @@ export default function StoryDemoPage() {
             </div>
             <button type="button" onClick={() => router.push('/discover')}>View all →</button>
           </div>
-          <div className="story-grid likes-grid">
+          <div className="bx-carousel no-overflow story-home-row likes-home-row">
+            <div className="bx-book-scroll">
             {alsoLikeStories.map((item, idx) => renderStoryCard(item, idx, 'more'))}
+            </div>
           </div>
         </div>
       </section>
@@ -767,23 +772,21 @@ export default function StoryDemoPage() {
         .section-head h2 { color: #f0f3fb; font-family: 'Cormorant Garamond', serif; font-size: 34px; margin: 0; line-height: 1.04; }
         .section-copy p { color: #78839a; font-size: 13px; margin: 0; }
         .section-head button { border: none; background: none; color: #a2acc2; cursor: pointer; }
-        .story-grid { display: grid; gap: 12px; }
-        .series-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-        .likes-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-        .story-card { border: 1px solid rgba(99,120,200,0.15); background: #101828; border-radius: 12px; padding: 10px; display: grid; gap: 6px; text-align: left; cursor: pointer; min-height: 276px; }
-        .story-cover { aspect-ratio: 2 / 3; border-radius: 8px; overflow: hidden; background: #1a2132; display: grid; place-items: center; color: #8089a0; }
-        .story-cover img { width: 100%; height: 100%; object-fit: cover; }
-        .story-card strong { color: #f1f4fb; font-size: 14px; }
-        .story-card small { color: #8a94aa; font-size: 12px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
-        .likes-grid .story-card { min-height: 238px; padding: 9px; }
-        .likes-grid .story-card strong { font-size: 13px; }
-        .likes-grid .story-card small { font-size: 11px; }
+        .story-home-row .bx-book-scroll { width: 100%; }
+        .series-home-row .bx-book-card { flex: 0 0 calc((100% - 36px) / 4); max-width: calc((100% - 36px) / 4); }
+        .likes-home-row .bx-book-card { flex: 0 0 calc((100% - 60px) / 6); max-width: calc((100% - 60px) / 6); }
+        .story-home-row .bx-book-card { min-width: 160px; }
 
         @media (max-width: 1120px) {
           .hero-section, .tabs-section { grid-template-columns: 220px 1fr; }
           .right-col, .tabs-right { display: none; }
-          .story-grid { display: flex; overflow-x: auto; gap: 12px; padding-bottom: 8px; scroll-snap-type: x mandatory; }
-          .story-card { min-width: 185px; max-width: 185px; scroll-snap-align: start; }
+          .story-home-row .bx-book-scroll { overflow-x: auto; }
+          .series-home-row .bx-book-card,
+          .likes-home-row .bx-book-card {
+            flex: 0 0 185px;
+            max-width: 185px;
+            scroll-snap-align: start;
+          }
         }
         @media (max-width: 780px) {
           .hero-section, .tabs-section { grid-template-columns: 1fr; gap: 16px; }
@@ -797,7 +800,11 @@ export default function StoryDemoPage() {
         @media (max-width: 500px) {
           .hero-section, .tabs-section, .below-wrap { padding-left: 14px; padding-right: 14px; }
           .mini-actions { flex-direction: column; }
-          .story-card { min-width: 170px; max-width: 170px; min-height: 252px; }
+          .series-home-row .bx-book-card,
+          .likes-home-row .bx-book-card {
+            flex: 0 0 170px;
+            max-width: 170px;
+          }
           .section-head { align-items: center; }
           .section-head button { font-size: 12px; }
           .tabs-nav { flex-wrap: wrap; }

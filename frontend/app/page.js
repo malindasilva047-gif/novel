@@ -558,11 +558,12 @@ export default function Home() {
 
   // Hero auto-play
   useEffect(() => {
+    const heroSlideCount = Math.max(1, displayStories.length ? Math.min(displayStories.length, 4) : HERO_SLIDES.length);
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+      setCurrentSlide((prev) => (prev + 1) % heroSlideCount);
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [displayStories.length]);
 
   useEffect(() => {
     if (!toast) return;
@@ -620,16 +621,26 @@ export default function Home() {
     || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('adventure')))
   )).slice(0, 12);
 
+  const heroSlides = displayStories.length
+    ? displayStories.slice(0, 4).map((item, idx) => ({
+        id: idx + 1,
+        tag: idx === 0 ? '⭐ Recommended' : idx === 1 ? '🔥 Trending' : idx === 2 ? '📚 New Release' : '✨ Featured',
+        title: `${item?.title || 'Story'} by <em>${item?.author_name || item?.author || 'Author'}</em>`,
+        desc: item?.description || 'Discover your next binge-worthy story from the community.',
+        bg: 'linear-gradient(135deg, #0a1a2e 0%, #1a0a2e 50%, #2e0a1a 100%)',
+      }))
+    : HERO_SLIDES;
+
   // Hero handlers
   const handlePrevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+    setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
   };
 
   const handleNextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+    setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
   };
 
-  const handleToggleFollow = (followKey) => {
+  const handleToggleGeek = (followKey) => {
     setFollowed((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(followKey)) {
@@ -706,7 +717,7 @@ export default function Home() {
             transform: `translateX(-${currentSlide * 100}%)`,
           }}
         >
-          {HERO_SLIDES.map((slide, idx) => (
+          {heroSlides.map((slide, idx) => (
             <div key={slide.id} className="bx-hero-slide" style={{ backgroundImage: slide.bg }}>
               <div className="bx-hero-bg" style={{ backgroundImage: slide.bg }} />
               <div className="bx-hero-content">
@@ -720,7 +731,7 @@ export default function Home() {
                       const targetStory = getHeroStoryByIndex(idx);
                       const targetId = targetStory?.id || targetStory?._id;
                       if (targetId) {
-                        router.push(`/read/${targetId}`);
+                        router.push(`/story/${targetId}`);
                       }
                     }}
                   >
@@ -750,7 +761,7 @@ export default function Home() {
 
         {/* Hero Dots */}
         <div className="bx-hero-dots">
-          {HERO_SLIDES.map((_, idx) => (
+          {heroSlides.map((_, idx) => (
             <button
               key={idx}
               className={`bx-hero-dot ${idx === currentSlide ? 'active' : ''}`}
@@ -789,7 +800,7 @@ export default function Home() {
               <div
                 key={`recommended-${story.id || story._id || 'story'}-${idx}`}
                 className="bx-book-card"
-                onClick={() => router.push(`/read/${story.id || story._id}`)}
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#3f7a6a' }}>
                   {story.image || story.cover_image ? (
@@ -818,6 +829,77 @@ export default function Home() {
       </section>
 
       {/* ───────────────────────────────────────────────────
+          3. CONTINUE READING SECTION
+      ─────────────────────────────────────────────────── */}
+      {showContinueSection && (
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">Continue Reading</h2>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('continue') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(continueRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('continue', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-continue-scroll" ref={continueRef}>
+            {continueReading.map((story, idx) => (
+              (() => {
+                const progress = getDeterministicProgress(story, idx);
+                return (
+              <div
+                key={`continue-top-${idx}`}
+                className="bx-book-card bx-continue-card-flat"
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
+              >
+                <div className="bx-book-cover" style={{ backgroundColor: '#8B4513' }}>
+                  {story.cover_image || story.image ? (
+                    <img src={story.cover_image || story.image} alt={story.title} loading="eager" />
+                  ) : (
+                    <div className="bx-book-fallback" style={{ fontSize: '10px' }}>
+                      {story.title}
+                    </div>
+                  )}
+                </div>
+                <div className="bx-book-info">
+                  <h4 className="bx-book-title">{story.title}</h4>
+                  <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+                  <p className="bx-book-progress">Last read part: {story.chapter_id || 'Chapter 1'}</p>
+                  <p className="bx-book-progress">👁 {Number(story.views || 0).toLocaleString()}</p>
+                  <div className="bx-continue-progress-wrap">
+                    <div className="bx-continue-progress-bar">
+                      <div
+                        className="bx-continue-progress-fill"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <span className="bx-continue-progress-label">
+                      {progress}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+                );
+              })()
+            ))}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(continueRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('continue', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+      )}
+
+      {/* ───────────────────────────────────────────────────
           5. POPULAR RIGHT NOW CAROUSEL
       ─────────────────────────────────────────────────── */}
       <section className="bx-section">
@@ -839,7 +921,7 @@ export default function Home() {
               <div
                 key={`popular-${story.id || story._id || 'story'}-${idx}`}
                 className="bx-book-card"
-                onClick={() => router.push(`/read/${story.id || story._id}`)}
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#2F4F4F' }}>
                   {story.image ? (
@@ -889,7 +971,7 @@ export default function Home() {
               <div
                 key={`new-${story.id || story._id || 'story'}-${idx}`}
                 className="bx-book-card"
-                onClick={() => router.push(`/read/${story.id || story._id}`)}
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#663399' }}>
                   {story.image ? (
@@ -939,7 +1021,7 @@ export default function Home() {
               <div
                 key={`trend-${story.id || story._id || 'story'}-${idx}`}
                 className="bx-book-card"
-                onClick={() => router.push(`/read/${story.id || story._id}`)}
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#DC143C' }}>
                   {story.image ? (
@@ -986,7 +1068,7 @@ export default function Home() {
               <div
                 key={`romance-${story.id || story._id || 'story'}-${idx}`}
                 className="bx-book-card"
-                onClick={() => router.push(`/read/${story.id || story._id}`)}
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#cc4c8f' }}>
                   {story.image ? (
@@ -1033,7 +1115,7 @@ export default function Home() {
               <div
                 key={`mystery-${story.id || story._id || 'story'}-${idx}`}
                 className="bx-book-card"
-                onClick={() => router.push(`/read/${story.id || story._id}`)}
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#4a4d89' }}>
                   {story.image ? (
@@ -1080,7 +1162,7 @@ export default function Home() {
               <div
                 key={`adventure-${story.id || story._id || 'story'}-${idx}`}
                 className="bx-book-card"
-                onClick={() => router.push(`/read/${story.id || story._id}`)}
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#2f8f9a' }}>
                   {story.image ? (
@@ -1136,7 +1218,7 @@ export default function Home() {
               <div
                 key={`sub-${story.id}-${idx}`}
                 className="bx-book-card"
-                onClick={() => router.push(`/read/${story.id || story._id}`)}
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#4169E1' }}>
                   <span className="bx-book-sub-badge">PRO</span>
@@ -1171,7 +1253,7 @@ export default function Home() {
       {/* ───────────────────────────────────────────────────
           10. CONTINUE READING SECTION
       ─────────────────────────────────────────────────── */}
-      {showContinueSection && (
+      {false && showContinueSection && (
       <section className="bx-section">
         <div className="bx-sec-header">
           <h2 className="bx-sec-title">Continue Reading</h2>
@@ -1194,7 +1276,7 @@ export default function Home() {
               <div
                 key={`continue-${idx}`}
                 className="bx-book-card bx-continue-card-flat"
-                onClick={() => router.push(`/read/${story.id || story._id}`)}
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
               >
                 <div className="bx-book-cover" style={{ backgroundColor: '#8B4513' }}>
                   {story.cover_image || story.image ? (
@@ -1265,7 +1347,7 @@ export default function Home() {
               <div
                 key={`readlist-${idx}`}
                 className="bx-readlist-card"
-                onClick={() => router.push(`/read/${story.id || story._id}`)}
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
               >
                 <div className="bx-readlist-cover" style={{ backgroundColor: '#2F4F4F' }}>
                   {story.image ? (
@@ -1285,10 +1367,10 @@ export default function Home() {
                     className={`bx-readlist-follow ${followed.has(followKey) ? 'followed' : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleToggleFollow(followKey);
+                      handleToggleGeek(followKey);
                     }}
                   >
-                    {followed.has(followKey) ? 'Following' : 'Follow'}
+                    {followed.has(followKey) ? 'Geeking' : 'Geek'}
                   </button>
                 </div>
               </div>
@@ -1460,7 +1542,7 @@ export default function Home() {
               onClick={() => router.push('/discover')}
               style={{
                 border: '1px solid rgba(201,169,110,0.3)',
-                color: '#ffffff',
+                color: '#0d0d12',
                 padding: '11px 28px',
               }}
             >

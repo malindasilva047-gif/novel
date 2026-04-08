@@ -36,7 +36,7 @@ export default function ReadPage() {
   const [bookmarked, setBookmarked] = useState(false);
   const [toast, setToast] = useState('');
   const [loading, setLoading] = useState(true);
-  const [isReadingMode, setIsReadingMode] = useState(false);
+  const [isReadingMode, setIsReadingMode] = useState(true);
   const [accessChecked, setAccessChecked] = useState(false);
   const [hasPremiumAccess, setHasPremiumAccess] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -47,7 +47,6 @@ export default function ReadPage() {
 
   useEffect(() => {
     if (!storyId) return;
-    setIsReadingMode(false);
 
     if (isNumericDemoId) {
       setStory({
@@ -368,7 +367,7 @@ export default function ReadPage() {
             className="bx-btn-primary"
             onClick={() => {
               if (!readToken()) {
-                router.push(`/auth/signin?next=${encodeURIComponent(`/read/${storyId}`)}`);
+                router.push(`/auth/signin?next=${encodeURIComponent(`/story/${storyId}`)}`);
                 return;
               }
               router.push('/profile');
@@ -416,7 +415,6 @@ export default function ReadPage() {
               <div style={{ display: 'flex', gap: '12px', marginBottom: '22px' }}>
                 <button
                   onClick={() => {
-                    setIsReadingMode(true);
                     setChapterIndex(0);
                   }}
                   style={{
@@ -491,7 +489,7 @@ export default function ReadPage() {
               <div style={{ fontWeight: 700, fontSize: '36px', lineHeight: 1, fontFamily: 'Cormorant Garamond, serif', color: '#0f172a', marginBottom: '12px' }}>You may also like</div>
               <div style={{ display: 'grid', gap: '12px' }}>
                 {recoStories.map((rs, i) => (
-                  <a key={`${rs.id || rs._id}-${i}`} href={`/read/${rs.id || rs._id}`} style={{ display: 'grid', gridTemplateColumns: '68px 1fr', gap: '10px', textDecoration: 'none', color: 'inherit' }}>
+                  <a key={`${rs.id || rs._id}-${i}`} href={`/story/${rs.id || rs._id}`} style={{ display: 'grid', gridTemplateColumns: '68px 1fr', gap: '10px', textDecoration: 'none', color: 'inherit' }}>
                     <div style={{ borderRadius: '8px', overflow: 'hidden', background: 'linear-gradient(160deg,#1a0a2e,#3d1a5e)', height: '94px' }}>
                       {rs.cover_image ? <img src={rs.cover_image} alt={rs.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
                     </div>
@@ -634,7 +632,7 @@ export default function ReadPage() {
           <div style={{fontFamily:'Cormorant Garamond,serif',fontSize:'22px',color:'var(--text)',marginBottom:'8px'}}>You Might Like</div>
           <div style={{display:'grid',gap:'10px'}}>
             {recoStories.map((rs, i) => (
-              <a key={`${rs.id || rs._id}-${i}`} href={`/read/${rs.id || rs._id}`} style={{display:'grid',gridTemplateColumns:'54px 1fr',gap:'9px',textDecoration:'none',color:'inherit'}}>
+              <a key={`${rs.id || rs._id}-${i}`} href={`/story/${rs.id || rs._id}`} style={{display:'grid',gridTemplateColumns:'54px 1fr',gap:'9px',textDecoration:'none',color:'inherit'}}>
                 <div style={{height:'72px',borderRadius:'6px',overflow:'hidden',background:'linear-gradient(160deg,#1a0a2e,#3d1a5e)'}}>
                   {rs.cover_image && <img src={rs.cover_image} alt={rs.title} style={{width:'100%',height:'100%',objectFit:'cover'}} />}
                 </div>

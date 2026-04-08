@@ -245,7 +245,7 @@ function DiscoverInner() {
             </div>
             <p className="bx-modal-desc">{selected.description || selected.summary || 'An immersive story waiting to be discovered. Start reading today!'}</p>
             <div className="bx-modal-actions">
-              <button className="bx-modal-btn-read" onClick={() => router.push(`/read/${selected._id || selected.id}`)}>Read Now</button>
+              <button className="bx-modal-btn-read" onClick={() => router.push(`/story/${selected._id || selected.id}`)}>Read Now</button>
               <button className="bx-modal-btn-save" onClick={() => setSelected(null)}>+ Save</button>
             </div>
           </div>

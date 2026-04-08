@@ -80,8 +80,8 @@ export default function ProfilePage() {
         setStats({
           reads: Number(statsData.reads || 0),
           stories: Number(statsData.stories || 0),
-          followers: Number(statsData.followers || 0),
-          following: Number(statsData.following || 0),
+          followers: Number(statsData.geeks ?? statsData.followers ?? 0),
+          following: Number(statsData.geeking ?? statsData.following ?? 0),
           likes: Number(statsData.likes || 0),
         });
       }
@@ -98,8 +98,8 @@ export default function ProfilePage() {
         setStats({
           reads: Number(statsData.reads || 0),
           stories: Number(statsData.stories || 0),
-          followers: Number(statsData.followers || 0),
-          following: Number(statsData.following || 0),
+          followers: Number(statsData.geeks ?? statsData.followers ?? 0),
+          following: Number(statsData.geeking ?? statsData.following ?? 0),
           likes: Number(statsData.likes || 0),
         });
       } catch {
@@ -218,8 +218,8 @@ export default function ProfilePage() {
           {[
             [String(stats.reads || 0), 'Reads'],
             [String(stats.stories || 0), 'Stories'],
-            [String(stats.followers || 0), 'Followers'],
-            [String(stats.following || 0), 'Following'],
+            [String(stats.followers || 0), 'Geeks'],
+            [String(stats.following || 0), 'Geeking'],
             [String(stats.likes || 0), 'Likes'],
           ].map(([n, l]) => (
             <div className="bx-sti" key={l}>
@@ -244,7 +244,7 @@ export default function ProfilePage() {
         {tab === 'stories' && (
           <div className="bx-slist">
             {stories.map((s, i) => (
-              <div key={s._id || s.id || i} className="bx-scard" onClick={() => router.push(`/read/${s._id || s.id}`)}>
+              <div key={s._id || s.id || i} className="bx-scard" onClick={() => router.push(`/story/${s._id || s.id}`)}>
                 <div className="bx-scov" style={{ background: pal(i) }}>
                   {s.cover_image && <img src={s.cover_image} alt={s.title} />}
                   {!s.cover_image && s.title.slice(0, 30)}
@@ -268,7 +268,7 @@ export default function ProfilePage() {
         {tab === 'reading' && (
           <div style={{ display: 'grid', gap: '10px' }}>
             {bookmarks.map((b, i) => (
-              <div key={`${b.story_id}-${i}`} className="chapter-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/read/${b.story_id}`)}>
+              <div key={`${b.story_id}-${i}`} className="chapter-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/story/${b.story_id}`)}>
                 <div style={{ fontSize: '14px', color: '#fff' }}>{b.title}</div>
                 <div className="token-state">Bookmarked</div>
               </div>
@@ -280,7 +280,7 @@ export default function ProfilePage() {
         {tab === 'activity' && (
           <div style={{ display: 'grid', gap: '10px' }}>
             {history.map((h, i) => (
-              <div key={`${h.story_id}-${i}`} className="chapter-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/read/${h.story_id}`)}>
+              <div key={`${h.story_id}-${i}`} className="chapter-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/story/${h.story_id}`)}>
                 <div style={{ fontSize: '14px', color: '#fff' }}>{h.title}</div>
                 <div className="token-state">Progress: {Math.round(h.progress_pct || 0)}%</div>
               </div>

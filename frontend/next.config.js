@@ -28,10 +28,10 @@ const nextConfig = {
       { source: "/bixbi-source/bixbid.html", destination: "/", permanent: false },
       { source: "/bixbi-source/bixbi%20book%20red%20and%20write.html", destination: "/", permanent: false },
 
-      { source: "/bixbi-source/bixbi-reading%20(1d).html", destination: "/read/1", permanent: false },
-      { source: "/bixbi-source/bixbi-reading%20(1).html", destination: "/read/1", permanent: false },
-      { source: "/bixbi-source/bixbi-reading.html", destination: "/read/1", permanent: false },
-      { source: "/bixbi-source/bixbi-readingd.html", destination: "/read/1", permanent: false },
+      { source: "/bixbi-source/bixbi-reading%20(1d).html", destination: "/story/1", permanent: false },
+      { source: "/bixbi-source/bixbi-reading%20(1).html", destination: "/story/1", permanent: false },
+      { source: "/bixbi-source/bixbi-reading.html", destination: "/story/1", permanent: false },
+      { source: "/bixbi-source/bixbi-readingd.html", destination: "/story/1", permanent: false },
 
       { source: "/bixbi-source/bixbi-writer-studio.html", destination: "/write", permanent: false },
       { source: "/bixbi-source/bixbi-writer-studiod.html", destination: "/write", permanent: false },

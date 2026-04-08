@@ -212,18 +212,18 @@ main { position: relative; z-index: 1; }
 
 .bx-nav-search-inline-main {
   margin-left: 6px;
-  background: #ffffff;
-  border-color: rgba(36, 44, 62, 0.18);
+  background: var(--surface);
+  border-color: var(--border);
 }
 
 .bx-nav-search-inline-main input {
-  color: #202736;
+  color: var(--text);
   width: 240px;
   max-width: 28vw;
 }
 
 .bx-nav-search-inline-main input::placeholder {
-  color: #6e7788;
+  color: var(--muted);
 }
 
 .bx-btn-icon {
@@ -629,6 +629,17 @@ main { position: relative; z-index: 1; }
 @media(min-width:1024px){ .bx-footer-grid { max-width:1200px; margin:0 auto 40px; } }
 .bx-footer-brand .bx-logo { font-size:24px; display:block; margin-bottom:12px; }
 .bx-footer-brand p { font-size:13px; color:var(--muted); line-height:1.6; max-width:240px; }
+.bx-footer-socials { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.bx-footer-socials a {
+  font-size: 12px;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 4px 10px;
+  text-decoration: none;
+  transition: border-color 0.2s, color 0.2s;
+}
+.bx-footer-socials a:hover { color: var(--gold); border-color: var(--gold); }
 .bx-footer-col h4 { font-size:12px; font-weight:500; color:var(--text); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:14px; }
 .bx-footer-col a { display:block; font-size:13px; color:var(--muted); text-decoration:none; margin-bottom:8px; transition:color 0.2s; }
 .bx-footer-col a:hover { color:var(--text); }

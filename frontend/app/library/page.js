@@ -112,7 +112,7 @@ function LibraryPageContent() {
     return true;
   });
 
-  const followAuthor = async (authorId) => {
+  const geekAuthor = async (authorId) => {
     if (!authorId) return;
     try {
       await apiRequest(`/users/${authorId}/follow`, { method: 'POST' });
@@ -149,7 +149,7 @@ function LibraryPageContent() {
         ) : filtered.length > 0 ? (
           <div className="bx-library-grid">
             {filtered.map((b, i) => (
-              <div key={b.story_id || b._id || i} className="bx-lib-card" onClick={() => router.push(`/read/${b.story_id || b._id}`)}>
+              <div key={b.story_id || b._id || i} className="bx-lib-card" onClick={() => router.push(`/story/${b.story_id || b._id}`)}>
                 <div className="bx-lib-cover" style={{background: pal(i), display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Cormorant Garamond,serif',fontSize:'13px',fontWeight:600,color:'#fff',textAlign:'center',padding:'10px',lineHeight:1.3}}>
                   {b.cover_image ? <img src={b.cover_image} alt={b.title} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}} /> : b.title}
                 </div>
@@ -162,10 +162,10 @@ function LibraryPageContent() {
                       style={{ fontSize: '11px', padding: '6px 10px', marginBottom: '8px' }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        followAuthor(b.author_id);
+                        geekAuthor(b.author_id);
                       }}
                     >
-                      {following[b.author_id] ? 'Following' : 'Follow'}
+                      {following[b.author_id] ? 'Geeked' : 'Geek Author'}
                     </button>
                   )}
                   {(b.progress !== undefined) && b.progress < 100 && (

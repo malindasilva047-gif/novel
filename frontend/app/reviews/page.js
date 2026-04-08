@@ -113,7 +113,7 @@ export default function ReviewsPage() {
                     <strong>{review.user}</strong> on{' '}
                     <button
                       className="bx-btn-link"
-                      onClick={() => router.push(`/read/${review.story_id}`)}
+                      onClick={() => router.push(`/story/${review.story_id}`)}
                       style={{ border: 'none', background: 'none', color: 'var(--gold)', cursor: 'pointer', padding: 0 }}
                     >
                       {review.story_title}

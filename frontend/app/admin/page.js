@@ -1594,7 +1594,7 @@ export default function AdminPage() {
                         <td><StatusChip value={item.status === "published" ? "active" : item.status} /></td>
                         <td>
                           <div className="admin-inline-actions">
-                            <ActionIconButton label="View" onClick={() => router.push(`/read/${item.id}`)} />
+                            <ActionIconButton label="View" onClick={() => router.push(`/story/${item.id}`)} />
                             <ActionIconButton label={item.status === "published" ? "Draft" : "Live"} onClick={() => updateStoryStatus(item.id, item.status === "published" ? "draft" : "published")} />
                             <ActionIconButton label="Delete" danger onClick={() => deleteStory(item.id)} />
                           </div>
@@ -1641,7 +1641,7 @@ export default function AdminPage() {
                         <td>{item.likes} Like</td>
                         <td>
                           <div className="admin-inline-actions">
-                            <ActionIconButton label="View" onClick={() => router.push(`/read/${item.id}`)} />
+                            <ActionIconButton label="View" onClick={() => router.push(`/story/${item.id}`)} />
                             <ActionIconButton label={item.status === "published" ? "Draft" : "Live"} onClick={() => updateStoryStatus(item.id, item.status === "published" ? "draft" : "published")} />
                             <ActionIconButton label="Delete" danger onClick={() => deleteStory(item.id)} />
                           </div>
@@ -1679,7 +1679,7 @@ export default function AdminPage() {
                         <td><StatusChip value={item.status === "resolved" ? "published" : "draft"} /></td>
                         <td>
                           <div className="admin-inline-actions">
-                            <ActionIconButton label="View" onClick={() => router.push(`/read/${item.story?.id || ""}`)} />
+                            <ActionIconButton label="View" onClick={() => router.push(`/story/${item.story?.id || ""}`)} />
                             <ActionIconButton label="Resolve" onClick={() => resolveReport(item.id)} />
                           </div>
                         </td>
@@ -1748,7 +1748,7 @@ export default function AdminPage() {
                           <td>{formatRelativeDate(item.created_at)}</td>
                           <td>
                             <div className="admin-inline-actions">
-                              <ActionIconButton label="View" onClick={() => router.push(`/read/${item.story_id}`)} />
+                              <ActionIconButton label="View" onClick={() => router.push(`/story/${item.story_id}`)} />
                               {user ? <ActionIconButton label={user.is_banned ? "Unban" : "Ban"} onClick={() => updateUserBan(user)} /> : null}
                               <ActionIconButton label={item.status === "hidden" ? "Show" : "Hide"} onClick={() => toggleCommentVisibility(item)} />
                               <ActionIconButton label="Delete" danger onClick={() => removeComment(item)} />

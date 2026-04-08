@@ -60,15 +60,15 @@ export default function AuthorsPage() {
     setTimeout(() => setToast(''), 2800);
   }
 
-  function handleFollow(id, name) {
+  function handleGeek(id, name) {
     setFollowed(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
-        showToast(`Unfollowed ${name}`);
+        showToast(`Removed Geek from ${name}`);
       } else {
         next.add(id);
-        showToast(`Following ${name}`);
+        showToast(`Geeked ${name}`);
       }
       return next;
     });
@@ -189,7 +189,7 @@ export default function AuthorsPage() {
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
-                    {/* Avatar + follow */}
+                    {/* Avatar + geek */}
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                         {author.profile_image ? (
@@ -222,7 +222,7 @@ export default function AuthorsPage() {
                       </div>
 
                       <button
-                        onClick={e => { e.stopPropagation(); handleFollow(author.id, displayName); }}
+                        onClick={e => { e.stopPropagation(); handleGeek(author.id, displayName); }}
                         style={{
                           background: isFollowed ? 'var(--gold-soft)' : 'none',
                           border: '1px solid ' + (isFollowed ? 'rgba(201,169,110,0.4)' : 'var(--border)'),
@@ -233,7 +233,7 @@ export default function AuthorsPage() {
                           transition: 'all 0.2s', whiteSpace: 'nowrap', flexShrink: 0,
                         }}
                       >
-                        {isFollowed ? '✓ Following' : '+ Follow'}
+                        {isFollowed ? '✓ Geeked' : '+ Geek'}
                       </button>
                     </div>
 

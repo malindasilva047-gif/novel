@@ -1,6 +1,6 @@
 import asyncio
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import logging
 from pathlib import Path
 from typing import Any
@@ -220,6 +220,14 @@ def _safe_int(value: Any, default: int = 0) -> int:
 
 def _to_text(value: Any) -> str:
     return str(value or "").strip()
+
+
+def _as_utc_datetime(value: Any) -> datetime | None:
+    if not isinstance(value, datetime):
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 def _percent_change(current: float, previous: float) -> float:
@@ -560,7 +568,6 @@ async def analytics(
     start_current = now - timedelta(days=period_days - 1)
     start_prev = now - timedelta(days=(period_days * 2) - 1)
     end_prev = now - timedelta(days=period_days)
-    start_7d = now - timedelta(days=6)
 
     users = await database.users.count_documents({})
     stories_count = await database.stories.count_documents({})
@@ -589,14 +596,14 @@ async def analytics(
     ).to_list(length=300000)
 
     day_labels_30 = []
-    day_to_index_30: dict[datetime.date, int] = {}
+    day_to_index_30: dict[date, int] = {}
     for offset in range(period_days - 1, -1, -1):
         day = (now - timedelta(days=offset)).date()
         day_labels_30.append(day.strftime("%d %b") if period_days > 31 else str(day.day))
         day_to_index_30[day] = len(day_labels_30) - 1
 
     day_labels_7 = []
-    day_to_index_7: dict[datetime.date, int] = {}
+    day_to_index_7: dict[date, int] = {}
     for offset in range(6, -1, -1):
         day = (now - timedelta(days=offset)).date()
         day_labels_7.append(day.strftime("%a"))
@@ -606,8 +613,8 @@ async def analytics(
     daily_user_reg_7 = [0] * 7
 
     for row in user_rows_60d:
-        created_at = row.get("created_at")
-        if not isinstance(created_at, datetime):
+        created_at = _as_utc_datetime(row.get("created_at"))
+        if created_at is None:
             continue
         key = created_at.date()
         if key in day_to_index_30:
@@ -633,8 +640,8 @@ async def analytics(
     month_reads = [0] * 12
 
     for row in activity_rows_60d:
-        created_at = row.get("created_at")
-        if not isinstance(created_at, datetime):
+        created_at = _as_utc_datetime(row.get("created_at"))
+        if created_at is None:
             continue
 
         action_type = str(row.get("action_type") or "").strip().lower()
@@ -662,8 +669,8 @@ async def analytics(
     likes_30d = 0
     likes_prev_30d = 0
     for row in like_rows_60d:
-        created_at = row.get("created_at")
-        if not isinstance(created_at, datetime):
+        created_at = _as_utc_datetime(row.get("created_at"))
+        if created_at is None:
             continue
         month_likes[max(0, min(11, created_at.month - 1))] += 1
         if created_at >= start_current:
@@ -676,8 +683,8 @@ async def analytics(
     weekly_comments = [0, 0, 0, 0]
 
     for row in like_rows_60d:
-        created_at = row.get("created_at")
-        if not isinstance(created_at, datetime):
+        created_at = _as_utc_datetime(row.get("created_at"))
+        if created_at is None:
             continue
         days_ago = (now.date() - created_at.date()).days
         if 0 <= days_ago < max(28, period_days):
@@ -685,8 +692,8 @@ async def analytics(
             weekly_likes[3 - idx] += 1
 
     for row in comment_rows_28d:
-        created_at = row.get("created_at")
-        if not isinstance(created_at, datetime):
+        created_at = _as_utc_datetime(row.get("created_at"))
+        if created_at is None:
             continue
         days_ago = (now.date() - created_at.date()).days
         if 0 <= days_ago < max(28, period_days):
@@ -709,8 +716,8 @@ async def analytics(
     current_story_views_30 = sum(story_views_30)
     previous_story_views_30 = 0
     for row in activity_rows_60d:
-        created_at = row.get("created_at")
-        if not isinstance(created_at, datetime):
+        created_at = _as_utc_datetime(row.get("created_at"))
+        if created_at is None:
             continue
         action_type = str(row.get("action_type") or "").strip().lower()
         if action_type not in read_actions and action_type:
@@ -773,7 +780,6 @@ async def monetization(
     now = datetime.now(timezone.utc)
     start_year = datetime(now.year, 1, 1, tzinfo=timezone.utc)
     start_prev = now - timedelta(days=(period_days * 2) - 1)
-    start_current = now - timedelta(days=period_days - 1)
     end_prev = now - timedelta(days=period_days)
 
     monthly_labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -790,21 +796,21 @@ async def monetization(
     ).to_list(length=500000)
 
     bookmark_rows_period = [
-        row for row in bookmark_rows if isinstance(row.get("created_at"), datetime) and row.get("created_at") >= start_prev
+        row for row in bookmark_rows if (_as_utc_datetime(row.get("created_at")) or start_year) >= start_prev
     ]
     like_rows_period = [
-        row for row in like_rows if isinstance(row.get("created_at"), datetime) and row.get("created_at") >= start_prev
+        row for row in like_rows if (_as_utc_datetime(row.get("created_at")) or start_year) >= start_prev
     ]
 
     for row in bookmark_rows:
-        created_at = row.get("created_at")
-        if not isinstance(created_at, datetime):
+        created_at = _as_utc_datetime(row.get("created_at"))
+        if created_at is None:
             continue
         monthly_subscriptions[max(0, min(11, created_at.month - 1))] += 1
 
     for row in like_rows:
-        created_at = row.get("created_at")
-        if not isinstance(created_at, datetime):
+        created_at = _as_utc_datetime(row.get("created_at"))
+        if created_at is None:
             continue
         monthly_coin_sales[max(0, min(11, created_at.month - 1))] += 1
 
@@ -812,18 +818,18 @@ async def monetization(
     prev_month_end = month_start - timedelta(seconds=1)
     prev_month_start = datetime(prev_month_end.year, prev_month_end.month, 1, tzinfo=timezone.utc)
 
-    subs_this_month = sum(1 for row in bookmark_rows if isinstance(row.get("created_at"), datetime) and row.get("created_at") >= month_start)
+    subs_this_month = sum(1 for row in bookmark_rows if (_as_utc_datetime(row.get("created_at")) or start_year) >= month_start)
     subs_prev_month = sum(
         1
         for row in bookmark_rows
-        if isinstance(row.get("created_at"), datetime) and prev_month_start <= row.get("created_at") <= prev_month_end
+        if prev_month_start <= (_as_utc_datetime(row.get("created_at")) or start_year) <= prev_month_end
     )
 
-    users_this_month = {str(row.get("user_id") or "") for row in bookmark_rows if isinstance(row.get("created_at"), datetime) and row.get("created_at") >= month_start}
+    users_this_month = {str(row.get("user_id") or "") for row in bookmark_rows if (_as_utc_datetime(row.get("created_at")) or start_year) >= month_start}
     users_prev_month = {
         str(row.get("user_id") or "")
         for row in bookmark_rows
-        if isinstance(row.get("created_at"), datetime) and prev_month_start <= row.get("created_at") <= prev_month_end
+        if prev_month_start <= (_as_utc_datetime(row.get("created_at")) or start_year) <= prev_month_end
     }
     users_this_month.discard("")
     users_prev_month.discard("")
@@ -833,27 +839,27 @@ async def monetization(
 
     coin_sales = sum(monthly_coin_sales)
     total_revenue = round((sum(monthly_subscriptions) * 2.99) + (coin_sales * 0.35), 2)
-    coin_sales_this_month = sum(1 for row in like_rows if isinstance(row.get("created_at"), datetime) and row.get("created_at") >= month_start)
+    coin_sales_this_month = sum(1 for row in like_rows if (_as_utc_datetime(row.get("created_at")) or start_year) >= month_start)
     coin_sales_prev_month = sum(
         1
         for row in like_rows
-        if isinstance(row.get("created_at"), datetime) and prev_month_start <= row.get("created_at") <= prev_month_end
+        if prev_month_start <= (_as_utc_datetime(row.get("created_at")) or start_year) <= prev_month_end
     )
 
     period_labels = []
     period_subscriptions = []
     period_coin_sales = []
-    day_map_subs: dict[datetime.date, int] = defaultdict(int)
-    day_map_coins: dict[datetime.date, int] = defaultdict(int)
+    day_map_subs: dict[date, int] = defaultdict(int)
+    day_map_coins: dict[date, int] = defaultdict(int)
 
     for row in bookmark_rows_period:
-        created_at = row.get("created_at")
-        if isinstance(created_at, datetime):
+        created_at = _as_utc_datetime(row.get("created_at"))
+        if created_at is not None:
             day_map_subs[created_at.date()] += 1
 
     for row in like_rows_period:
-        created_at = row.get("created_at")
-        if isinstance(created_at, datetime):
+        created_at = _as_utc_datetime(row.get("created_at"))
+        if created_at is not None:
             day_map_coins[created_at.date()] += 1
 
     for offset in range(period_days - 1, -1, -1):
@@ -867,12 +873,12 @@ async def monetization(
     subs_previous_period = sum(
         1
         for row in bookmark_rows_period
-        if isinstance(row.get("created_at"), datetime) and start_prev <= row.get("created_at") <= end_prev
+        if start_prev <= (_as_utc_datetime(row.get("created_at")) or start_year) <= end_prev
     )
     coins_previous_period = sum(
         1
         for row in like_rows_period
-        if isinstance(row.get("created_at"), datetime) and start_prev <= row.get("created_at") <= end_prev
+        if start_prev <= (_as_utc_datetime(row.get("created_at")) or start_year) <= end_prev
     )
 
     return {
@@ -1269,7 +1275,7 @@ async def dashboard_summary(
     total_downloads = await database.bookmarks.count_documents({})
 
     now = datetime.now(timezone.utc)
-    start_7d = now - timedelta(days=period_days - 1)
+    start_period = now - timedelta(days=period_days - 1)
 
     story_rows = await database.stories.find(
         {},
@@ -1362,7 +1368,7 @@ async def dashboard_summary(
         )
 
     recent_activity_rows = await database.user_activity.find(
-        {"created_at": {"$gte": start_7d}},
+        {"created_at": {"$gte": start_period}},
         {"user_id": 1, "post_id": 1, "action_type": 1, "created_at": 1},
     ).sort("created_at", -1).limit(max(20, period_days * 2)).to_list(length=max(20, period_days * 2))
 
@@ -1396,20 +1402,20 @@ async def dashboard_summary(
     user_growth_labels = []
     user_growth_values = []
     daily_reads_values = []
-    daily_reads_by_date: dict[datetime.date, int] = defaultdict(int)
+    daily_reads_by_date: dict[date, int] = defaultdict(int)
     for row in recent_activity_rows:
-        created_at = row.get("created_at")
-        if isinstance(created_at, datetime):
+        created_at = _as_utc_datetime(row.get("created_at"))
+        if created_at is not None:
             daily_reads_by_date[created_at.date()] += 1
 
-    users_by_date: dict[datetime.date, int] = defaultdict(int)
+    users_by_date: dict[date, int] = defaultdict(int)
     users_7d_rows = await database.users.find(
-        {"created_at": {"$gte": start_7d}},
+        {"created_at": {"$gte": start_period}},
         {"created_at": 1},
     ).to_list(length=100000)
     for row in users_7d_rows:
-        created_at = row.get("created_at")
-        if isinstance(created_at, datetime):
+        created_at = _as_utc_datetime(row.get("created_at"))
+        if created_at is not None:
             users_by_date[created_at.date()] += 1
 
     for offset in range(period_days - 1, -1, -1):

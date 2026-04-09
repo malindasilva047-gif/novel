@@ -2223,9 +2223,9 @@ async def admin_panel_data(
     ensure_admin(current_user)
 
     task_specs: list[tuple[str, Any, Any]] = [
-        ("dashboard", dashboard_summary(current_user=current_user, database=database), {}),
-        ("analytics", analytics(current_user=current_user, database=database), {}),
-        ("monetization", monetization(current_user=current_user, database=database), {}),
+        ("dashboard", dashboard_summary(period_days=7, current_user=current_user, database=database), {}),
+        ("analytics", analytics(period_days=30, current_user=current_user, database=database), {}),
+        ("monetization", monetization(period_days=30, current_user=current_user, database=database), {}),
         ("users", list_users(current_user=current_user, database=database), []),
         ("admin_users", _build_admin_users_rows(database), []),
         ("stories", _build_admin_story_rows(database, sort_field="created_at", limit=120), []),

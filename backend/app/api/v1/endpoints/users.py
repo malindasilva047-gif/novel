@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pymongo.errors import DuplicateKeyError
 from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
@@ -315,13 +316,16 @@ async def follow_user(
     if already_following:
         return {"message": "Already geeked"}
 
-    await database.followers.insert_one(
-        {
-            "_id": relation_id,
-            "follower_id": current_user["_id"],
-            "target_id": target_user_id,
-        }
-    )
+    try:
+        await database.followers.insert_one(
+            {
+                "_id": relation_id,
+                "follower_id": current_user["_id"],
+                "target_id": target_user_id,
+            }
+        )
+    except DuplicateKeyError:
+        return {"message": "Already geeked"}
     await database.users.update_one({"_id": current_user["_id"]}, {"$inc": {"following_count": 1}})
     await database.users.update_one({"_id": target_user_id}, {"$inc": {"followers_count": 1}})
     if target_user_id != current_user["_id"]:

@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from pymongo.errors import DuplicateKeyError
 from pydantic import BaseModel, Field
 
 from app.core.cache import cache
@@ -40,10 +41,14 @@ async def toggle_like(
         cache.invalidate_prefix("discovery:")
         return {"message": "Like removed"}
 
-    await database.likes.insert_one({"_id": like_id, "user_id": current_user["_id"], "story_id": story_id})
-    await database.stories.update_one({"_id": story_id}, {"$inc": {"likes": 1}})
-    cache.invalidate_prefix("discovery:")
-    return {"message": "Story liked"}
+    try:
+        await database.likes.insert_one({"_id": like_id, "user_id": current_user["_id"], "story_id": story_id})
+        await database.stories.update_one({"_id": story_id}, {"$inc": {"likes": 1}})
+        cache.invalidate_prefix("discovery:")
+        return {"message": "Story liked"}
+    except DuplicateKeyError:
+        # Idempotent response for near-simultaneous duplicate like requests.
+        return {"message": "Story already liked"}
 
 
 @router.post("/stories/{story_id}/comments")

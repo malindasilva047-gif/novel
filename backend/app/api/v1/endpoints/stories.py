@@ -39,8 +39,6 @@ async def _resolve_optional_user(request: Request, database: AsyncIOMotorDatabas
 def _can_manage_story(user: dict | None, story: dict) -> bool:
     if not user:
         return False
-    if user.get("is_admin", False):
-        return True
     return story.get("author_id") == user.get("_id")
 
 
@@ -445,7 +443,7 @@ async def create_chapter(
     if not story:
         raise HTTPException(status_code=404, detail="Story not found")
     if not _can_manage_story(current_user, story):
-        raise HTTPException(status_code=403, detail="Only owner or admin can add chapter")
+        raise HTTPException(status_code=403, detail="Only story owner can add chapter")
 
     chapter_count = await database.chapters.count_documents({"story_id": story_id})
     chapter_id = str(uuid4())
@@ -473,7 +471,7 @@ async def update_story(
     if not story:
         raise HTTPException(status_code=404, detail="Story not found")
     if not _can_manage_story(current_user, story):
-        raise HTTPException(status_code=403, detail="Only owner or admin can edit story")
+        raise HTTPException(status_code=403, detail="Only story owner can edit story")
 
     updates = {key: value for key, value in payload.model_dump(exclude_none=True).items()}
     if "is_draft" in updates:
@@ -497,7 +495,7 @@ async def delete_story_by_author(
     if not story:
         raise HTTPException(status_code=404, detail="Story not found")
     if not _can_manage_story(current_user, story):
-        raise HTTPException(status_code=403, detail="Only owner or admin can delete story")
+        raise HTTPException(status_code=403, detail="Only story owner can delete story")
 
     await database.stories.delete_one({"_id": story_id})
     await database.chapters.delete_many({"story_id": story_id})
@@ -521,7 +519,7 @@ async def update_chapter(
     if not story:
         raise HTTPException(status_code=404, detail="Story not found")
     if not _can_manage_story(current_user, story):
-        raise HTTPException(status_code=403, detail="Only owner or admin can edit chapter")
+        raise HTTPException(status_code=403, detail="Only story owner can edit chapter")
 
     chapter = await database.chapters.find_one({"_id": chapter_id, "story_id": story_id})
     if not chapter:
@@ -547,7 +545,7 @@ async def delete_chapter(
     if not story:
         raise HTTPException(status_code=404, detail="Story not found")
     if not _can_manage_story(current_user, story):
-        raise HTTPException(status_code=403, detail="Only owner or admin can delete chapter")
+        raise HTTPException(status_code=403, detail="Only story owner can delete chapter")
 
     result = await database.chapters.delete_one({"_id": chapter_id, "story_id": story_id})
     if result.deleted_count == 0:

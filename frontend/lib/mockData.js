@@ -1,3 +1,48 @@
+export const GENRES = [
+  { name: 'Fantasy', icon: '🧙‍♂️', color: '#a3cef1' },
+  { name: 'Sci-Fi', icon: '🚀', color: '#f9d923' },
+  { name: 'Romance', icon: '💖', color: '#ffb4a2' },
+  { name: 'Mystery', icon: '🕵️‍♀️', color: '#b5ead7' },
+  { name: 'Adventure', icon: '🏔️', color: '#f7a072' },
+  { name: 'Horror', icon: '👻', color: '#cdb4db' },
+  { name: 'Drama', icon: '🎭', color: '#f28482' },
+  { name: 'Comedy', icon: '😂', color: '#ffd6a5' },
+  { name: 'Historical', icon: '🏺', color: '#b0a8b9' },
+  { name: 'Thriller', icon: '🔪', color: '#bdb2ff' },
+  { name: 'Non-Fiction', icon: '📚', color: '#caff70' },
+];
+export const MOCK_REVIEWS = [
+  {
+    id: 1,
+    user: 'Alice',
+    avatar: '🦉',
+    book: 'City of Neon Monsoon',
+    rating: 5,
+    text: 'Absolutely loved the world-building and characters! Highly recommended.',
+    date: '2026-04-01',
+    bg: '#f9d923',
+  },
+  {
+    id: 2,
+    user: 'Bob',
+    avatar: '🐉',
+    book: 'Whispers in the Mango Forest',
+    rating: 4,
+    text: 'A magical journey with twists and turns. Great read!',
+    date: '2026-03-28',
+    bg: '#a3cef1',
+  },
+  {
+    id: 3,
+    user: 'Carol',
+    avatar: '🦄',
+    book: 'Letters from a Paper Moon',
+    rating: 5,
+    text: 'Heartfelt and beautifully written. Couldn’t put it down.',
+    date: '2026-03-15',
+    bg: '#ffb4a2',
+  },
+];
 export const spotlightStories = [
   {
     id: "s1",

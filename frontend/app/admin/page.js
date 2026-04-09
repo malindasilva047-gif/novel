@@ -4,14 +4,15 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest, apiUpload, clearSiteSettingsCache, readToken } from "@/lib/api";
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
+  Cell,
   CartesianGrid,
   Legend,
   Line,
   LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -77,16 +78,15 @@ const DEFAULT_SETTINGS = {
 const DEFAULT_PANEL_DATA = {
   dashboard: { summary: {}, recent_books: [] },
   analytics: {},
+  monetization: {},
   users: [],
   admin_users: [],
-  reels: [],
   stories: [],
   user_reports: [],
   story_reports: [],
   chapter_reports: [],
   comment_reports: [],
   post_reports: [],
-  reel_reports: [],
   country_users: [],
   hashtags: [],
   languages: [],
@@ -132,7 +132,6 @@ const DEFAULT_USER_FORM = {
 };
 
 const ADVANCED_SECTIONS = [
-  { key: "reels", label: "Reels", icon: "🎬" },
   { key: "admin-users", label: "Admin Users", icon: "🛡" },
   { key: "country-users", label: "Country Users", icon: "🌍" },
   { key: "hashtags", label: "Hashtags", icon: "#" },
@@ -163,6 +162,8 @@ const SETTINGS_TABS = [
   { key: "login", label: "Login Configuration" },
   { key: "purchase", label: "Purchase Code" },
 ];
+
+const PERIOD_OPTIONS = [7, 30, 90];
 
 function formatCount(value) {
   const count = Number(value || 0);
@@ -198,7 +199,6 @@ function getReportSectionIcon(sectionKey) {
     "chapter-reports": "📝",
     "comment-reports": "💬",
     "post-reports": "📚",
-    "reel-reports": "🎬",
   };
   return map[sectionKey] || "🚨";
 }
@@ -368,6 +368,9 @@ export default function AdminPage() {
   const [commentsFilter, setCommentsFilter] = useState("all");
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [roleUpdatingId, setRoleUpdatingId] = useState("");
+  const [dashboardPeriod, setDashboardPeriod] = useState(7);
+  const [analyticsPeriod, setAnalyticsPeriod] = useState(30);
+  const [monetizationPeriod, setMonetizationPeriod] = useState(30);
 
   const deferredSearch = useDeferredValue(searchText.trim().toLowerCase());
 
@@ -395,7 +398,6 @@ export default function AdminPage() {
 
     setMe(meData);
     setProfileDraft(toProfileForm(meData));
-    setPanelData(mergedData);
     setSettingsDraft(nextSettings);
     setSelectedCmsSlug(firstCms.slug || "");
     setCmsDraft({
@@ -405,6 +407,18 @@ export default function AdminPage() {
       content: firstCms.content || "",
       is_published: firstCms.is_published !== false,
     });
+    const [dashboardSlice, analyticsSlice, monetizationSlice] = await Promise.all([
+      apiRequest(`/admin/dashboard?period_days=${dashboardPeriod}`, { token }).catch(() => mergedData.dashboard || {}),
+      apiRequest(`/admin/analytics?period_days=${analyticsPeriod}`, { token }).catch(() => mergedData.analytics || {}),
+      apiRequest(`/admin/monetization?period_days=${monetizationPeriod}`, { token }).catch(() => mergedData.monetization || {}),
+    ]);
+    setPanelData((prev) => ({
+      ...prev,
+      ...mergedData,
+      dashboard: dashboardSlice || mergedData.dashboard || {},
+      analytics: analyticsSlice || mergedData.analytics || {},
+      monetization: monetizationSlice || mergedData.monetization || {},
+    }));
     setMessage("Admin panel connected to live website data.");
   }
 
@@ -421,13 +435,48 @@ export default function AdminPage() {
     if (!token) return undefined;
     const timer = setInterval(() => {
       apiRequest("/admin/panel-data", { token })
-        .then((data) => {
-          setPanelData((prev) => ({ ...prev, ...data }));
+        .then(async (data) => {
+          const [dashboardSlice, analyticsSlice, monetizationSlice] = await Promise.all([
+            apiRequest(`/admin/dashboard?period_days=${dashboardPeriod}`, { token }).catch(() => data.dashboard || {}),
+            apiRequest(`/admin/analytics?period_days=${analyticsPeriod}`, { token }).catch(() => data.analytics || {}),
+            apiRequest(`/admin/monetization?period_days=${monetizationPeriod}`, { token }).catch(() => data.monetization || {}),
+          ]);
+          setPanelData((prev) => ({
+            ...prev,
+            ...data,
+            dashboard: dashboardSlice || data.dashboard || prev.dashboard,
+            analytics: analyticsSlice || data.analytics || prev.analytics,
+            monetization: monetizationSlice || data.monetization || prev.monetization,
+          }));
         })
         .catch(() => {});
     }, 20000);
     return () => clearInterval(timer);
-  }, []);
+  }, [dashboardPeriod, analyticsPeriod, monetizationPeriod]);
+
+  useEffect(() => {
+    const token = readToken();
+    if (!token) return;
+    apiRequest(`/admin/dashboard?period_days=${dashboardPeriod}`, { token })
+      .then((data) => setPanelData((prev) => ({ ...prev, dashboard: data || prev.dashboard })))
+      .catch(() => {});
+  }, [dashboardPeriod]);
+
+  useEffect(() => {
+    const token = readToken();
+    if (!token) return;
+    apiRequest(`/admin/analytics?period_days=${analyticsPeriod}`, { token })
+      .then((data) => setPanelData((prev) => ({ ...prev, analytics: data || prev.analytics })))
+      .catch(() => {});
+  }, [analyticsPeriod]);
+
+  useEffect(() => {
+    const token = readToken();
+    if (!token) return;
+    apiRequest(`/admin/monetization?period_days=${monetizationPeriod}`, { token })
+      .then((data) => setPanelData((prev) => ({ ...prev, monetization: data || prev.monetization })))
+      .catch(() => {});
+  }, [monetizationPeriod]);
 
   useEffect(() => {
     if (activeSection !== "comments") return;
@@ -447,13 +496,6 @@ export default function AdminPage() {
       return `${item.username} ${item.name} ${item.email} ${item.role}`.toLowerCase().includes(deferredSearch);
     });
   }, [panelData.admin_users, deferredSearch]);
-
-  const filteredReels = useMemo(() => {
-    return (panelData.reels || []).filter((item) => {
-      if (!deferredSearch) return true;
-      return `${item.title} ${item.author_name} ${item.username} ${item.email}`.toLowerCase().includes(deferredSearch);
-    });
-  }, [panelData.reels, deferredSearch]);
 
   const filteredStories = useMemo(() => {
     return (panelData.stories || []).filter((item) => {
@@ -553,21 +595,115 @@ export default function AdminPage() {
     };
   }, [panelData]);
 
-  const analyticsDailyViews = useMemo(() => {
-    return buildSeriesRows(panelData.analytics?.charts?.daily_views?.labels, panelData.analytics?.charts?.daily_views?.values, "views");
-  }, [panelData.analytics]);
-
-  const analyticsMonthlyReads = useMemo(() => {
-    return buildSeriesRows(panelData.analytics?.charts?.monthly_reads?.labels, panelData.analytics?.charts?.monthly_reads?.values, "reads");
-  }, [panelData.analytics]);
-
-  const analyticsMonthlyLikes = useMemo(() => {
-    return buildSeriesRows(panelData.analytics?.charts?.monthly_likes?.labels, panelData.analytics?.charts?.monthly_likes?.values, "likes");
-  }, [panelData.analytics]);
-
   const analyticsWeeklyEngagement = useMemo(() => {
     return buildWeeklyEngagementRows(panelData.analytics?.charts?.weekly_engagement || {});
   }, [panelData.analytics]);
+
+  const dashboardUserGrowth = useMemo(() => {
+    return buildSeriesRows(panelData.dashboard?.charts?.user_growth?.labels, panelData.dashboard?.charts?.user_growth?.values, "value");
+  }, [panelData.dashboard]);
+
+  const dashboardDailyReads = useMemo(() => {
+    return buildSeriesRows(panelData.dashboard?.charts?.daily_reads?.labels, panelData.dashboard?.charts?.daily_reads?.values, "value");
+  }, [panelData.dashboard]);
+
+  const analyticsUserGrowth30 = useMemo(() => {
+    return buildSeriesRows(panelData.analytics?.charts?.user_growth_period?.labels, panelData.analytics?.charts?.user_growth_period?.values, "value");
+  }, [panelData.analytics]);
+
+  const analyticsStoryViews30 = useMemo(() => {
+    return buildSeriesRows(panelData.analytics?.charts?.story_views_period?.labels, panelData.analytics?.charts?.story_views_period?.values, "value");
+  }, [panelData.analytics]);
+
+  const analyticsGenreDistribution = useMemo(() => {
+    const labels = Array.isArray(panelData.analytics?.charts?.genre_distribution?.labels)
+      ? panelData.analytics.charts.genre_distribution.labels
+      : [];
+    const values = Array.isArray(panelData.analytics?.charts?.genre_distribution?.values)
+      ? panelData.analytics.charts.genre_distribution.values
+      : [];
+    return labels.map((label, index) => ({ name: label, value: Number(values[index] || 0) }));
+  }, [panelData.analytics]);
+
+  const monetizationChartRows = useMemo(() => {
+    const labels = panelData.monetization?.charts?.labels || [];
+    const subscriptions = panelData.monetization?.charts?.subscriptions || [];
+    const coinSales = panelData.monetization?.charts?.coin_sales || [];
+    return labels.map((label, index) => ({
+      label,
+      subscriptions: Number(subscriptions[index] || 0),
+      coinSales: Number(coinSales[index] || 0),
+    }));
+  }, [panelData.monetization]);
+
+  function renderPeriodButtons(value, onChange) {
+    return (
+      <div className="admin-period-toggle" role="group" aria-label="Chart period selector">
+        {PERIOD_OPTIONS.map((days) => (
+          <button
+            key={days}
+            type="button"
+            className={`admin-period-btn ${value === days ? "active" : ""}`}
+            onClick={() => onChange(days)}
+          >
+            {days}D
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  async function verifyPublicStoryVisibility(storyId, expectedStatus) {
+    try {
+      const payload = await apiRequest(`/stories/${storyId}`, { skipAuth: true });
+      const status = String(payload?.status || "published").toLowerCase();
+      if (expectedStatus === "published" && status === "published") {
+        return "Verified on user site: story is visible.";
+      }
+      if (expectedStatus !== "published") {
+        return "Warning: story still appears publicly after status change.";
+      }
+      return "Warning: story visibility check returned unexpected status.";
+    } catch {
+      if (expectedStatus === "published") {
+        return "Warning: could not verify public story visibility.";
+      }
+      return "Verified on user site: story is hidden from public listing.";
+    }
+  }
+
+  async function verifyPublicCommentVisibility(comment) {
+    if (!comment?.story_id || !comment?.id) {
+      return "Comment updated. Visibility verification skipped.";
+    }
+    try {
+      const comments = await apiRequest(`/engagement/stories/${comment.story_id}/comments`, { skipAuth: true });
+      const exists = Array.isArray(comments) && comments.some((item) => String(item.id) === String(comment.id));
+      if (comment.status === "hidden" && !exists) {
+        return "Verified on user site: comment is hidden.";
+      }
+      if (comment.status !== "hidden" && exists) {
+        return "Verified on user site: comment is visible.";
+      }
+      return "Warning: comment visibility is not yet reflected publicly.";
+    } catch {
+      return "Comment updated. Visibility verification unavailable.";
+    }
+  }
+
+  async function verifyPublicUserVisibility(userId, shouldBeVisible) {
+    if (!userId) return "User moderation updated.";
+    try {
+      await apiRequest(`/users/${userId}`, { skipAuth: true });
+      return shouldBeVisible
+        ? "Verified on user site: profile is publicly visible."
+        : "Warning: banned user profile is still publicly visible.";
+    } catch {
+      return shouldBeVisible
+        ? "Warning: user profile is not publicly visible."
+        : "Verified on user site: banned profile is hidden.";
+    }
+  }
 
   const filteredAdminComments = useMemo(() => {
     return adminComments.filter((item) => {
@@ -617,11 +753,13 @@ export default function AdminPage() {
     if (!token) return;
     await performAction(
       async () => {
+        const nextStatus = comment.status === "hidden" ? "visible" : "hidden";
         const route = comment.status === "hidden"
           ? `/admin/comments/${comment.id}/show`
           : `/admin/comments/${comment.id}/hide`;
         const response = await apiRequest(route, { method: "POST", token });
-        setMessage(response.message || "Comment updated.");
+        const verifyMsg = await verifyPublicCommentVisibility({ ...comment, status: nextStatus });
+        setMessage(`${response.message || "Comment updated."} ${verifyMsg}`.trim());
       },
       async () => loadAdminComments(),
     );
@@ -649,7 +787,9 @@ export default function AdminPage() {
       async () => {
         const route = user.is_banned ? `/admin/users/${user.id}/unban` : `/admin/users/${user.id}/ban`;
         const response = await apiRequest(route, { method: "POST", token });
-        setMessage(response.message || "User status updated.");
+        const shouldBeVisible = Boolean(user.is_banned);
+        const verifyMsg = await verifyPublicUserVisibility(user.id, shouldBeVisible);
+        setMessage(`${response.message || "User status updated."} ${verifyMsg}`.trim());
       },
       loadPanelData,
     );
@@ -683,7 +823,8 @@ export default function AdminPage() {
           token,
           body: { status },
         });
-        setMessage(response.message || "Story updated.");
+        const verifyMsg = await verifyPublicStoryVisibility(storyId, status);
+        setMessage(`${response.message || "Story updated."} ${verifyMsg}`.trim());
       },
       loadPanelData,
     );
@@ -698,7 +839,8 @@ export default function AdminPage() {
     await performAction(
       async () => {
         const response = await apiRequest(`/admin/stories/${storyId}`, { method: "DELETE", token });
-        setMessage(response.message || "Story deleted.");
+        const verifyMsg = await verifyPublicStoryVisibility(storyId, "draft");
+        setMessage(`${response.message || "Story deleted."} ${verifyMsg}`.trim());
       },
       loadPanelData,
     );
@@ -1161,7 +1303,6 @@ export default function AdminPage() {
     "chapter-reports": { title: "Chapter Report List", items: panelData.chapter_reports || [] },
     "comment-reports": { title: "Comment Report List", items: panelData.comment_reports || [] },
     "post-reports": { title: "Story Report List", items: panelData.story_reports || panelData.post_reports || [] },
-    "reel-reports": { title: "Reel Report List", items: panelData.reel_reports || [] },
   };
 
   if (loading) {
@@ -1362,8 +1503,12 @@ export default function AdminPage() {
 
         <section className="admin-content">
           {activeSection === "dashboard" && (
-            <>
-              <SectionHeader title="Dashboard" breadcrumb={`Overview · ${new Date().toLocaleDateString()}`} />
+            <div className="admin-dashboard-view">
+              <SectionHeader
+                title="Dashboard"
+                breadcrumb={`Overview · ${new Date().toLocaleDateString()}`}
+                actions={renderPeriodButtons(dashboardPeriod, setDashboardPeriod)}
+              />
               <div className="admin-stat-grid">
                 <DashboardCard label="Total Users" value={formatCount(panelData.dashboard?.summary?.total_users || 0)} tone="sky" />
                 <DashboardCard label="Total Stories" value={formatCount(panelData.dashboard?.summary?.total_books || 0)} tone="violet" />
@@ -1374,132 +1519,186 @@ export default function AdminPage() {
               <div className="admin-split-grid">
                 <section className="admin-panel">
                   <div className="admin-panel-header">
-                    <h2>Recent Books</h2>
-                    <button type="button" className="admin-link-btn" onClick={() => setActiveSection("stories")}>Stories List</button>
+                    <h2>User Growth ({dashboardPeriod}D)</h2>
                   </div>
-                  <div className="admin-table-wrap compact">
-                    <table className="admin-table">
-                      <thead>
-                        <tr>
-                          <th>S.L</th>
-                          <th>Story Image</th>
-                          <th>Title</th>
-                          <th>Category</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(panelData.dashboard?.recent_books || []).map((item, index) => (
-                          <tr key={item.id || index}>
-                            <td>{index + 1}</td>
-                            <td><MiniAvatar square image={item.image} text={item.title} /></td>
-                            <td>{item.title}</td>
-                            <td>{item.category}</td>
-                            <td><StatusChip value={item.status} /></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-
-                <section className="admin-panel">
-                  <div className="admin-panel-header">
-                    <h2>Platform Snapshot</h2>
-                  </div>
-                  <div className="admin-list-grid">
-                    <div className="admin-list-card"><span>Open Reports</span><strong>{panelData.analytics?.open_reports || 0}</strong></div>
-                    <div className="admin-list-card"><span>Banned Users</span><strong>{panelData.analytics?.banned_users || 0}</strong></div>
-                    <div className="admin-list-card"><span>Total Comments</span><strong>{panelData.analytics?.total_comments || 0}</strong></div>
-                    <div className="admin-list-card"><span>Total Likes</span><strong>{panelData.analytics?.total_likes || 0}</strong></div>
-                    <div className="admin-list-card"><span>Hidden Comments</span><strong>{panelData.analytics?.hidden_comments || 0}</strong></div>
-                    <div className="admin-list-card"><span>Badges Earned</span><strong>{panelData.analytics?.badges_earned || 0}</strong></div>
-                  </div>
-                </section>
-              </div>
-
-              <div className="admin-debug-grid admin-debug-grid-wide">
-                <section className="admin-panel">
-                  <div className="admin-panel-header"><h2>Latest Activity</h2></div>
-                  <div className="admin-debug-list">
-                    {(panelData.debug?.last_activity || []).slice(0, 5).map((item, index) => (
-                      <div key={`${item.user_id}-${index}`} className="admin-debug-card">
-                        <strong>{item.action_type}</strong>
-                        <span>User: {item.user_id}</span>
-                        <span>Story: {item.post_id}</span>
-                        <span>{formatRelativeDate(item.created_at)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-                <section className="admin-panel">
-                  <div className="admin-panel-header"><h2>Recommendation Cache</h2></div>
-                  <div className="admin-debug-list">
-                    {(panelData.debug?.cache_keys || []).slice(0, 6).map((item) => (
-                      <div key={item} className="admin-debug-card mono">{item}</div>
-                    ))}
-                    {(panelData.debug?.cache_keys || []).length === 0 && <div className="admin-debug-card">No cache keys yet.</div>}
-                  </div>
-                </section>
-                <section className="admin-panel">
-                  <div className="admin-panel-header"><h2>Live DB Views</h2></div>
-                  <div className="admin-debug-list">
-                    {(panelData.debug?.per_story_views || []).slice(0, 6).map((item) => (
-                      <div key={item.story_id} className="admin-debug-card">
-                        <strong>{item.title}</strong>
-                        <span>{item.views} views</span>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              </div>
-            </>
-          )}
-
-          {activeSection === "analytics" && (
-            <>
-              <SectionHeader title="Analytics" breadcrumb="Insights . Engagement and growth" />
-              <div className="admin-stat-grid">
-                <DashboardCard label="Total Users" value={formatCount(panelData.analytics?.total_users || 0)} tone="sky" />
-                <DashboardCard label="Total Stories" value={formatCount(panelData.analytics?.total_stories || 0)} tone="violet" />
-                <DashboardCard label="Total Reads" value={formatCount(panelData.analytics?.total_comments || 0)} tone="mint" />
-                <DashboardCard label="Revenue" value={`$${formatCurrency(panelData.analytics?.total_likes || 0)}`} tone="amber" />
-              </div>
-
-              <div className="admin-split-grid">
-                <section className="admin-panel">
-                  <div className="admin-panel-header"><h2>Daily Views (30 Days)</h2></div>
                   <div className="admin-chart-wrap">
-                    <ResponsiveContainer width="100%" height={220}>
-                      <AreaChart data={analyticsDailyViews}>
-                        <defs>
-                          <linearGradient id="adminViewsGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#00d2d3" stopOpacity={0.45} />
-                            <stop offset="95%" stopColor="#00d2d3" stopOpacity={0.05} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
+                    <ResponsiveContainer width="100%" height={240}>
+                      <LineChart data={dashboardUserGrowth}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.18)" />
                         <XAxis dataKey="label" stroke="#94a3b8" />
                         <YAxis stroke="#94a3b8" />
                         <Tooltip />
-                        <Area type="monotone" dataKey="views" stroke="#00d2d3" fill="url(#adminViewsGradient)" strokeWidth={2.2} />
-                      </AreaChart>
+                        <Line type="monotone" dataKey="value" stroke="#7f8bff" strokeWidth={2.5} dot={{ r: 3 }} />
+                      </LineChart>
                     </ResponsiveContainer>
                   </div>
                 </section>
 
                 <section className="admin-panel">
-                  <div className="admin-panel-header"><h2>Weekly Engagement</h2></div>
+                  <div className="admin-panel-header">
+                    <h2>Daily Reads ({dashboardPeriod}D)</h2>
+                  </div>
                   <div className="admin-chart-wrap">
-                    <ResponsiveContainer width="100%" height={220}>
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={dashboardDailyReads}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.18)" />
+                        <XAxis dataKey="label" stroke="#94a3b8" />
+                        <YAxis stroke="#94a3b8" />
+                        <Tooltip />
+                        <Bar dataKey="value" fill="#22cfc5" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </section>
+              </div>
+
+              <div className="admin-split-grid">
+                <section className="admin-panel">
+                  <div className="admin-panel-header">
+                    <h2>Trending Stories</h2>
+                    <button type="button" className="admin-link-btn" onClick={() => setActiveSection("stories")}>View all →</button>
+                  </div>
+                  <div className="admin-dashboard-list">
+                    {(panelData.dashboard?.trending_stories || []).slice(0, 5).map((item) => (
+                      <button key={item.id} type="button" className="admin-dashboard-row" onClick={() => router.push(`/story/${item.id}`)}>
+                        <span className="admin-rank">{item.rank}</span>
+                        <MiniAvatar square image={item.image} text={item.title} />
+                        <span className="admin-dashboard-meta">
+                          <strong>{item.title}</strong>
+                          <small>{item.author_name}</small>
+                        </span>
+                        <span className="admin-dashboard-value">{formatCount(item.views)}</span>
+                      </button>
+                    ))}
+                    {(panelData.dashboard?.trending_stories || []).length === 0 && <div className="admin-dashboard-empty">No trending stories yet.</div>}
+                  </div>
+                </section>
+
+                <section className="admin-panel">
+                  <div className="admin-panel-header">
+                    <h2>Recent Reports</h2>
+                    <button type="button" className="admin-link-btn" onClick={() => setActiveSection("user-reports")}>View all →</button>
+                  </div>
+                  <div className="admin-dashboard-list">
+                    {(panelData.dashboard?.recent_reports || []).slice(0, 5).map((item) => (
+                      <div key={item.id} className="admin-dashboard-row report-row">
+                        <span className="admin-report-alert">⚠</span>
+                        <span className="admin-dashboard-meta">
+                          <strong>{item.reason || "Report"}</strong>
+                          <small>{item.story_title || item.reported_user_name || "Unknown"}</small>
+                        </span>
+                        <span className="admin-inline-actions">
+                          {item.story_id ? <ActionIconButton label="View" onClick={() => router.push(`/story/${item.story_id}`)} /> : null}
+                          {item.reported_user_id ? (
+                            <ActionIconButton
+                              label="Ban"
+                              onClick={() => {
+                                const target = (panelData.users || []).find((u) => u.id === item.reported_user_id);
+                                if (target) updateUserBan(target);
+                              }}
+                            />
+                          ) : null}
+                          <ActionIconButton label="Resolve" danger onClick={() => resolveReport(item.id)} />
+                        </span>
+                      </div>
+                    ))}
+                    {(panelData.dashboard?.recent_reports || []).length === 0 && <div className="admin-dashboard-empty">No reports available.</div>}
+                  </div>
+                </section>
+              </div>
+
+              <section className="admin-panel">
+                <div className="admin-panel-header"><h2>Recent Activity</h2></div>
+                <div className="admin-activity-list">
+                  {(panelData.dashboard?.recent_activities || []).slice(0, 8).map((item) => (
+                    <div key={item.id} className="admin-activity-row">
+                      <span className="admin-activity-dot" />
+                      <span className="admin-activity-text">
+                        <strong>{item.user_name}</strong> {item.action_type.replace(/_/g, " ")} · {item.story_title}
+                      </span>
+                      <span className="admin-activity-time">{formatRelativeDate(item.created_at)}</span>
+                    </div>
+                  ))}
+                  {(panelData.dashboard?.recent_activities || []).length === 0 && <div className="admin-dashboard-empty">No recent activity yet.</div>}
+                </div>
+              </section>
+            </div>
+          )}
+
+          {activeSection === "analytics" && (
+            <>
+              <SectionHeader
+                title="Analytics"
+                breadcrumb={`Insights · Last ${analyticsPeriod} days`}
+                actions={renderPeriodButtons(analyticsPeriod, setAnalyticsPeriod)}
+              />
+              <div className="admin-stat-grid">
+                <DashboardCard label="User Growth" value={`+${formatCount(panelData.analytics?.kpis?.user_growth || 0)}`} tone="sky" />
+                <DashboardCard label="Story Views" value={formatCount(panelData.analytics?.kpis?.story_views || 0)} tone="violet" />
+                <DashboardCard label="Avg Read Time" value={`${Number(panelData.analytics?.kpis?.avg_read_time_minutes || 0).toFixed(1)}m`} tone="mint" />
+                <DashboardCard label="Total Likes" value={formatCount(panelData.analytics?.kpis?.total_likes || 0)} tone="amber" />
+              </div>
+
+              <div className="admin-split-grid admin-split-grid-2x2">
+                <section className="admin-panel">
+                  <div className="admin-panel-header"><h2>User Growth ({analyticsPeriod}D)</h2></div>
+                  <div className="admin-chart-wrap">
+                    <ResponsiveContainer width="100%" height={240}>
+                      <LineChart data={analyticsUserGrowth30}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
+                        <XAxis dataKey="label" stroke="#94a3b8" />
+                        <YAxis stroke="#94a3b8" />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="value" stroke="#7f8bff" strokeWidth={2.4} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </section>
+
+                <section className="admin-panel">
+                  <div className="admin-panel-header"><h2>Story Views</h2></div>
+                  <div className="admin-chart-wrap">
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={analyticsStoryViews30}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
+                        <XAxis dataKey="label" stroke="#94a3b8" />
+                        <YAxis stroke="#94a3b8" />
+                        <Tooltip />
+                        <Bar dataKey="value" fill="#1ebfb6" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </section>
+
+                <section className="admin-panel">
+                  <div className="admin-panel-header"><h2>Genre Distribution</h2></div>
+                  <div className="admin-chart-wrap">
+                    <ResponsiveContainer width="100%" height={240}>
+                      <PieChart>
+                        <Pie data={analyticsGenreDistribution} dataKey="value" nameKey="name" innerRadius={52} outerRadius={86} paddingAngle={2}>
+                          {analyticsGenreDistribution.map((entry, index) => (
+                            <Cell key={`${entry.name}-${index}`} fill={["#fb4b70", "#a855f7", "#22d3ee", "#f59e0b", "#4f8fff", "#14b8a6"][index % 6]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </section>
+
+                <section className="admin-panel">
+                  <div className="admin-panel-header"><h2>Engagement — Likes & Comments</h2></div>
+                  <div className="admin-chart-wrap">
+                    <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={analyticsWeeklyEngagement}>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
                         <XAxis dataKey="label" stroke="#94a3b8" />
                         <YAxis stroke="#94a3b8" />
                         <Tooltip />
                         <Legend />
-                        <Bar dataKey="likes" fill="#7c3aed" radius={[6, 6, 0, 0]} />
-                        <Bar dataKey="comments" fill="#22c55e" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="likes" fill="#ef4468" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="comments" fill="#6f7dff" radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -1510,101 +1709,37 @@ export default function AdminPage() {
 
           {activeSection === "monetization" && (
             <>
-              <SectionHeader title="Monetization" breadcrumb="Insights . Revenue and payouts" />
-              <div className="admin-list-grid admin-list-grid-compact">
-                <div className="admin-list-card"><span>Read Events</span><strong>{formatCount(panelData.analytics?.total_comments || 0)}</strong></div>
-                <div className="admin-list-card"><span>Like Events</span><strong>{formatCount(panelData.analytics?.total_likes || 0)}</strong></div>
-                <div className="admin-list-card"><span>Open Reports</span><strong>{formatCount(panelData.analytics?.open_reports || 0)}</strong></div>
-                <div className="admin-list-card"><span>Banned Users</span><strong>{formatCount(panelData.analytics?.banned_users || 0)}</strong></div>
+              <SectionHeader
+                title="Monetization"
+                breadcrumb={`Revenue · Last ${monetizationPeriod} days`}
+                actions={renderPeriodButtons(monetizationPeriod, setMonetizationPeriod)}
+              />
+              <div className="admin-stat-grid">
+                <DashboardCard label="Total Revenue" value={`$${formatCurrency(panelData.monetization?.total_revenue || 0)}`} tone="amber" />
+                <DashboardCard label="Premium Subs" value={formatCount(panelData.monetization?.premium_subs || 0)} tone="mint" />
+                <DashboardCard label="Coin Sales" value={`$${formatCurrency(panelData.monetization?.coin_sales || 0)}`} tone="violet" />
+                <DashboardCard label="Renewals" value={`${Number(panelData.monetization?.renewals_pct || 0).toFixed(1)}%`} tone="sky" />
               </div>
 
-              <div className="admin-split-grid">
+              <div className="admin-split-grid admin-split-grid-single">
                 <section className="admin-panel">
-                  <div className="admin-panel-header"><h2>Monthly Reads</h2></div>
+                  <div className="admin-panel-header"><h2>Revenue Overview ({monetizationPeriod}D)</h2></div>
                   <div className="admin-chart-wrap">
-                    <ResponsiveContainer width="100%" height={220}>
-                      <LineChart data={analyticsMonthlyReads}>
+                    <ResponsiveContainer width="100%" height={280}>
+                      <LineChart data={monetizationChartRows}>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
                         <XAxis dataKey="label" stroke="#94a3b8" />
                         <YAxis stroke="#94a3b8" />
                         <Tooltip />
-                        <Line type="monotone" dataKey="reads" stroke="#2563eb" strokeWidth={2.4} dot={{ r: 2.5 }} />
+                        <Legend />
+                        <Line type="monotone" dataKey="subscriptions" name="Subscriptions" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 3 }} />
+                        <Line type="monotone" dataKey="coinSales" name="Coin Sales" stroke="#a855f7" strokeWidth={2.5} dot={{ r: 3 }} />
                       </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </section>
-
-                <section className="admin-panel">
-                  <div className="admin-panel-header"><h2>Monthly Likes</h2></div>
-                  <div className="admin-chart-wrap">
-                    <ResponsiveContainer width="100%" height={220}>
-                      <AreaChart data={analyticsMonthlyLikes}>
-                        <defs>
-                          <linearGradient id="adminLikesGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.45} />
-                            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.08} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" />
-                        <XAxis dataKey="label" stroke="#94a3b8" />
-                        <YAxis stroke="#94a3b8" />
-                        <Tooltip />
-                        <Area type="monotone" dataKey="likes" stroke="#f59e0b" fill="url(#adminLikesGradient)" strokeWidth={2.2} />
-                      </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 </section>
               </div>
             </>
-          )}
-
-          {activeSection === "reels" && (
-            <section className="admin-panel">
-              <SectionHeader title="Reel List" breadcrumb="Dashboard . Reel List" />
-              <div className="admin-table-wrap">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>S.L</th>
-                      <th>Reel Image</th>
-                      <th>Username</th>
-                      <th>Posted Date/Time</th>
-                      <th>Likes</th>
-                      <th>Comments</th>
-                      <th>Views</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredReels.map((item, index) => (
-                      <tr key={item.id}>
-                        <td>{index + 1}</td>
-                        <td><MiniAvatar square image={item.image} text={item.title} /></td>
-                        <td>
-                          <div className="admin-person-cell">
-                            <strong>{item.username || item.author_name}</strong>
-                            <span>{item.email}</span>
-                          </div>
-                        </td>
-                        <td>{formatDateTime(item.posted_at)}</td>
-                        <td>{item.likes} Likes</td>
-                        <td>{item.comments} Comments</td>
-                        <td>{item.views} Views</td>
-                        <td><StatusChip value={item.status === "published" ? "active" : item.status} /></td>
-                        <td>
-                          <div className="admin-inline-actions">
-                            <ActionIconButton label="View" onClick={() => router.push(`/story/${item.id}`)} />
-                            <ActionIconButton label={item.status === "published" ? "Draft" : "Live"} onClick={() => updateStoryStatus(item.id, item.status === "published" ? "draft" : "published")} />
-                            <ActionIconButton label="Delete" danger onClick={() => deleteStory(item.id)} />
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
           )}
 
           {activeSection === "stories" && (
@@ -2057,7 +2192,7 @@ export default function AdminPage() {
             <section className="admin-panel">
               <SectionHeader
                 title="Hashtags"
-                breadcrumb="For search . Story and reel discovery"
+                breadcrumb="For search . Story discovery"
                 actions={
                   <div className="admin-inline-form compact">
                     <input className="admin-input" value={hashtagName} onChange={(event) => setHashtagName(event.target.value)} placeholder="Add hashtag word..." />
@@ -2071,8 +2206,8 @@ export default function AdminPage() {
                     <tr>
                       <th>S.L</th>
                       <th>Hashtag Word</th>
-                      <th>Post Count</th>
-                      <th>Reel Count</th>
+                      <th>Story Count</th>
+                      <th>Status</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -2081,8 +2216,8 @@ export default function AdminPage() {
                       <tr key={item.name}>
                         <td>{index + 1}</td>
                         <td>#{item.name}</td>
-                        <td>{item.story_count || 0} post</td>
-                        <td>{item.story_count || 0} reel</td>
+                        <td>{item.story_count || 0} stories</td>
+                        <td><StatusChip value={item.status || "active"} /></td>
                         <td>
                           <div className="admin-inline-actions">
                             <ActionIconButton label="Delete" danger onClick={() => removeHashtag(item.name)} />

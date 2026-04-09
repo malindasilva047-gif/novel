@@ -4,13 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiRequest, fetchSiteSettings, readToken } from '@/lib/api';
+import { MOCK_REVIEWS, GENRES } from '@/lib/mockData';
 import StoryCard from '@/components/StoryCard';
 
-/* ═══════════════════════════════════════════════════════
-   MOCK DATA & CONSTANTS
-═══════════════════════════════════════════════════════ */
 
-// --- Real Data Integration ---
 
 
 
@@ -110,6 +107,37 @@ function dedupeStoriesById(list) {
 /* ═══════════════════════════════════════════════════════
    MAIN COMPONENT
 ═══════════════════════════════════════════════════════ */
+// --- HERO SLIDES FALLBACK ---
+const HERO_SLIDES = [
+  {
+    id: 1,
+    tag: '⭐ Recommended',
+    title: 'Discover new stories',
+    desc: 'Explore trending, new releases, and more from the Wingsaga community.',
+    bg: 'linear-gradient(135deg, #0a1a2e 0%, #1a0a2e 50%, #2e0a2e 100%)',
+  },
+  {
+    id: 2,
+    tag: '🔥 Trending',
+    title: 'See what’s hot',
+    desc: 'Check out the most popular stories right now.',
+    bg: 'linear-gradient(135deg, #2e0a1a 0%, #1a0a2e 100%)',
+  },
+  {
+    id: 3,
+    tag: '📚 New Release',
+    title: 'Fresh reads',
+    desc: 'Browse the latest stories added by our authors.',
+    bg: 'linear-gradient(135deg, #1a0a2e 0%, #2e0a1a 100%)',
+  },
+  {
+    id: 4,
+    tag: '✨ Featured',
+    title: 'Editor’s picks',
+    desc: 'Handpicked stories just for you.',
+    bg: 'linear-gradient(135deg, #0a1a2e 0%, #2e0a1a 100%)',
+  },
+];
 
 export default function Home() {
   const router = useRouter();

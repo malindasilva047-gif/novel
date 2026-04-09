@@ -1,5 +1,9 @@
-
 'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+
+import { apiRequest, readToken, trackUserActivity } from '@/lib/api';
 
 const FALLBACK_CHAPTERS = [
   {
@@ -12,18 +16,12 @@ const FALLBACK_CHAPTERS = [
   },
 ];
 
-
 export default function ReadPage() {
   const { id } = useParams();
   const storyId = Array.isArray(id) ? id[0] : id;
   const isNumericDemoId = /^\d+$/.test(String(storyId || ''));
   const router = useRouter();
   const contentRef = useRef(null);
-
-  // Share icon style (must be outside JSX)
-  const shareIconStyle = {
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 12, background: 'var(--surface2)', color: 'var(--text)', fontSize: 22, border: '2px solid transparent', cursor: 'pointer', transition: 'all 0.18s', textDecoration: 'none', outline: 'none', boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
-  };
 
   const [story, setStory] = useState(null);
   const [chapters, setChapters] = useState([]);
@@ -35,7 +33,265 @@ export default function ReadPage() {
   const [theme, setTheme] = useState('light');
   const [fontSize, setFontSize] = useState(18);
   const [liked, setLiked] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [toast, setToast] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [isReadingMode, setIsReadingMode] = useState(true);
+  const [accessChecked, setAccessChecked] = useState(false);
+  const [hasPremiumAccess, setHasPremiumAccess] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isManagingStory, setIsManagingStory] = useState(false);
+  const lastHistoryWriteRef = useRef({ chapterId: '', progressBucket: -1 });
+  const sessionStartRef = useRef(Date.now());
+  const viewTrackedRef = useRef(false);
 
+  useEffect(() => {
+    if (!storyId) return;
+
+    if (isNumericDemoId) {
+      setStory({
+        id: storyId,
+        title: `Story ${storyId}`,
+        author_name: 'Wingsaga Author',
+        genre: 'Fiction',
+      });
+      setChapters(FALLBACK_CHAPTERS);
+      setComments([]);
+      setRecoStories([]);
+      setLoading(false);
+      return;
+    }
+
+    Promise.all([
+      apiRequest(`/stories/${storyId}`).catch(() => null),
+      apiRequest(`/stories/${storyId}/chapters`).catch(() => null),
+      apiRequest(`/engagement/stories/${storyId}/comments`).catch(() => []),
+      apiRequest('/discovery/trending').catch(() => []),
+    ])
+      .then(([storyData, chapterData, commentData, trendingData]) => {
+        setStory(
+          storyData || {
+            title: 'Story Title',
+            author_name: 'Author',
+            genre: 'Fantasy',
+          }
+        );
+        setChapters(chapterData?.chapters?.length ? chapterData.chapters : FALLBACK_CHAPTERS);
+        setComments(Array.isArray(commentData) ? commentData : []);
+        setRecoStories((Array.isArray(trendingData) ? trendingData : []).slice(0, 4));
+      })
+      .finally(() => setLoading(false));
+  }, [storyId, isNumericDemoId]);
+
+  // REAL-TIME VIEW COUNT & ENGAGEMENT POLLING
+  useEffect(() => {
+    if (!storyId || isNumericDemoId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const updated = await apiRequest(`/stories/${storyId}`).catch(() => null);
+        if (updated) {
+          setStory((prev) => ({
+            ...prev,
+            views: updated.views,
+            likes: updated.likes,
+            bookmarks: updated.bookmarks,
+            comments_count: updated.comments_count,
+          }));
+        }
+      } catch (err) {
+        // Silently fail on polling errors
+      }
+    }, 8000); // Poll every 8 seconds for view/engagement updates
+
+    return () => clearInterval(interval);
+  }, [storyId, isNumericDemoId]);
+
+  useEffect(() => {
+    const token = readToken();
+    if (!token) {
+      setCurrentUser(null);
+      return;
+    }
+    apiRequest('/users/me', { token }).then(setCurrentUser).catch(() => setCurrentUser(null));
+  }, []);
+
+  useEffect(() => {
+    if (!storyId || isNumericDemoId || viewTrackedRef.current) return;
+    const token = readToken();
+    if (!token) return;
+
+    viewTrackedRef.current = true;
+    trackUserActivity({
+      postId: storyId,
+      actionType: 'view',
+      readTime: 0,
+      scrollDepth: 0,
+      token,
+    }).catch(() => {});
+  }, [storyId, isNumericDemoId]);
+
+  useEffect(() => {
+    if (!story?.is_premium) {
+      setAccessChecked(true);
+      setHasPremiumAccess(true);
+      return;
+    }
+
+    const token = readToken();
+    if (!token) {
+      setAccessChecked(true);
+      setHasPremiumAccess(false);
+      return;
+    }
+
+    apiRequest('/users/me', { token })
+      .then((me) => {
+        const isAuthor = me?.id && story?.author_id && me.id === story.author_id;
+        const canAccess = !!(me?.is_subscribed || me?.is_admin || me?.role === 'admin' || isAuthor);
+        setHasPremiumAccess(canAccess);
+      })
+      .catch(() => setHasPremiumAccess(false))
+      .finally(() => setAccessChecked(true));
+  }, [story]);
+
+  useEffect(() => {
+    const node = contentRef.current;
+    if (!node) return;
+
+    const progressBar = document.getElementById('bx-progress');
+    const onScroll = () => {
+      const scrollableHeight = node.scrollHeight - node.clientHeight;
+      const nextProgress = scrollableHeight > 0 ? Math.min(100, Math.round((node.scrollTop / scrollableHeight) * 100)) : 0;
+      setProgress(nextProgress);
+      if (progressBar) {
+        progressBar.style.width = `${nextProgress}%`;
+      }
+    };
+
+    node.addEventListener('scroll', onScroll, { passive: true });
+    return () => node.removeEventListener('scroll', onScroll);
+  }, [loading]);
+
+  const chapterProgress = Math.max(0, Math.min(100, Number(progress || 0)));
+  const totalChapters = Math.max(1, chapters.length || 1);
+  const overallProgress = Math.min(
+    100,
+    Math.max(
+      0,
+      Math.round((((Math.max(0, chapterIndex) + (chapterProgress / 100)) / totalChapters) * 100))
+    )
+  );
+
+  useEffect(() => {
+    if (!storyId || !chapters.length) return;
+    const token = readToken();
+    if (!token) return;
+
+    const chapterId = chapters[chapterIndex]?._id || chapters[chapterIndex]?.id || null;
+    const progressBucket = Math.floor(Number(overallProgress || 0) / 10);
+    const lastWrite = lastHistoryWriteRef.current;
+    if (lastWrite.chapterId === String(chapterId || '') && lastWrite.progressBucket === progressBucket) {
+      return;
+    }
+
+    lastHistoryWriteRef.current = {
+      chapterId: String(chapterId || ''),
+      progressBucket,
+    };
+
+    apiRequest('/reader/history', {
+      method: 'POST',
+      token,
+      body: {
+        story_id: String(storyId),
+        chapter_id: chapterId,
+        progress_pct: overallProgress,
+      },
+    }).catch(() => {});
+  }, [chapterIndex, overallProgress, storyId, chapters]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(''), 2400);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const reactAction = async () => {
+    const token = readToken();
+    if (!token) {
+      setToast('Please sign in to react.');
+      return;
+    }
+    try {
+      const result = await apiRequest(`/engagement/stories/${storyId}/like`, { method: 'POST' });
+      setLiked(result.message?.toLowerCase().includes('liked'));
+      if (result.message?.toLowerCase().includes('liked')) {
+        await trackUserActivity({
+          postId: storyId,
+          actionType: 'like',
+          readTime: Math.floor((Date.now() - sessionStartRef.current) / 1000),
+          scrollDepth: progress,
+          token,
+        }).catch(() => {});
+      }
+      setToast(result.message || 'Updated');
+    } catch {
+      setToast('Could not update like right now.');
+    }
+  };
+
+  const bookmarkAction = async () => {
+    const token = readToken();
+    if (!token) {
+      setToast('Please sign in to bookmark.');
+      return;
+    }
+    try {
+      const result = await apiRequest(`/reader/bookmarks/${storyId}`, { method: 'POST' });
+      setBookmarked(result.message?.toLowerCase().includes('bookmarked'));
+      if (result.message?.toLowerCase().includes('bookmarked')) {
+        await trackUserActivity({
+          postId: storyId,
+          actionType: 'bookmark',
+          readTime: Math.floor((Date.now() - sessionStartRef.current) / 1000),
+          scrollDepth: progress,
+          token,
+        }).catch(() => {});
+      }
+      setToast(result.message || 'Updated');
+    } catch {
+      setToast('Could not update bookmark right now.');
+    }
+  };
+
+  const submitComment = async () => {
+    const content = commentText.trim();
+    if (content.length < 2) return;
+    const token = readToken();
+    if (!token) {
+      setToast('Please sign in to comment.');
+      return;
+    }
+    try {
+      await apiRequest(`/engagement/stories/${storyId}/comments`, {
+        method: 'POST',
+        body: { content },
+      });
+      await trackUserActivity({
+        postId: storyId,
+        actionType: 'comment',
+        readTime: Math.floor((Date.now() - sessionStartRef.current) / 1000),
+        scrollDepth: progress,
+        token,
+      }).catch(() => {});
+      const latest = await apiRequest(`/engagement/stories/${storyId}/comments`).catch(() => []);
+      setComments(Array.isArray(latest) ? latest : comments);
+      setCommentText('');
+      setToast('Comment added');
+    } catch (err) {
+      setToast(err.message || 'Could not post comment.');
+    }
   };
 
   const currentChapter = chapters[chapterIndex];
@@ -87,122 +343,169 @@ export default function ReadPage() {
   const partCount = Number(chapters?.length || 0);
   const estimatedMinutes = Math.max(4, Math.round(((chapters || []).reduce((acc, ch) => acc + Number(ch?.word_count || 0), 0) || 900) / 200));
 
-
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--ink)' }}>
         <div style={{ color: 'var(--muted)', fontSize: '15px' }}>Loading story...</div>
       </div>
     );
   }
-  // Main reading layout (HTML reference style)
-  return (
-    <div className="bixbi-read-root" style={{ background: 'var(--bg)', color: 'var(--text)', minHeight: '100vh' }}>
-      {/* Hero Section */}
-      <div className="hero" style={{ position: 'relative', height: 360, display: 'flex', alignItems: 'flex-end', background: 'var(--surface2)' }}>
-        <div className="hero-bg" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 30% 60%, rgba(139,26,26,0.55) 0%, transparent 60%),radial-gradient(ellipse at 75% 30%, rgba(30,10,5,0.8) 0%, transparent 55%),linear-gradient(160deg, #0e0402 0%, #1a0505 40%, #110808 70%, #0a0604 100%)' }} />
-        <div className="hero-cover-wrap" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -60%)', zIndex: 2, filter: 'drop-shadow(0 20px 60px rgba(0,0,0,0.8))' }}>
-          <div className="hero-cover" style={{ width: 120, height: 180, borderRadius: 8, background: 'linear-gradient(160deg, #2a1a0a, #4a2a0a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Cormorant Garamond,serif', color: 'rgba(201,169,110,0.9)', fontSize: 13, fontWeight: 600, textAlign: 'center', lineHeight: 1.4, padding: 12, border: '1px solid rgba(201,169,110,0.2)', position: 'relative', overflow: 'hidden' }}>
-            {story?.cover_image ? <img src={story.cover_image} alt={story?.title || 'Story cover'} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} /> : (story?.title || 'No Cover')}
-          </div>
-        </div>
-        <div style={{ flex: 1 }} />
-      </div>
-      {/* Story Info & Actions */}
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 16px 0' }}>
-        <h1 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: 36, marginBottom: 8 }}>{story?.title}</h1>
-        <div style={{ color: 'var(--muted)', marginBottom: 12 }}>{story?.description}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-          <span style={{ color: 'var(--gold)', fontWeight: 600 }}>{story?.genre || story?.categories?.[0]}</span>
-          <span style={{ color: 'var(--muted)' }}>{readCount.toLocaleString()} reads</span>
-          <span style={{ color: 'var(--muted)' }}>{voteCount.toLocaleString()} Likes</span>
-          <span style={{ color: 'var(--muted)' }}>{partCount} Parts</span>
-          <span style={{ color: 'var(--muted)' }}>{estimatedMinutes} min read</span>
-        </div>
-        <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
-          <button className="icon-btn" onClick={reactAction} title="Like" style={{ color: liked ? '#e8748a' : 'var(--muted)' }}>
-            {liked ? <FaHeart /> : <FaRegHeart />}
-            <span style={{ marginLeft: 4 }}>Like</span>
+
+  const premiumLocked = story?.is_premium && accessChecked && !hasPremiumAccess;
+  if (premiumLocked) {
+    return (
+      <div style={{ minHeight: 'calc(100vh - 60px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+        <div style={{ maxWidth: '520px', width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '14px', padding: '26px' }}>
+          <div style={{ fontSize: '12px', letterSpacing: '0.6px', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '8px' }}>Premium Story</div>
+          <h1 style={{ fontFamily: 'Cormorant Garamond,serif', fontSize: '36px', marginBottom: '8px' }}>{story?.title}</h1>
+          <p style={{ color: 'var(--muted)', marginBottom: '16px', lineHeight: 1.6 }}>
+            {readToken()
+              ? 'This chapter requires an active subscription. Upgrade your account to continue reading.'
+              : 'Sign in to unlock this premium chapter and continue reading on Wingsaga.'}
+          </p>
+          <button
+            className="bx-btn-primary"
+            onClick={() => {
+              if (!readToken()) {
+                router.push(`/auth/signin?next=${encodeURIComponent(`/story/${storyId}`)}`);
+                return;
+              }
+              router.push('/profile');
+            }}
+          >
+            {readToken() ? 'Manage Subscription' : 'Sign In To Continue'}
           </button>
-          <button className="icon-btn" onClick={bookmarkAction} title="Save" style={{ color: bookmarked ? '#c9a96e' : 'var(--muted)' }}>
-            {bookmarked ? <FaBookmark /> : <FaRegBookmark />}
-            <span style={{ marginLeft: 4 }}>Save</span>
-          </button>
-          <button className="icon-btn" onClick={() => setShowShare(true)} title="Share">
-            <FaShareAlt />
-            <span style={{ marginLeft: 4 }}>Share</span>
-          </button>
-                {/* Share Popup */}
-                {showShare && (
-                  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.32)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowShare(false)}>
-                    <div style={{ background: 'var(--surface)', borderRadius: 16, padding: 28, minWidth: 340, maxWidth: '90vw', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', position: 'relative' }} onClick={e => e.stopPropagation()}>
-                      <button onClick={() => setShowShare(false)} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', fontSize: 22, color: 'var(--muted)', cursor: 'pointer' }} aria-label="Close share popup"><IoMdClose /></button>
-                      <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 18 }}>Share this story</h3>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 18 }}>
-                        <a href={`mailto:?subject=Check%20out%20this%20story!&body=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer" title="Email" style={shareIconStyle}><FaEnvelope /></a>
-                        <a href={`https://wa.me/?text=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer" title="WhatsApp" style={shareIconStyle}><FaWhatsapp color="#25D366" /></a>
-                        <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer" title="Facebook" style={shareIconStyle}><FaFacebook color="#1877F3" /></a>
-                        <a href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer" title="X" style={shareIconStyle}><FaXTwitter color="#000" /></a>
-                        <a href={`https://www.pinterest.com/pin/create/button/?url=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer" title="Pinterest" style={shareIconStyle}><FaPinterest color="#E60023" /></a>
-                        <a href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer" title="LinkedIn" style={shareIconStyle}><FaLinkedin color="#0A66C2" /></a>
-                        <a href={`https://www.reddit.com/submit?url=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noopener noreferrer" title="Reddit" style={shareIconStyle}><FaReddit color="#FF4500" /></a>
-                        <button onClick={() => {navigator.clipboard.writeText(shareUrl); setCopied(true); setTimeout(()=>setCopied(false), 1500);}} title="Copy link" style={{ ...shareIconStyle, border: copied ? '2px solid var(--gold)' : '2px solid transparent', background: copied ? 'var(--gold-soft)' : 'var(--surface2)' }}><FaLink />{copied && <span style={{ marginLeft: 6, fontSize: 13, color: 'var(--gold)' }}>Copied!</span>}</button>
-                        <button onClick={() => setToast('<iframe src=\"' + shareUrl + '\" width=\"400\" height=\"300\"></iframe>')} title="Embed" style={shareIconStyle}><FaCode /></button>
-                      </div>
-                      <div style={{ color: 'var(--muted)', fontSize: 13 }}>Share this story on your favorite platform or copy the link.</div>
-                    </div>
-                  </div>
-                )}
-          {/* Share icon style is now at the top of the function */}
         </div>
-        {/* About the Author Section */}
-        <div className="author-section" style={{ marginBottom: 18, background: 'var(--surface2)', borderRadius: 10, padding: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div className="author-avatar" style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--gold-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 22, color: 'var(--gold)' }}>
-            {story?.author_name?.[0] || 'A'}
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, fontSize: 16 }}>{story?.author_name}</div>
-            <div style={{ color: 'var(--muted)', fontSize: 13 }}>@{story?.author_username || 'author'} · {story?.author_followers || 0} followers</div>
-            <div style={{ color: 'var(--muted)', fontSize: 13 }}>{story?.author_bio || 'Fantasy & paranormal romance writer.'}</div>
-            <button className="cta ghost small" style={{ marginTop: 6 }} onClick={() => router.push(`/profile/${story?.author_id}`)}>🤓 Geek This Author</button>
-          </div>
-        </div>
-        {/* End About the Author */}
       </div>
-      {/* Story Content */}
-      <div ref={contentRef} style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px', background: activeTheme.bg, color: activeTheme.color, borderRadius: 12, minHeight: 300 }}>
-        <div dangerouslySetInnerHTML={{ __html: currentChapter?.content || '<p>No content.</p>' }} />
+    );
+  }
+
+  if (story?.is_premium && !accessChecked) {
+    return (
+      <div style={{ minHeight: 'calc(100vh - 60px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: 'var(--muted)', fontSize: '15px' }}>Checking access...</div>
       </div>
-      {/* Comments Section */}
-      <div style={{ maxWidth: 900, margin: '32px auto', padding: '0 16px' }}>
-        <h3 style={{ fontFamily: 'var(--font-ui)', fontWeight: 600, fontSize: 18, marginBottom: 10 }}>Comments</h3>
-        <form onSubmit={e => { e.preventDefault(); submitComment(); }} style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
-          <input
-            type="text"
-            value={commentText}
-            onChange={e => setCommentText(e.target.value)}
-            placeholder="Write a comment..."
-            style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid var(--border2)', background: 'var(--surface2)', color: 'var(--text)', fontSize: 15 }}
-            minLength={2}
-            maxLength={1000}
-            required
-          />
-          <button type="submit" className="cta primary" style={{ padding: '0 18px', borderRadius: 8, fontWeight: 600 }}>Post</button>
-        </form>
-        <div>
-          {comments.length === 0 && <div style={{ color: 'var(--muted)', fontSize: 14 }}>No comments yet.</div>}
-          {comments.map((item, idx) => (
-            <div key={item._id || idx} style={{ background: 'var(--surface2)', borderRadius: 8, padding: 12, marginBottom: 10, color: 'var(--text)' }}>
-              <div style={{ fontWeight: 600, fontSize: 15 }}>{item.username || item.user_id || 'User'}</div>
-              <div style={{ fontSize: 14 }}>{item.content}</div>
+    );
+  }
+
+  if (!isReadingMode) {
+    return (
+      <div style={{ minHeight: 'calc(100vh - 60px)', background: '#f5f5f7' }}>
+        <div style={{ maxWidth: '1180px', margin: '0 auto', padding: '28px 20px 40px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 300px) 1fr', gap: '26px', alignItems: 'start' }}>
+            <div style={{ borderRadius: '10px', overflow: 'hidden', boxShadow: '0 14px 30px rgba(0,0,0,0.16)', background: '#fff' }}>
+              {story?.cover_image ? (
+                <img src={story.cover_image} alt={story?.title || 'Story cover'} style={{ width: '100%', display: 'block', aspectRatio: '2 / 3', objectFit: 'cover' }} />
+              ) : (
+                <div style={{ aspectRatio: '2 / 3', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(160deg,#1a0a2e,#3d1a5e)', color: '#fff', padding: '16px', textAlign: 'center', fontFamily: 'Cormorant Garamond,serif', fontSize: '28px' }}>
+                  {story?.title || 'Story'}
+                </div>
+              )}
             </div>
-          ))}
+
+            <div>
+              <h1 style={{ fontSize: '48px', lineHeight: 1.1, fontWeight: 700, color: '#0f1420', marginBottom: '16px' }}>{story?.title}</h1>
+              <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', color: '#4a5568', fontSize: '14px', marginBottom: '18px' }}>
+                <span>👁 Reads <strong style={{ color: '#111827', marginLeft: '6px' }}>{readCount.toLocaleString()}</strong></span>
+                <span>☆ Votes <strong style={{ color: '#111827', marginLeft: '6px' }}>{voteCount.toLocaleString()}</strong></span>
+                <span>☰ Parts <strong style={{ color: '#111827', marginLeft: '6px' }}>{partCount}</strong></span>
+                <span>⏱ Time <strong style={{ color: '#111827', marginLeft: '6px' }}>{estimatedMinutes} min</strong></span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '22px' }}>
+                <button
+                  onClick={() => {
+                    setChapterIndex(0);
+                  }}
+                  style={{
+                    background: '#0d1117',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '999px',
+                    padding: '14px 26px',
+                    fontWeight: 700,
+                    fontSize: '16px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Start Reading
+                </button>
+                <button onClick={bookmarkAction} style={{ border: '1px solid #d0d7de', background: '#fff', borderRadius: '999px', padding: '14px 18px', cursor: 'pointer', fontWeight: 600 }}>+ Add</button>
+              </div>
+
+              <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '16px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                  <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#111827', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px' }}>
+                    {(story?.author_name || 'AU').slice(0, 2).toUpperCase()}
+                  </div>
+                  <div style={{ color: '#111827', fontWeight: 600 }}>{story?.author_name || 'Unknown Author'}</div>
+                </div>
+                <p style={{ color: '#1f2937', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>{story?.description || 'No description available yet.'}</p>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
+                {(story?.tags || []).map((tag) => (
+                  <span key={tag} style={{ background: '#eceff4', color: '#1f2937', borderRadius: '999px', padding: '5px 10px', fontSize: '12px' }}>#{tag}</span>
+                ))}
+                {(story?.categories || []).map((category) => (
+                  <span key={category} style={{ background: '#eef6ff', color: '#16467b', borderRadius: '999px', padding: '5px 10px', fontSize: '12px' }}>{category}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr minmax(260px, 300px)', gap: '24px', marginTop: '26px' }}>
+            <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+              <div style={{ padding: '18px 18px 12px', fontWeight: 700, color: '#111827', fontSize: '28px', fontFamily: 'Cormorant Garamond, serif' }}>Table of Contents</div>
+              <div>
+                {(chapters || []).map((chapter, idx) => (
+                  <button
+                    key={chapter?._id || chapter?.id || idx}
+                    onClick={() => {
+                      setChapterIndex(idx);
+                      setIsReadingMode(true);
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      textAlign: 'left',
+                      border: 'none',
+                      borderTop: '1px solid #f0f2f5',
+                      background: '#fff',
+                      padding: '14px 18px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <span style={{ color: '#0f172a', fontWeight: 500 }}>Ch. {chapter?.chapter_number || idx + 1}: {chapter?.title || `Chapter ${idx + 1}`}</span>
+                    <span style={{ color: '#6b7280', fontSize: '12px' }}>{chapter?.word_count ? `${chapter.word_count} words` : ''}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <aside style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', padding: '14px' }}>
+              <div style={{ fontWeight: 700, fontSize: '36px', lineHeight: 1, fontFamily: 'Cormorant Garamond, serif', color: '#0f172a', marginBottom: '12px' }}>You may also like</div>
+              <div style={{ display: 'grid', gap: '12px' }}>
+                {recoStories.map((rs, i) => (
+                  <a key={`${rs.id || rs._id}-${i}`} href={`/story/${rs.id || rs._id}`} style={{ display: 'grid', gridTemplateColumns: '68px 1fr', gap: '10px', textDecoration: 'none', color: 'inherit' }}>
+                    <div style={{ borderRadius: '8px', overflow: 'hidden', background: 'linear-gradient(160deg,#1a0a2e,#3d1a5e)', height: '94px' }}>
+                      {rs.cover_image ? <img src={rs.cover_image} alt={rs.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+                    </div>
+                    <div>
+                      <div style={{ color: '#0f172a', fontWeight: 700, fontSize: '14px', lineHeight: 1.3 }}>{rs.title}</div>
+                      <div style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px' }}>{(rs.categories || [])[0] || 'Fiction'}</div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </aside>
+          </div>
         </div>
       </div>
-      {/* Toast Message */}
-      {toast && <div style={{ position: 'fixed', bottom: 32, left: 0, right: 0, margin: '0 auto', maxWidth: 320, background: 'var(--surface)', color: 'var(--text)', borderRadius: 8, boxShadow: '0 2px 16px rgba(0,0,0,0.13)', padding: 16, textAlign: 'center', zIndex: 9999 }}>{toast}</div>}
-    </div>
-  );
+    );
+  }
 
   return (
     <div style={{ minHeight: 'calc(100vh - 60px)', background: activeTheme.bg, transition: 'background 0.3s', position: 'relative' }}>
@@ -365,3 +668,4 @@ export default function ReadPage() {
       )}
     </div>
   );
+}

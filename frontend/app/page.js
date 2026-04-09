@@ -4,213 +4,112 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiRequest, fetchSiteSettings, readToken } from '@/lib/api';
+import StoryCard from '@/components/StoryCard';
 
 /* ═══════════════════════════════════════════════════════
    MOCK DATA & CONSTANTS
 ═══════════════════════════════════════════════════════ */
 
-const HERO_SLIDES = [
-  {
-    id: 1,
-    tag: '⭐ Featured',
-    title: 'The Chronicles of <em>Aeloria</em>',
-    desc: 'A sweeping fantasy epic spanning continents, with intricate magic systems and unforgettable characters.',
-    bg: 'linear-gradient(135deg, #1a0a0a 0%, #2a0a0a 50%, #1a0a2e 100%)',
-  },
-  {
-    id: 2,
-    tag: '🔥 Trending',
-    title: 'Whispers in the <em>Shadows</em>',
-    desc: 'A thrilling paranormal mystery that blurs the line between reality and the supernatural.',
-    bg: 'linear-gradient(135deg, #0a1a2e 0%, #16213e 50%, #0f3460 100%)',
-  },
-  {
-    id: 3,
-    tag: '💕 Romance',
-    title: 'Hearts <em>Entwined</em>',
-    desc: 'An intimate love story that transcends time and challenges everything they believe in.',
-    bg: 'linear-gradient(135deg, #2e0a1a 0%, #3e0a1a 50%, #2e1a2e 100%)',
-  },
-  {
-    id: 4,
-    tag: '🚀 Sci-Fi',
-    title: 'Beyond the <em>Stars</em>',
-    desc: 'Humanity\'s struggle for survival in a vast and hostile universe awaits discovery.',
-    bg: 'linear-gradient(135deg, #0a1a2e 0%, #1a3a4e 50%, #0a2a4e 100%)',
-  },
-];
+// --- Real Data Integration ---
 
-const GENRES = [
-  { name: 'Fantasy', icon: '🧙', bg: '#1a0a2e' },
-  { name: 'Romance', icon: '💕', bg: '#2e0a1a' },
-  { name: 'Paranormal', icon: '👻', bg: '#0a2a2e' },
-  { name: 'Thriller', icon: '⚡', bg: '#2e2a0a' },
-  { name: 'Sci-Fi', icon: '🚀', bg: '#0a1a2e' },
-  { name: 'Mystery', icon: '🔍', bg: '#1a0a1a' },
-  { name: 'Drama', icon: '🎭', bg: '#2a1a0a' },
-  { name: 'Adventure', icon: '🗺️', bg: '#0a2a1a' },
-  { name: 'Comedy', icon: '😄', bg: '#2a0a2a' },
-];
+  export default function HomePage() {
+    const [recommended, setRecommended] = useState([]);
+    const [continueReading, setContinueReading] = useState([]);
+    const [readingLists, setReadingLists] = useState([]);
+    const [adventureTrails, setAdventureTrails] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-const MOCK_STORIES = [
-  {
-    id: 1,
-    title: 'The Lost Kingdom',
-    author: 'Elena Rose',
-    genre: 'Fantasy',
-    rating: 4.8,
-    reviews: 2341,
-    image: 'https://picsum.photos/seed/wingsaga-1/320/480',
-    badge: 'New',
-  },
-  {
-    id: 2,
-    title: 'Midnight Echoes',
-    author: 'Marcus Stone',
-    genre: 'Thriller',
-    rating: 4.6,
-    reviews: 1892,
-    image: 'https://picsum.photos/seed/wingsaga-2/320/480',
-    badge: null,
-  },
-  {
-    id: 3,
-    title: 'Love in the Time of Stars',
-    author: 'Aurora Sky',
-    genre: 'Romance',
-    rating: 4.9,
-    reviews: 3124,
-    image: 'https://picsum.photos/seed/wingsaga-3/320/480',
-    badge: null,
-  },
-  {
-    id: 4,
-    title: 'The Ghost Protocol',
-    author: 'Blake Morgan',
-    genre: 'Paranormal',
-    rating: 4.5,
-    reviews: 1456,
-    image: 'https://picsum.photos/seed/wingsaga-4/320/480',
-    badge: 'Trending',
-  },
-  {
-    id: 5,
-    title: 'Nexus Prime',
-    author: 'Dr. Kepler',
-    genre: 'Sci-Fi',
-    rating: 4.7,
-    reviews: 2108,
-    image: 'https://picsum.photos/seed/wingsaga-5/320/480',
-    badge: null,
-  },
-  {
-    id: 6,
-    title: 'When Autumn Falls',
-    author: 'James Chen',
-    genre: 'Drama',
-    rating: 4.4,
-    reviews: 987,
-    image: 'https://picsum.photos/seed/wingsaga-6/320/480',
-    badge: null,
-  },
-  {
-    id: 7,
-    title: 'Ashes of the Crown',
-    author: 'Mina Vale',
-    genre: 'Fantasy',
-    rating: 4.7,
-    reviews: 1743,
-    image: 'https://picsum.photos/seed/wingsaga-7/320/480',
-    badge: 'Trending',
-  },
-  {
-    id: 8,
-    title: 'Silent Meridian',
-    author: 'Noah Rivera',
-    genre: 'Sci-Fi',
-    rating: 4.6,
-    reviews: 1598,
-    image: 'https://picsum.photos/seed/wingsaga-8/320/480',
-    badge: 'New',
-  },
-  {
-    id: 9,
-    title: 'Velvet Storm',
-    author: 'Iris Lane',
-    genre: 'Romance',
-    rating: 4.9,
-    reviews: 2810,
-    image: 'https://picsum.photos/seed/wingsaga-9/320/480',
-    badge: null,
-  },
-  {
-    id: 10,
-    title: 'The Ninth Corridor',
-    author: 'Reed Hawkins',
-    genre: 'Mystery',
-    rating: 4.5,
-    reviews: 1322,
-    image: 'https://picsum.photos/seed/wingsaga-10/320/480',
-    badge: null,
-  },
-  {
-    id: 11,
-    title: 'Neon Hollow',
-    author: 'Aria Winters',
-    genre: 'Thriller',
-    rating: 4.4,
-    reviews: 1104,
-    image: 'https://picsum.photos/seed/wingsaga-11/320/480',
-    badge: 'Trending',
-  },
-  {
-    id: 12,
-    title: 'The Last Orchard',
-    author: 'Ruth Everly',
-    genre: 'Drama',
-    rating: 4.7,
-    reviews: 1689,
-    image: 'https://picsum.photos/seed/wingsaga-12/320/480',
-    badge: null,
-  },
-];
+    useEffect(() => {
+      async function fetchData() {
+        setLoading(true);
+        try {
+          // Fetch recommended stories
+          const rec = await apiRequest('/discovery/recommended');
+          setRecommended(rec.items || []);
 
-const MOCK_REVIEWS = [
-  {
-    id: 1,
-    user: 'Sophie L.',
-    book: 'The Lost Kingdom',
-    rating: 5,
-    text: '"A masterpiece! The world-building is incredible and I couldn\'t put it down. Elena Rose is a genius."',
-    date: '2 weeks ago',
-    avatar: 'SL',
-    bg: '#E91E63',
-  },
-  {
-    id: 2,
-    user: 'Thomas K.',
-    book: 'Midnight Echoes',
-    rating: 4,
-    text: '"Gripping from start to finish. The twist at the end completely blindsided me. Highly recommend!"',
-    date: '1 week ago',
-    avatar: 'TK',
-    bg: '#2196F3',
-  },
-  {
-    id: 3,
-    user: 'Maya P.',
-    book: 'Love in the Time of Stars',
-    rating: 5,
-    text: '"The most beautiful love story I\'ve read in years. Aurora captured my heart completely. Perfection!"',
-    date: '3 days ago',
-    avatar: 'MP',
-    bg: '#FF69B4',
-  },
-];
+          // Fetch continue reading
+          const cont = await apiRequest('/reader/bookmarks');
+          setContinueReading(cont || []);
 
-/* ═══════════════════════════════════════════════════════
-   CUSTOM HOOKS & UTILITIES
-═══════════════════════════════════════════════════════ */
+          // Fetch reading lists from community
+          const lists = await apiRequest('/discovery/reading-lists');
+          setReadingLists(lists.items || []);
+
+          // Fetch adventure trails (category: Adventure)
+          const adv = await apiRequest('/discovery/category/Adventure');
+          setAdventureTrails(adv.items || []);
+
+          // Fetch all categories
+          const cats = await apiRequest('/discovery/categories');
+          setCategories(cats || []);
+        } catch (e) {
+          // Handle error (optional: show toast)
+        }
+        setLoading(false);
+      }
+      fetchData();
+    }, []);
+
+    if (loading) return <div className="loading">Loading...</div>;
+
+    return (
+      <div className="homepage-root">
+        {/* Recommended for You */}
+        <section>
+          <h2>Top picks for you</h2>
+          <div className="story-row-scroll">
+            {recommended.map((story, idx) => (
+              <StoryCard key={story._id || story.id || idx} story={story} index={idx} />
+            ))}
+          </div>
+        </section>
+
+        {/* Continue Reading */}
+        <section>
+          <h2>Continue Reading</h2>
+          <div className="story-row-scroll">
+            {continueReading.map((story, idx) => (
+              <StoryCard key={story._id || story.id || idx} story={story} index={idx} />
+            ))}
+          </div>
+        </section>
+
+        {/* Reading Lists from the Community */}
+        <section>
+          <h2>Reading lists from the community</h2>
+          <div className="story-grid">
+            {readingLists.map((story, idx) => (
+              <StoryCard key={story._id || story.id || idx} story={story} index={idx} />
+            ))}
+          </div>
+        </section>
+
+        {/* Adventure Trails */}
+        <section>
+          <h2>Adventure Trails</h2>
+          <div className="adventure-row">
+            {adventureTrails.map((story, idx) => (
+              <StoryCard key={story._id || story.id || idx} story={story} index={idx} />
+            ))}
+          </div>
+        </section>
+
+        {/* 5+ More Categories */}
+        {categories.slice(0, 5).map((cat, cidx) => (
+          <section key={cat.name || cidx}>
+            <h2>{cat.name}</h2>
+            <div className="story-grid">
+              {(cat.stories || []).map((story, idx) => (
+                <StoryCard key={story._id || story.id || idx} story={story} index={idx} />
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    );
+}
+
 
 function useDragScroll(ref) {
   const [isDragging, setIsDragging] = useState(false);
@@ -763,10 +662,20 @@ export default function Home() {
     >
       <div className="bx-book-cover" style={{ backgroundColor: tone }}>
         {storyCoverSrc(story) ? (
-          <img src={storyCoverSrc(story)} alt={story.title} loading="lazy" />
-        ) : (
-          <div className="bx-book-fallback">{story.title}</div>
-        )}
+          <img
+            src={storyCoverSrc(story)}
+            alt={story.title}
+            loading="lazy"
+            onError={(event) => {
+              event.currentTarget.style.display = 'none';
+              const fallback = event.currentTarget.parentElement?.querySelector('.bx-img-fallback');
+              if (fallback) fallback.style.display = 'flex';
+            }}
+          />
+        ) : null}
+        <div className="bx-book-fallback bx-img-fallback" style={{ display: storyCoverSrc(story) ? 'none' : 'flex' }}>
+          {story.title}
+        </div>
         {isPremium ? <span className="bx-book-sub-badge">PRO</span> : null}
       </div>
       <h4 className="bx-book-title">{story.title}</h4>
@@ -791,10 +700,20 @@ export default function Home() {
           >
             <div className="bx-cluster-cover" style={{ backgroundColor: tone }}>
               {storyCoverSrc(story) ? (
-                <img src={storyCoverSrc(story)} alt={story.title} loading="lazy" />
-              ) : (
-                <div className="bx-book-fallback">{story.title}</div>
-              )}
+                <img
+                  src={storyCoverSrc(story)}
+                  alt={story.title}
+                  loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                    const fallback = event.currentTarget.parentElement?.querySelector('.bx-img-fallback');
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div className="bx-book-fallback bx-img-fallback" style={{ display: storyCoverSrc(story) ? 'none' : 'flex' }}>
+                {story.title}
+              </div>
               {isPremium ? <span className="bx-cluster-pro">PRO</span> : null}
               <div className="bx-cluster-meta">
                 <h5 className="bx-cluster-title">{story.title}</h5>

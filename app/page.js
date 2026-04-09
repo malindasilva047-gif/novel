@@ -1,0 +1,1339 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { apiRequest, fetchSiteSettings, readToken } from '@/lib/api';
+import StoryCard from '@/components/StoryCard';
+
+/* ═══════════════════════════════════════════════════════
+   MOCK DATA & CONSTANTS
+═══════════════════════════════════════════════════════ */
+
+// --- Real Data Integration ---
+
+
+
+function useDragScroll(ref) {
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollStart, setScrollStart] = useState(0);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    const handleMouseDown = (e) => {
+      setIsDragging(true);
+      setStartX(e.clientX);
+      setScrollStart(element.scrollLeft);
+      element.classList.add('dragging');
+    };
+
+    const handleMouseMove = (e) => {
+      if (!isDragging) return;
+      const diff = e.clientX - startX;
+      element.scrollLeft = scrollStart - diff;
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      element.classList.remove('dragging');
+    };
+
+    element.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      element.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, startX, scrollStart]);
+}
+
+function scrollCarousel(ref, direction) {
+  if (!ref.current) return;
+  const scrollAmount = 300;
+  const newScroll = ref.current.scrollLeft + (direction === 'right' ? scrollAmount : -scrollAmount);
+  ref.current.scrollTo({ left: newScroll, behavior: 'smooth' });
+}
+
+function getScrollState(ref) {
+  const node = ref?.current;
+  if (!node) {
+    return { left: false, right: false };
+  }
+  const left = node.scrollLeft > 1;
+  const right = node.scrollLeft + node.clientWidth < node.scrollWidth - 1;
+  return { left, right };
+}
+
+function getDeterministicProgress(story, idx) {
+  const historyProgress = Number(story?.progress_pct ?? story?.progress_percent ?? story?.overall_progress ?? NaN);
+  if (Number.isFinite(historyProgress)) {
+    return Math.max(0, Math.min(100, Math.floor(historyProgress)));
+  }
+  const raw = Number(story?.id ?? idx + 1);
+  return 20 + ((raw * 17) % 71);
+}
+
+function toFixedLengthStories(list, length) {
+  if (!Array.isArray(list) || list.length === 0) {
+    return [];
+  }
+  const output = [];
+  for (let i = 0; i < length; i += 1) {
+    output.push(list[i % list.length]);
+  }
+  return output;
+}
+
+function dedupeStoriesById(list) {
+  if (!Array.isArray(list)) {
+    return [];
+  }
+  const seen = new Set();
+  const output = [];
+  for (const item of list) {
+    const key = String(item?.id || item?._id || '');
+    if (!key || seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    output.push(item);
+  }
+  return output;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MAIN COMPONENT
+═══════════════════════════════════════════════════════ */
+
+export default function Home() {
+  const router = useRouter();
+  const isLoggedIn = Boolean(readToken());
+
+  // HEROES & HERO NAV
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [stories, setStories] = useState([]);
+  const [recommended, setRecommended] = useState([]);
+  const [recommendationMeta, setRecommendationMeta] = useState({ reason: 'Based on what readers love', location_hint: '' });
+  const [continueHistory, setContinueHistory] = useState([]);
+  const [branding, setBranding] = useState({ site_name: 'Wingsaga', logo_url: '' });
+  const [followed, setFollowed] = useState(new Set());
+  const [bookmarkedStoryIds, setBookmarkedStoryIds] = useState(new Set());
+  const [toast, setToast] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sliderNav, setSliderNav] = useState({
+    recommended: { left: false, right: false },
+    popular: { left: false, right: false },
+    newReleases: { left: false, right: false },
+    trending: { left: false, right: false },
+    romance: { left: false, right: false },
+    mystery: { left: false, right: false },
+    adventure: { left: false, right: false },
+    subscription: { left: false, right: false },
+    continue: { left: false, right: false },
+    readingList: { left: false, right: false },
+    reviews: { left: false, right: false },
+    genres: { left: false, right: false },
+  });
+
+  // CAROUSEL REFS
+  const recommendedRef = useRef(null);
+  const popularRef = useRef(null);
+  const newReleasesRef = useRef(null);
+  const trendingRef = useRef(null);
+  const romanceRef = useRef(null);
+  const mysteryRef = useRef(null);
+  const adventureRef = useRef(null);
+  const subscriptionRef = useRef(null);
+  const continueRef = useRef(null);
+  const readingListRef = useRef(null);
+  const reviewsRef = useRef(null);
+  const genresRef = useRef(null);
+
+  // DRAG SCROLLING
+  useDragScroll(recommendedRef);
+  useDragScroll(popularRef);
+  useDragScroll(newReleasesRef);
+  useDragScroll(trendingRef);
+  useDragScroll(romanceRef);
+  useDragScroll(mysteryRef);
+  useDragScroll(adventureRef);
+  useDragScroll(subscriptionRef);
+  useDragScroll(continueRef);
+  useDragScroll(readingListRef);
+  useDragScroll(reviewsRef);
+  useDragScroll(genresRef);
+
+  useEffect(() => {
+    const refs = {
+      recommended: recommendedRef,
+      popular: popularRef,
+      newReleases: newReleasesRef,
+      trending: trendingRef,
+      romance: romanceRef,
+      mystery: mysteryRef,
+      adventure: adventureRef,
+      subscription: subscriptionRef,
+      continue: continueRef,
+      readingList: readingListRef,
+      reviews: reviewsRef,
+      genres: genresRef,
+    };
+
+    const updateKey = (key) => {
+      setSliderNav((prev) => ({
+        ...prev,
+        [key]: getScrollState(refs[key]),
+      }));
+    };
+
+    const cleanups = Object.entries(refs).map(([key, ref]) => {
+      const node = ref.current;
+      if (!node) return () => {};
+      const onScroll = () => updateKey(key);
+      node.addEventListener('scroll', onScroll, { passive: true });
+      setTimeout(() => updateKey(key), 0);
+      return () => node.removeEventListener('scroll', onScroll);
+    });
+
+    const onResize = () => {
+      Object.keys(refs).forEach((key) => updateKey(key));
+    };
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      cleanups.forEach((cleanup) => cleanup());
+      window.removeEventListener('resize', onResize);
+    };
+  }, [stories, continueHistory]);
+
+  // FETCH DATA
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setLoading(true);
+
+        // Fetch branding
+        const brandData = await fetchSiteSettings();
+        setBranding(brandData);
+
+        // Fetch recommendations, trending & feed
+        try {
+          const [recommendationRes, trendingRes, feedRes] = await Promise.all([
+            apiRequest('/discovery/recommendations').catch(() => ({ stories: [] })),
+            apiRequest('/discovery/trending'),
+            apiRequest('/discovery/feed'),
+          ]);
+
+          const recommendedStories = Array.isArray(recommendationRes?.stories) ? recommendationRes.stories : [];
+          setRecommended(recommendedStories);
+          setRecommendationMeta({
+            reason: recommendationRes?.reason || 'Based on what readers love',
+            location_hint: recommendationRes?.location_hint || '',
+          });
+
+          const trendingStories = Array.isArray(trendingRes) ? trendingRes : (trendingRes?.stories || []);
+          const feedStories = Array.isArray(feedRes) ? feedRes : (feedRes?.stories || []);
+          const mergedStories = dedupeStoriesById([...trendingStories, ...feedStories]).map((story, idx) => ({
+            id: story?.id || story?._id || `api-story-${idx}`,
+            _id: story?.id || story?._id || `api-story-${idx}`,
+            title: story?.title || `Story ${idx + 1}`,
+            author: story?.author_name || story?.author || 'Wingsaga',
+            author_name: story?.author_name || story?.author || 'Wingsaga',
+            genre: story?.genre || (Array.isArray(story?.categories) && story.categories[0]) || 'Fiction',
+            categories: Array.isArray(story?.categories) ? story.categories : [],
+            views: Number(story?.views || 0),
+            likes: Number(story?.likes || 0),
+            avg_rating: Number(story?.avg_rating || 0),
+            created_at: story?.created_at || story?.updated_at || null,
+            is_premium: Boolean(story?.is_premium),
+            image: story?.cover_image || story?.image || '',
+            cover_image: story?.cover_image || story?.image || '',
+          }));
+          setStories(mergedStories);
+        } catch (err) {
+          setStories([]);
+          setRecommended([]);
+        }
+
+        // Fetch continue reading history
+        const token = readToken();
+        if (token) {
+          try {
+            const historyRes = await apiRequest('/reader/history', { token });
+            setContinueHistory(Array.isArray(historyRes) ? historyRes : (historyRes?.history || []));
+          } catch (err) {
+            setContinueHistory([]);
+          }
+        } else {
+          setContinueHistory([]);
+        }
+      } catch (err) {
+        console.error('Error loading data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  // REAL-TIME POLLING FOR CONTINUE READING UPDATES
+  useEffect(() => {
+    const token = readToken();
+    if (!token) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const historyRes = await apiRequest('/reader/history', { token });
+        const updated = Array.isArray(historyRes) ? historyRes : (historyRes?.history || []);
+        setContinueHistory(updated);
+      } catch (err) {
+        // Silently fail on polling errors
+      }
+    }, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // REAL-TIME STORY METRICS POLLING (views/likes from live stories endpoint)
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (document.hidden) {
+        return;
+      }
+      try {
+        const livePayload = await apiRequest('/stories?limit=80&sort_by=views');
+        const liveStories = Array.isArray(livePayload?.stories) ? livePayload.stories : [];
+        if (!liveStories.length) return;
+
+        const liveMap = new Map(
+          liveStories.map((item) => [
+            String(item.id || item._id),
+            {
+              views: Number(item.views || 0),
+              likes: Number(item.likes || 0),
+              cover_image: item.cover_image,
+            },
+          ])
+        );
+
+        setStories((prev) =>
+          (Array.isArray(prev) ? prev : []).map((story) => {
+            const key = String(story.id || story._id || '');
+            const live = liveMap.get(key);
+            if (!live) return story;
+            return {
+              ...story,
+              views: live.views,
+              likes: live.likes,
+              image: story.image || live.cover_image || '',
+            };
+          })
+        );
+
+        setRecommended((prev) =>
+          (Array.isArray(prev) ? prev : []).map((story) => {
+            const key = String(story.id || story._id || '');
+            const live = liveMap.get(key);
+            if (!live) return story;
+            return {
+              ...story,
+              views: live.views,
+              likes: live.likes,
+              cover_image: story.cover_image || live.cover_image || '',
+            };
+          })
+        );
+      } catch {
+        // Ignore polling errors
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Hero auto-play – dep uses `stories.length` (state var) to avoid TDZ:
+  // `displayStories` is a derived const declared later in the render body.
+  useEffect(() => {
+    const slideCount = Math.max(1, stories.length ? Math.min(stories.length, 4) : HERO_SLIDES.length);
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slideCount);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [stories.length]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(''), 2400);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  useEffect(() => {
+    if (!readToken()) {
+      setBookmarkedStoryIds(new Set());
+      return;
+    }
+
+    apiRequest('/reader/bookmarks')
+      .then((items) => {
+        const ids = new Set(
+          (Array.isArray(items) ? items : [])
+            .map((item) => item?.story_id)
+            .filter(Boolean)
+        );
+        setBookmarkedStoryIds(ids);
+      })
+      .catch(() => setBookmarkedStoryIds(new Set()));
+  }, []);
+
+  const allStories = stories;
+  const displayStories = allStories;
+
+  const byViewsDesc = [...displayStories].sort((a, b) => Number(b?.views || 0) - Number(a?.views || 0));
+  const byLikesDesc = [...displayStories].sort((a, b) => Number(b?.likes || 0) - Number(a?.likes || 0));
+  const byCreatedDesc = [...displayStories].sort((a, b) => {
+    const aTs = new Date(a?.created_at || 0).getTime() || 0;
+    const bTs = new Date(b?.created_at || 0).getTime() || 0;
+    return bTs - aTs;
+  });
+
+  // DATA FOR SECTIONS
+  const continueReading = continueHistory;
+  const readingList = continueHistory.slice(0, 4);
+  const recommendedStories = dedupeStoriesById(recommended.length > 0 ? recommended : displayStories).slice(0, 12);
+  const popularStories = dedupeStoriesById(byViewsDesc).slice(0, 12);
+  const newReleases = dedupeStoriesById(byCreatedDesc).slice(0, 12);
+  const trendingStories = dedupeStoriesById(byLikesDesc).slice(0, 12);
+  const subscriptionStories = dedupeStoriesById(displayStories.filter((item) => item?.is_premium)).slice(0, 12);
+  const romanceStories = dedupeStoriesById(displayStories.filter((item) =>
+    String(item?.genre || '').toLowerCase().includes('romance')
+    || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('romance')))
+  )).slice(0, 12);
+  const mysteryStories = dedupeStoriesById(displayStories.filter((item) =>
+    String(item?.genre || '').toLowerCase().includes('mystery')
+    || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('mystery')))
+  )).slice(0, 12);
+  const adventureStories = dedupeStoriesById(displayStories.filter((item) =>
+    String(item?.genre || '').toLowerCase().includes('adventure')
+    || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('adventure')))
+  )).slice(0, 12);
+
+  const heroSlides = displayStories.length
+    ? displayStories.slice(0, 4).map((item, idx) => ({
+        id: idx + 1,
+        tag: idx === 0 ? '⭐ Recommended' : idx === 1 ? '🔥 Trending' : idx === 2 ? '📚 New Release' : '✨ Featured',
+        title: `${item?.title || 'Story'} by <em>${item?.author_name || item?.author || 'Author'}</em>`,
+        desc: item?.description || 'Discover your next binge-worthy story from the community.',
+        bg: 'linear-gradient(135deg, #0a1a2e 0%, #1a0a2e 50%, #2e0a1a 100%)',
+      }))
+    : HERO_SLIDES;
+
+  // Hero handlers
+  const handlePrevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
+  };
+
+  const handleNextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+  };
+
+  const handleToggleGeek = (followKey) => {
+    setFollowed((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(followKey)) {
+        newSet.delete(followKey);
+      } else {
+        newSet.add(followKey);
+      }
+      return newSet;
+    });
+  };
+
+  const isArrowDisabled = (key, direction) => {
+    if (direction === 'left') {
+      return !sliderNav[key]?.left;
+    }
+    return !sliderNav[key]?.right;
+  };
+
+  const hasOverflow = (key) => Boolean(sliderNav[key]?.left || sliderNav[key]?.right);
+
+  const showContinueSection = isLoggedIn && continueReading.length > 0;
+  const showReadingListSection = isLoggedIn && readingList.length > 0;
+
+  const getActiveHeroStory = () => {
+    if (!displayStories.length) return null;
+    return displayStories[currentSlide % displayStories.length];
+  };
+
+  const getHeroStoryByIndex = (index) => {
+    if (!displayStories.length) return null;
+    return displayStories[index % displayStories.length];
+  };
+
+  const handleHeroSaveToList = async () => {
+    const activeStory = getActiveHeroStory();
+    const storyId = activeStory?.id || activeStory?._id;
+
+    if (!storyId) {
+      setToast('No story available to save right now.');
+      return;
+    }
+
+    if (!readToken()) {
+      router.push(`/auth/signin?next=${encodeURIComponent('/')}`);
+      return;
+    }
+
+    try {
+      const result = await apiRequest(`/reader/bookmarks/${storyId}`, { method: 'POST' });
+      setBookmarkedStoryIds((prev) => {
+        const next = new Set(prev);
+        if (result?.message?.toLowerCase().includes('removed')) {
+          next.delete(storyId);
+        } else {
+          next.add(storyId);
+        }
+        return next;
+      });
+      setToast(result?.message || 'Reading list updated');
+    } catch {
+      setToast('Could not update your reading list right now.');
+    }
+  };
+
+  const getStoryIdentity = (story, idx, prefix) => `${prefix}-${story?.id || story?._id || `story-${idx}`}-${idx}`;
+
+  const storyCoverSrc = (story) => story?.image || story?.cover_image || '';
+
+  const MIXED_PATTERN_BY_SECTION = {
+    // Top picks: repeating single + 4-split cluster.
+    recommended: [1, 4, 1, 4, 1, 4, 1, 4],
+    // Community row: repeating 3-split + 4-split cluster.
+    popular: [3, 4, 3, 4, 3, 4, 3, 4],
+    newReleases: [3, 4, 3, 4, 1, 3, 4],
+    trending: [3, 4, 3, 4, 3, 4, 1],
+    // Bottom rails: mostly single cards, rare split clusters.
+    romance: [1, 1, 1, 4, 1, 1, 3, 1],
+    mystery: [1, 1, 1, 3, 1, 1, 4, 1],
+    adventure: [1, 1, 1, 4, 1, 1, 3, 1],
+    subscription: [1, 1, 1, 4, 1, 1, 3, 1],
+  };
+
+  const buildMixedStoryItems = (list, sectionKey = 'recommended') => {
+    const source = Array.isArray(list) ? list : [];
+    const pattern = MIXED_PATTERN_BY_SECTION[sectionKey] || MIXED_PATTERN_BY_SECTION.recommended;
+    const items = [];
+    let cursor = 0;
+    let patternIndex = 0;
+
+    while (cursor < source.length) {
+      const remaining = source.length - cursor;
+      const slot = pattern[patternIndex % pattern.length];
+      patternIndex += 1;
+
+      if (slot === 4 && remaining >= 4) {
+        items.push({ type: 'cluster', variant: 'four', stories: source.slice(cursor, cursor + 4) });
+        cursor += 4;
+        continue;
+      }
+
+      if (slot === 3 && remaining >= 3) {
+        items.push({ type: 'cluster', variant: 'three', stories: source.slice(cursor, cursor + 3) });
+        cursor += 3;
+        continue;
+      }
+
+      items.push({ type: 'single', story: source[cursor] });
+      cursor += 1;
+    }
+
+    return items;
+  };
+
+  const renderSingleStoryCard = (story, idx, prefix, tone, isPremium = false) => (
+    <div
+      key={getStoryIdentity(story, idx, `${prefix}-single`)}
+      className="bx-book-card bx-book-card-mixed"
+      onClick={() => router.push(`/story/${story.id || story._id}`)}
+    >
+      <div className="bx-book-cover" style={{ backgroundColor: tone }}>
+        {storyCoverSrc(story) ? (
+          <img
+            src={storyCoverSrc(story)}
+            alt={story.title}
+            loading="lazy"
+            onError={(event) => {
+              event.currentTarget.style.display = 'none';
+              const fallback = event.currentTarget.parentElement?.querySelector('.bx-img-fallback');
+              if (fallback) fallback.style.display = 'flex';
+            }}
+          />
+        ) : null}
+        <div className="bx-book-fallback bx-img-fallback" style={{ display: storyCoverSrc(story) ? 'none' : 'flex' }}>
+          {story.title}
+        </div>
+        {isPremium ? <span className="bx-book-sub-badge">PRO</span> : null}
+      </div>
+      <h4 className="bx-book-title">{story.title}</h4>
+      <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+      <div className="bx-book-meta bx-book-meta-rich">
+        <span>👁 {Number(story.views || 0).toLocaleString()}</span>
+      </div>
+    </div>
+  );
+
+  const renderClusterStoryCard = (item, itemIdx, prefix, tone, isPremium = false) => (
+    <div
+      key={`${prefix}-cluster-${item.variant}-${itemIdx}`}
+      className={`bx-cluster-card bx-cluster-${item.variant}`}
+    >
+      <div className="bx-cluster-grid">
+        {item.stories.map((story, storyIdx) => (
+          <div
+            key={getStoryIdentity(story, storyIdx, `${prefix}-cluster-item`)}
+            className="bx-cluster-story"
+            onClick={() => router.push(`/story/${story.id || story._id}`)}
+          >
+            <div className="bx-cluster-cover" style={{ backgroundColor: tone }}>
+              {storyCoverSrc(story) ? (
+                <img
+                  src={storyCoverSrc(story)}
+                  alt={story.title}
+                  loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                    const fallback = event.currentTarget.parentElement?.querySelector('.bx-img-fallback');
+                    if (fallback) fallback.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div className="bx-book-fallback bx-img-fallback" style={{ display: storyCoverSrc(story) ? 'none' : 'flex' }}>
+                {story.title}
+              </div>
+              {isPremium ? <span className="bx-cluster-pro">PRO</span> : null}
+              <div className="bx-cluster-meta">
+                <h5 className="bx-cluster-title">{story.title}</h5>
+                <p className="bx-cluster-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+                <span className="bx-cluster-views">👁 {Number(story.views || 0).toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderMixedStoryCards = (storiesList, sectionKey, tone, isPremium = false) => {
+    const items = buildMixedStoryItems(storiesList, sectionKey);
+    return items.map((item, idx) => {
+      if (item.type === 'cluster') {
+        return renderClusterStoryCard(item, idx, sectionKey, tone, isPremium);
+      }
+      return renderSingleStoryCard(item.story, idx, sectionKey, tone, isPremium);
+    });
+  };
+
+  return (
+    <main>
+      {/* ───────────────────────────────────────────────────
+          1. HERO SLIDER
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-hero">
+        <div
+          className="bx-hero-track"
+          style={{
+            transform: `translateX(-${currentSlide * 100}%)`,
+          }}
+        >
+          {heroSlides.map((slide, idx) => (
+            <div key={slide.id} className="bx-hero-slide" style={{ backgroundImage: slide.bg }}>
+              <div className="bx-hero-bg" style={{ backgroundImage: slide.bg }} />
+              <div className="bx-hero-content">
+                <span className="bx-hero-tag">{slide.tag}</span>
+                <h1 className="bx-hero-title" dangerouslySetInnerHTML={{ __html: slide.title }} />
+                <p className="bx-hero-desc">{slide.desc}</p>
+                <div className="bx-hero-actions">
+                  <button
+                    className="bx-hero-btn-read"
+                    onClick={() => {
+                      const targetStory = getHeroStoryByIndex(idx);
+                      const targetId = targetStory?.id || targetStory?._id;
+                      if (targetId) {
+                        router.push(`/story/${targetId}`);
+                      }
+                    }}
+                  >
+                    Start Reading
+                  </button>
+                  <button className="bx-hero-btn-list" onClick={handleHeroSaveToList}>
+                    {(() => {
+                      const activeStory = getActiveHeroStory();
+                      const storyId = activeStory?.id || activeStory?._id;
+                      const isSaved = storyId ? bookmarkedStoryIds.has(storyId) : false;
+                      return isSaved ? 'Saved' : 'Save to List';
+                    })()}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Hero Arrows */}
+        <button className="bx-hero-arrow prev" onClick={handlePrevSlide} aria-label="Previous slide">
+          ‹
+        </button>
+        <button className="bx-hero-arrow next" onClick={handleNextSlide} aria-label="Next slide">
+          ›
+        </button>
+
+        {/* Hero Dots */}
+        <div className="bx-hero-dots">
+          {heroSlides.map((_, idx) => (
+            <button
+              key={idx}
+              className={`bx-hero-dot ${idx === currentSlide ? 'active' : ''}`}
+              onClick={() => setCurrentSlide(idx)}
+              aria-label={`Go to slide ${idx + 1}`}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          2. RECOMMENDED FOR YOU
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <div>
+            <h2 className="bx-sec-title">Recommended for You</h2>
+            <p className="bx-sec-subtitle">
+              {recommendationMeta.reason}
+              {recommendationMeta.location_hint ? ` • ${recommendationMeta.location_hint}` : ''}
+            </p>
+          </div>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('recommended') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(recommendedRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('recommended', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-recommended" ref={recommendedRef}>
+            {renderMixedStoryCards(recommendedStories, 'recommended', '#3f7a6a')}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(recommendedRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('recommended', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          3. CONTINUE READING SECTION
+      ─────────────────────────────────────────────────── */}
+      {showContinueSection && (
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">Continue Reading</h2>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('continue') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(continueRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('continue', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-continue-scroll" ref={continueRef}>
+            {continueReading.map((story, idx) => (
+              (() => {
+                const progress = getDeterministicProgress(story, idx);
+                return (
+              <div
+                key={`continue-top-${idx}`}
+                className="bx-book-card bx-continue-card-flat"
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
+              >
+                <div className="bx-book-cover" style={{ backgroundColor: '#8B4513' }}>
+                  {story.cover_image || story.image ? (
+                    <img src={story.cover_image || story.image} alt={story.title} loading="eager" />
+                  ) : (
+                    <div className="bx-book-fallback" style={{ fontSize: '10px' }}>
+                      {story.title}
+                    </div>
+                  )}
+                </div>
+                <div className="bx-book-info">
+                  <h4 className="bx-book-title">{story.title}</h4>
+                  <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+                  <p className="bx-book-progress">Last read part: {story.chapter_id || 'Chapter 1'}</p>
+                  <p className="bx-book-progress">👁 {Number(story.views || 0).toLocaleString()}</p>
+                  <div className="bx-continue-progress-wrap">
+                    <div className="bx-continue-progress-bar">
+                      <div
+                        className="bx-continue-progress-fill"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <span className="bx-continue-progress-label">
+                      {progress}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+                );
+              })()
+            ))}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(continueRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('continue', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+      )}
+
+      {/* ───────────────────────────────────────────────────
+          5. POPULAR RIGHT NOW CAROUSEL
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">Reading lists from the community</h2>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('popular') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(popularRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('popular', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-popular" ref={popularRef}>
+            {renderMixedStoryCards(popularStories, 'popular', '#2F4F4F')}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(popularRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('popular', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          6. NEW RELEASES CAROUSEL
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">New Releases</h2>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('newReleases') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(newReleasesRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('newReleases', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-new" ref={newReleasesRef}>
+            {renderMixedStoryCards(newReleases, 'newReleases', '#663399')}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(newReleasesRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('newReleases', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          7. TRENDING THIS WEEK CAROUSEL
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">🔥 Trending This Week</h2>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('trending') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(trendingRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('trending', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-trending" ref={trendingRef}>
+            {renderMixedStoryCards(trendingStories, 'trending', '#DC143C')}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(trendingRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('trending', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">Romance Spotlight</h2>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('romance') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(romanceRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('romance', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-romance" ref={romanceRef}>
+            {renderMixedStoryCards(romanceStories, 'romance', '#cc4c8f')}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(romanceRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('romance', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">Mystery Vault</h2>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('mystery') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(mysteryRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('mystery', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-mystery" ref={mysteryRef}>
+            {renderMixedStoryCards(mysteryStories, 'mystery', '#4a4d89')}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(mysteryRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('mystery', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">Adventure Trails</h2>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('adventure') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(adventureRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('adventure', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-adventure" ref={adventureRef}>
+            {renderMixedStoryCards(adventureStories, 'adventure', '#2f8f9a')}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(adventureRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('adventure', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          9. SUBSCRIPTION STORIES SECTION
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <div className="bx-sub-banner">
+          <div>
+            <div className="bx-sub-banner-title">♛ Subscription Stories</div>
+            <p className="bx-sub-banner-desc">Unlock exclusive premium content & full access</p>
+          </div>
+          <button className="bx-sub-banner-btn" onClick={() => router.push('/auth/signup')}>
+            Upgrade
+          </button>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('subscription') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(subscriptionRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('subscription', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-subscription" ref={subscriptionRef}>
+            {renderMixedStoryCards(subscriptionStories, 'subscription', '#4169E1', true)}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(subscriptionRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('subscription', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          10. CONTINUE READING SECTION
+      ─────────────────────────────────────────────────── */}
+      {false && showContinueSection && (
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">Continue Reading</h2>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('continue') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(continueRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('continue', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-continue-scroll" ref={continueRef}>
+            {continueReading.map((story, idx) => (
+              (() => {
+                const progress = getDeterministicProgress(story, idx);
+                return (
+              <div
+                key={`continue-${idx}`}
+                className="bx-book-card bx-continue-card-flat"
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
+              >
+                <div className="bx-book-cover" style={{ backgroundColor: '#8B4513' }}>
+                  {story.cover_image || story.image ? (
+                    <img src={story.cover_image || story.image} alt={story.title} loading="eager" />
+                  ) : (
+                    <div className="bx-book-fallback" style={{ fontSize: '10px' }}>
+                      {story.title}
+                    </div>
+                  )}
+                </div>
+                <div className="bx-book-info">
+                  <h4 className="bx-book-title">{story.title}</h4>
+                  <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+                  <p className="bx-book-progress">Last read part: {story.chapter_id || 'Chapter 1'}</p>
+                  <p className="bx-book-progress">👁 {Number(story.views || 0).toLocaleString()}</p>
+                  <div className="bx-continue-progress-wrap">
+                    <div className="bx-continue-progress-bar">
+                      <div
+                        className="bx-continue-progress-fill"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                    <span className="bx-continue-progress-label">
+                      {progress}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+                );
+              })()
+            ))}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(continueRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('continue', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+      )}
+
+      {/* ───────────────────────────────────────────────────
+          11. MY READING LIST SECTION
+      ─────────────────────────────────────────────────── */}
+      {showReadingListSection && (
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">My Reading List</h2>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('readingList') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(readingListRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('readingList', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-readlist-scroll" ref={readingListRef}>
+            {readingList.map((story, idx) => (
+              (() => {
+                const followKey = `author-${story.author || idx}`;
+                return (
+              <div
+                key={`readlist-${idx}`}
+                className="bx-readlist-card"
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
+              >
+                <div className="bx-readlist-cover" style={{ backgroundColor: '#2F4F4F' }}>
+                  {story.image ? (
+                    <img src={story.image} alt={story.title} loading="eager" />
+                  ) : (
+                    <div className="bx-book-fallback">{story.title}</div>
+                  )}
+                </div>
+                <div className="bx-readlist-info">
+                  <h4 className="bx-readlist-title">{story.title}</h4>
+                  <p className="bx-readlist-meta">{story.author}</p>
+                  <p className="bx-readlist-meta">👁 {Number(story.views || 0).toLocaleString()}</p>
+                  <span className={`bx-readlist-status ${idx % 2 === 0 ? 'ongoing' : 'complete'}`}>
+                    {idx % 2 === 0 ? 'Ongoing' : 'Complete'}
+                  </span>
+                  <button
+                    className={`bx-readlist-follow ${followed.has(followKey) ? 'followed' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleGeek(followKey);
+                    }}
+                  >
+                    {followed.has(followKey) ? 'Geeking' : 'Geek'}
+                  </button>
+                </div>
+              </div>
+                );
+              })()
+            ))}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(readingListRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('readingList', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+      )}
+
+      {/* ───────────────────────────────────────────────────
+          12. TOP REVIEWS SECTION
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">⭐ Top Reviews</h2>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('reviews') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(reviewsRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('reviews', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-reviews-list" ref={reviewsRef}>
+            {MOCK_REVIEWS.map((review) => (
+              <div key={review.id} className="bx-review-card">
+                <div className="bx-review-top">
+                  <div
+                    className="bx-review-avatar"
+                    style={{ backgroundColor: review.bg }}
+                  >
+                    {review.avatar}
+                  </div>
+                  <div>
+                    <p className="bx-review-username">{review.user}</p>
+                    <p className="bx-review-book">
+                      on <span>{review.book}</span>
+                    </p>
+                  </div>
+                </div>
+                <div className="bx-review-stars">
+                  {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                </div>
+                <p className="bx-review-text">{review.text}</p>
+                <div className="bx-review-footer">
+                  <span className="bx-review-date">{review.date}</span>
+                  <button className="bx-review-helpful" onClick={() => setToast('Thanks for your feedback!')}>👍 Helpful</button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(reviewsRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('reviews', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          13. STATS SECTION (3 columns)
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-stats">
+        <div className="bx-stat">
+          <span className="bx-stat-icon">✦</span>
+          <span className="bx-stat-num">
+            <span>12M+</span>
+          </span>
+          <span className="bx-stat-label">Stories Published</span>
+        </div>
+        <div className="bx-stat">
+          <span className="bx-stat-icon">◉</span>
+          <span className="bx-stat-num">
+            <span>450K+</span>
+          </span>
+          <span className="bx-stat-label">Active Readers</span>
+        </div>
+        <div className="bx-stat">
+          <span className="bx-stat-icon">◆</span>
+          <span className="bx-stat-num">
+            <span>195</span>
+          </span>
+          <span className="bx-stat-label">Countries</span>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          14. BROWSE GENRES GRID
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">Browse Genres</h2>
+        </div>
+
+        <div className={`bx-carousel ${hasOverflow('genres') ? 'has-overflow' : 'no-overflow'}`}>
+          <button
+            className="bx-carousel-arrow left"
+            onClick={() => scrollCarousel(genresRef, 'left')}
+            aria-label="Scroll left"
+            disabled={isArrowDisabled('genres', 'left')}
+          >
+            ‹
+          </button>
+          <div className="bx-genres-row" ref={genresRef}>
+            {GENRES.map((genre) => (
+              <div
+                key={genre.name}
+                className="bx-genre-card"
+                style={{ backgroundColor: genre.bg }}
+                onClick={() => router.push(`/discover?genre=${encodeURIComponent(genre.name.toLowerCase())}`)}
+              >
+                <div className="bx-genre-overlay" />
+                <span className="bx-genre-icon">{genre.icon}</span>
+                <span className="bx-genre-name">{genre.name}</span>
+              </div>
+            ))}
+          </div>
+          <button
+            className="bx-carousel-arrow right"
+            onClick={() => scrollCarousel(genresRef, 'right')}
+            aria-label="Scroll right"
+            disabled={isArrowDisabled('genres', 'right')}
+          >
+            ›
+          </button>
+        </div>
+      </section>
+
+      {/* ───────────────────────────────────────────────────
+          15. CTA BANNER
+      ─────────────────────────────────────────────────── */}
+      <section className="bx-section bx-section-cta">
+        <div className="bx-cta-banner">
+          <h2 style={{ color: "#ffffff" }}>Your story deserves to be heard</h2>
+          <p style={{ color: "#ffffff" }}>
+            Join thousands of authors sharing their creative works with the world. Start writing today
+            and connect with millions of readers.
+          </p>
+          <div className="bx-cta-btns">
+            <button
+              className="bx-btn-primary"
+              onClick={() => router.push(readToken() ? '/write' : '/auth/signin?next=%2Fwrite')}
+              style={{
+                background: 'var(--gold)',
+                color: '#0d0d12',
+                padding: '11px 28px',
+              }}
+            >
+              Start Writing
+            </button>
+            <button
+              className="bx-btn-ghost"
+              onClick={() => router.push('/discover')}
+              style={{
+                border: '1px solid rgba(201,169,110,0.3)',
+                color: '#0d0d12',
+                padding: '11px 28px',
+              }}
+            >
+              Explore Stories
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {toast && (
+        <div className="bx-toast show">{toast}</div>
+      )}
+    </main>
+  );
+}

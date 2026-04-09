@@ -4061,31 +4061,37 @@ select.bx-select-control {
 .bx-cluster-card {
   flex: 0 0 var(--bx-cluster-basis);
   scroll-snap-align: start;
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
-  padding: 10px;
+  height: 286px;
+  border-radius: 12px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
 }
 
 .bx-cluster-grid {
   display: grid;
+  width: 100%;
+  height: 100%;
   gap: 8px;
 }
 
 .bx-cluster-four .bx-cluster-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
 }
 
 .bx-cluster-three .bx-cluster-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .bx-cluster-story {
+  position: relative;
   border-radius: 11px;
   overflow: hidden;
   border: 1px solid var(--border);
-  background: var(--surface);
+  background: #182033;
   cursor: pointer;
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
@@ -4098,7 +4104,7 @@ select.bx-select-control {
 .bx-cluster-cover {
   position: relative;
   width: 100%;
-  aspect-ratio: 2 / 3;
+  height: 100%;
   overflow: hidden;
   background: #324d65;
 }
@@ -4111,15 +4117,20 @@ select.bx-select-control {
 }
 
 .bx-cluster-meta {
-  padding: 7px 7px 8px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 7px 7px 6px;
+  background: linear-gradient(180deg, rgba(8, 11, 19, 0) 0%, rgba(8, 11, 19, 0.92) 58%, rgba(8, 11, 19, 0.98) 100%);
 }
 
 .bx-cluster-title {
   font-size: var(--bx-cluster-title-size);
   font-weight: 600;
   line-height: 1.2;
-  color: var(--text);
-  margin-bottom: 3px;
+  color: #eef2ff;
+  margin-bottom: 2px;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 1;
@@ -4128,8 +4139,8 @@ select.bx-select-control {
 
 .bx-cluster-author {
   font-size: var(--bx-cluster-author-size);
-  color: var(--muted);
-  margin-bottom: 2px;
+  color: rgba(224, 232, 255, 0.72);
+  margin-bottom: 1px;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 1;
@@ -4139,58 +4150,63 @@ select.bx-select-control {
 .bx-cluster-views {
   display: block;
   font-size: var(--bx-cluster-views-size);
-  color: var(--gold-light);
+  color: #f4d58f;
 }
 
 .bx-rail-recommended {
-  --bx-rail-gap: 16px;
-  --bx-single-basis: 162px;
-  --bx-cluster-basis: 382px;
+  --bx-rail-gap: 12px;
+  --bx-single-basis: 146px;
+  --bx-cluster-basis: 304px;
   --bx-cluster-title-size: 12px;
+  --bx-cluster-author-size: 9.5px;
+  --bx-cluster-views-size: 9.5px;
 }
 
 .bx-rail-popular {
-  --bx-rail-gap: 14px;
-  --bx-single-basis: 160px;
-  --bx-cluster-basis: 344px;
+  --bx-rail-gap: 12px;
+  --bx-single-basis: 148px;
+  --bx-cluster-basis: 316px;
+  --bx-cluster-title-size: 11.5px;
+  --bx-cluster-author-size: 9.5px;
+  --bx-cluster-views-size: 9.5px;
 }
 
 .bx-rail-new {
   --bx-rail-gap: 14px;
   --bx-single-basis: 160px;
-  --bx-cluster-basis: 344px;
+  --bx-cluster-basis: 330px;
   --bx-cluster-title-size: 11.5px;
 }
 
 .bx-rail-trending {
   --bx-rail-gap: 14px;
   --bx-single-basis: 160px;
-  --bx-cluster-basis: 346px;
+  --bx-cluster-basis: 332px;
 }
 
 .bx-rail-romance {
   --bx-rail-gap: 13px;
   --bx-single-basis: 166px;
-  --bx-cluster-basis: 332px;
+  --bx-cluster-basis: 324px;
   --bx-cluster-title-size: 11.5px;
 }
 
 .bx-rail-mystery {
   --bx-rail-gap: 13px;
   --bx-single-basis: 166px;
-  --bx-cluster-basis: 330px;
+  --bx-cluster-basis: 322px;
 }
 
 .bx-rail-adventure {
   --bx-rail-gap: 13px;
   --bx-single-basis: 166px;
-  --bx-cluster-basis: 332px;
+  --bx-cluster-basis: 324px;
 }
 
 .bx-rail-subscription {
   --bx-rail-gap: 13px;
   --bx-single-basis: 166px;
-  --bx-cluster-basis: 334px;
+  --bx-cluster-basis: 326px;
   --bx-cluster-title-size: 11.5px;
 }
 
@@ -4214,7 +4230,7 @@ select.bx-select-control {
 
   .bx-cluster-card {
     flex-basis: calc(var(--bx-cluster-basis) - 26px);
-    padding: 8px;
+    height: 268px;
   }
 
   .bx-cluster-grid {
@@ -4225,13 +4241,16 @@ select.bx-select-control {
 @media (max-width: 640px) {
   .bx-cluster-card {
     flex-basis: calc(var(--bx-cluster-basis) - 78px);
+    height: 226px;
   }
 
   .bx-cluster-four .bx-cluster-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
   }
 
   .bx-cluster-three .bx-cluster-grid {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
   }
 }

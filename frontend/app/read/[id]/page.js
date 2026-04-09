@@ -296,7 +296,7 @@ export default function ReadPage() {
 
   const currentChapter = chapters[chapterIndex];
   const canManageStory = !!(
-    currentUser && story && (currentUser.is_admin || currentUser.role === 'admin' || currentUser.id === story.author_id)
+    currentUser && story && currentUser.id === story.author_id
   );
 
   const handleTogglePublishStatus = async () => {

@@ -711,10 +711,10 @@ export default function Home() {
   const storyCoverSrc = (story) => story?.image || story?.cover_image || '';
 
   const MIXED_PATTERN_BY_SECTION = {
-    // 4-split dominant with occasional single card.
-    recommended: [4, 4, 1, 4, 4, 1, 4],
-    // Community-like rows: alternate 3-split then 4-split rhythm.
-    popular: [3, 4, 3, 4, 3, 4, 1],
+    // Top picks: repeating single + 4-split cluster.
+    recommended: [1, 4, 1, 4, 1, 4, 1, 4],
+    // Community row: repeating 3-split + 4-split cluster.
+    popular: [3, 4, 3, 4, 3, 4, 3, 4],
     newReleases: [3, 4, 3, 4, 1, 3, 4],
     trending: [3, 4, 3, 4, 3, 4, 1],
     // Bottom rails: mostly single cards, rare split clusters.
@@ -796,11 +796,11 @@ export default function Home() {
                 <div className="bx-book-fallback">{story.title}</div>
               )}
               {isPremium ? <span className="bx-cluster-pro">PRO</span> : null}
-            </div>
-            <div className="bx-cluster-meta">
-              <h5 className="bx-cluster-title">{story.title}</h5>
-              <p className="bx-cluster-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
-              <span className="bx-cluster-views">👁 {Number(story.views || 0).toLocaleString()}</span>
+              <div className="bx-cluster-meta">
+                <h5 className="bx-cluster-title">{story.title}</h5>
+                <p className="bx-cluster-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+                <span className="bx-cluster-views">👁 {Number(story.views || 0).toLocaleString()}</span>
+              </div>
             </div>
           </div>
         ))}
@@ -998,7 +998,7 @@ export default function Home() {
       ─────────────────────────────────────────────────── */}
       <section className="bx-section">
         <div className="bx-sec-header">
-          <h2 className="bx-sec-title">Popular Right Now</h2>
+          <h2 className="bx-sec-title">Reading lists from the community</h2>
         </div>
 
         <div className={`bx-carousel ${hasOverflow('popular') ? 'has-overflow' : 'no-overflow'}`}>

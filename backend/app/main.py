@@ -11,14 +11,50 @@ from app.core.config import get_settings
 from app.core.rate_limit import rate_limiter
 from app.db.mongodb import close_mongo_connection, connect_to_mongo
 from app.db.mongodb import db
+
+
+# Import seeders
+from app.db.seed_home_categories import ensure_home_category_seed
+import sys
+import os
 from app.services.email import check_smtp_connection
 
 settings = get_settings()
 
 
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     await connect_to_mongo()
+
+    # --- Auto-run async seeders ---
+    try:
+        # Ensure admin user exists (required for some seeders)
+        if db.database is not None:
+            admin = await db.database.users.find_one({"is_admin": True}, {"_id": 1})
+            if admin:
+                author_id = admin["_id"]
+                # Home categories (async)
+                await ensure_home_category_seed(db.database, author_id)
+            else:
+                print("[SEED] No admin user found. Skipping author-based seeding.")
+        else:
+            print("[SEED] Database not connected. Skipping seeding.")
+
+        # --- Run sync seed scripts as subprocesses ---
+        import subprocess
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        # Run seed_local.py
+        local_seed = os.path.join(backend_dir, "seed_local.py")
+        if os.path.exists(local_seed):
+            subprocess.run([sys.executable, local_seed], check=False)
+        # Run seed_random_content.py
+        random_seed = os.path.join(backend_dir, "seed_random_content.py")
+        if os.path.exists(random_seed):
+            subprocess.run([sys.executable, random_seed], check=False)
+    except Exception as e:
+        print(f"[SEED] Error running seed scripts: {e}")
+
     yield
     await close_mongo_connection()
 

@@ -357,12 +357,13 @@ async def ensure_dummy_stories(database: AsyncIOMotorDatabase, author_id: str) -
         }
         await database.stories.update_one({"_id": story_doc["_id"]}, {"$set": story_doc}, upsert=True)
 
+        chapter_title = story.get("chapter_title", story["title"])
         chapter_doc = {
             "_id": f"{story_doc['_id']}-chapter-1",
             "story_id": story_doc["_id"],
-            "title": story["chapter_title"],
+            "title": chapter_title,
             "content": story.get("chapter_content") or (
-                f"<h2>{story['chapter_title']}</h2>"
+                f"<h2>{chapter_title}</h2>"
                 f"<p>{story['description']}</p>"
                 "<p>The scene opens with tension already in the air. Every small detail matters, and the protagonist senses that today's choice will change the path ahead.</p>"
                 "<p>By the time the chapter closes, the promise of a larger mystery has fully taken shape.</p>"

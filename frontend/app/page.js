@@ -706,6 +706,118 @@ export default function Home() {
     }
   };
 
+  const getStoryIdentity = (story, idx, prefix) => `${prefix}-${story?.id || story?._id || `story-${idx}`}-${idx}`;
+
+  const storyCoverSrc = (story) => story?.image || story?.cover_image || '';
+
+  const MIXED_PATTERN_BY_SECTION = {
+    // 4-split dominant with occasional single card.
+    recommended: [4, 4, 1, 4, 4, 1, 4],
+    // Community-like rows: alternate 3-split then 4-split rhythm.
+    popular: [3, 4, 3, 4, 3, 4, 1],
+    newReleases: [3, 4, 3, 4, 1, 3, 4],
+    trending: [3, 4, 3, 4, 3, 4, 1],
+    // Bottom rails: mostly single cards, rare split clusters.
+    romance: [1, 1, 1, 4, 1, 1, 3, 1],
+    mystery: [1, 1, 1, 3, 1, 1, 4, 1],
+    adventure: [1, 1, 1, 4, 1, 1, 3, 1],
+    subscription: [1, 1, 1, 4, 1, 1, 3, 1],
+  };
+
+  const buildMixedStoryItems = (list, sectionKey = 'recommended') => {
+    const source = Array.isArray(list) ? list : [];
+    const pattern = MIXED_PATTERN_BY_SECTION[sectionKey] || MIXED_PATTERN_BY_SECTION.recommended;
+    const items = [];
+    let cursor = 0;
+    let patternIndex = 0;
+
+    while (cursor < source.length) {
+      const remaining = source.length - cursor;
+      const slot = pattern[patternIndex % pattern.length];
+      patternIndex += 1;
+
+      if (slot === 4 && remaining >= 4) {
+        items.push({ type: 'cluster', variant: 'four', stories: source.slice(cursor, cursor + 4) });
+        cursor += 4;
+        continue;
+      }
+
+      if (slot === 3 && remaining >= 3) {
+        items.push({ type: 'cluster', variant: 'three', stories: source.slice(cursor, cursor + 3) });
+        cursor += 3;
+        continue;
+      }
+
+      items.push({ type: 'single', story: source[cursor] });
+      cursor += 1;
+    }
+
+    return items;
+  };
+
+  const renderSingleStoryCard = (story, idx, prefix, tone, isPremium = false) => (
+    <div
+      key={getStoryIdentity(story, idx, `${prefix}-single`)}
+      className="bx-book-card bx-book-card-mixed"
+      onClick={() => router.push(`/story/${story.id || story._id}`)}
+    >
+      <div className="bx-book-cover" style={{ backgroundColor: tone }}>
+        {storyCoverSrc(story) ? (
+          <img src={storyCoverSrc(story)} alt={story.title} loading="lazy" />
+        ) : (
+          <div className="bx-book-fallback">{story.title}</div>
+        )}
+        {isPremium ? <span className="bx-book-sub-badge">PRO</span> : null}
+      </div>
+      <h4 className="bx-book-title">{story.title}</h4>
+      <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+      <div className="bx-book-meta bx-book-meta-rich">
+        <span>👁 {Number(story.views || 0).toLocaleString()}</span>
+      </div>
+    </div>
+  );
+
+  const renderClusterStoryCard = (item, itemIdx, prefix, tone, isPremium = false) => (
+    <div
+      key={`${prefix}-cluster-${item.variant}-${itemIdx}`}
+      className={`bx-cluster-card bx-cluster-${item.variant}`}
+    >
+      <div className="bx-cluster-grid">
+        {item.stories.map((story, storyIdx) => (
+          <div
+            key={getStoryIdentity(story, storyIdx, `${prefix}-cluster-item`)}
+            className="bx-cluster-story"
+            onClick={() => router.push(`/story/${story.id || story._id}`)}
+          >
+            <div className="bx-cluster-cover" style={{ backgroundColor: tone }}>
+              {storyCoverSrc(story) ? (
+                <img src={storyCoverSrc(story)} alt={story.title} loading="lazy" />
+              ) : (
+                <div className="bx-book-fallback">{story.title}</div>
+              )}
+              {isPremium ? <span className="bx-cluster-pro">PRO</span> : null}
+            </div>
+            <div className="bx-cluster-meta">
+              <h5 className="bx-cluster-title">{story.title}</h5>
+              <p className="bx-cluster-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
+              <span className="bx-cluster-views">👁 {Number(story.views || 0).toLocaleString()}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderMixedStoryCards = (storiesList, sectionKey, tone, isPremium = false) => {
+    const items = buildMixedStoryItems(storiesList, sectionKey);
+    return items.map((item, idx) => {
+      if (item.type === 'cluster') {
+        return renderClusterStoryCard(item, idx, sectionKey, tone, isPremium);
+      }
+      return renderSingleStoryCard(item.story, idx, sectionKey, tone, isPremium);
+    });
+  };
+
   return (
     <main>
       {/* ───────────────────────────────────────────────────
@@ -796,27 +908,8 @@ export default function Home() {
           >
             ‹
           </button>
-          <div className="bx-book-scroll" ref={recommendedRef}>
-            {recommendedStories.map((story, idx) => (
-              <div
-                key={`recommended-${story.id || story._id || 'story'}-${idx}`}
-                className="bx-book-card"
-                onClick={() => router.push(`/story/${story.id || story._id}`)}
-              >
-                <div className="bx-book-cover" style={{ backgroundColor: '#3f7a6a' }}>
-                  {story.image || story.cover_image ? (
-                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
-                  ) : (
-                    <div className="bx-book-fallback">{story.title}</div>
-                  )}
-                </div>
-                <h4 className="bx-book-title">{story.title}</h4>
-                <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
-                <div className="bx-book-meta bx-book-meta-rich">
-                  <span>👁 {Number(story.views || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-recommended" ref={recommendedRef}>
+            {renderMixedStoryCards(recommendedStories, 'recommended', '#3f7a6a')}
           </div>
           <button
             className="bx-carousel-arrow right"
@@ -917,27 +1010,8 @@ export default function Home() {
           >
             ‹
           </button>
-          <div className="bx-book-scroll" ref={popularRef}>
-            {popularStories.map((story, idx) => (
-              <div
-                key={`popular-${story.id || story._id || 'story'}-${idx}`}
-                className="bx-book-card"
-                onClick={() => router.push(`/story/${story.id || story._id}`)}
-              >
-                <div className="bx-book-cover" style={{ backgroundColor: '#2F4F4F' }}>
-                  {story.image ? (
-                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
-                  ) : (
-                    <div className="bx-book-fallback">{story.title}</div>
-                  )}
-                </div>
-                <h4 className="bx-book-title">{story.title}</h4>
-                <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
-                <div className="bx-book-meta bx-book-meta-rich">
-                  <span>👁 {Number(story.views || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-popular" ref={popularRef}>
+            {renderMixedStoryCards(popularStories, 'popular', '#2F4F4F')}
           </div>
           <button
             className="bx-carousel-arrow right"
@@ -967,27 +1041,8 @@ export default function Home() {
           >
             ‹
           </button>
-          <div className="bx-book-scroll" ref={newReleasesRef}>
-            {newReleases.map((story, idx) => (
-              <div
-                key={`new-${story.id || story._id || 'story'}-${idx}`}
-                className="bx-book-card"
-                onClick={() => router.push(`/story/${story.id || story._id}`)}
-              >
-                <div className="bx-book-cover" style={{ backgroundColor: '#663399' }}>
-                  {story.image ? (
-                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
-                  ) : (
-                    <div className="bx-book-fallback">{story.title}</div>
-                  )}
-                </div>
-                <h4 className="bx-book-title">{story.title}</h4>
-                <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
-                <div className="bx-book-meta bx-book-meta-rich">
-                  <span>👁 {Number(story.views || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-new" ref={newReleasesRef}>
+            {renderMixedStoryCards(newReleases, 'newReleases', '#663399')}
           </div>
           <button
             className="bx-carousel-arrow right"
@@ -1017,27 +1072,8 @@ export default function Home() {
           >
             ‹
           </button>
-          <div className="bx-book-scroll" ref={trendingRef}>
-            {trendingStories.map((story, idx) => (
-              <div
-                key={`trend-${story.id || story._id || 'story'}-${idx}`}
-                className="bx-book-card"
-                onClick={() => router.push(`/story/${story.id || story._id}`)}
-              >
-                <div className="bx-book-cover" style={{ backgroundColor: '#DC143C' }}>
-                  {story.image ? (
-                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
-                  ) : (
-                    <div className="bx-book-fallback">{story.title}</div>
-                  )}
-                </div>
-                <h4 className="bx-book-title">{story.title}</h4>
-                <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
-                <div className="bx-book-meta bx-book-meta-rich">
-                  <span>👁 {Number(story.views || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-trending" ref={trendingRef}>
+            {renderMixedStoryCards(trendingStories, 'trending', '#DC143C')}
           </div>
           <button
             className="bx-carousel-arrow right"
@@ -1064,27 +1100,8 @@ export default function Home() {
           >
             ‹
           </button>
-          <div className="bx-book-scroll" ref={romanceRef}>
-            {romanceStories.map((story, idx) => (
-              <div
-                key={`romance-${story.id || story._id || 'story'}-${idx}`}
-                className="bx-book-card"
-                onClick={() => router.push(`/story/${story.id || story._id}`)}
-              >
-                <div className="bx-book-cover" style={{ backgroundColor: '#cc4c8f' }}>
-                  {story.image ? (
-                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
-                  ) : (
-                    <div className="bx-book-fallback">{story.title}</div>
-                  )}
-                </div>
-                <h4 className="bx-book-title">{story.title}</h4>
-                <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
-                <div className="bx-book-meta bx-book-meta-rich">
-                  <span>👁 {Number(story.views || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-romance" ref={romanceRef}>
+            {renderMixedStoryCards(romanceStories, 'romance', '#cc4c8f')}
           </div>
           <button
             className="bx-carousel-arrow right"
@@ -1111,27 +1128,8 @@ export default function Home() {
           >
             ‹
           </button>
-          <div className="bx-book-scroll" ref={mysteryRef}>
-            {mysteryStories.map((story, idx) => (
-              <div
-                key={`mystery-${story.id || story._id || 'story'}-${idx}`}
-                className="bx-book-card"
-                onClick={() => router.push(`/story/${story.id || story._id}`)}
-              >
-                <div className="bx-book-cover" style={{ backgroundColor: '#4a4d89' }}>
-                  {story.image ? (
-                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
-                  ) : (
-                    <div className="bx-book-fallback">{story.title}</div>
-                  )}
-                </div>
-                <h4 className="bx-book-title">{story.title}</h4>
-                <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
-                <div className="bx-book-meta bx-book-meta-rich">
-                  <span>👁 {Number(story.views || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-mystery" ref={mysteryRef}>
+            {renderMixedStoryCards(mysteryStories, 'mystery', '#4a4d89')}
           </div>
           <button
             className="bx-carousel-arrow right"
@@ -1158,27 +1156,8 @@ export default function Home() {
           >
             ‹
           </button>
-          <div className="bx-book-scroll" ref={adventureRef}>
-            {adventureStories.map((story, idx) => (
-              <div
-                key={`adventure-${story.id || story._id || 'story'}-${idx}`}
-                className="bx-book-card"
-                onClick={() => router.push(`/story/${story.id || story._id}`)}
-              >
-                <div className="bx-book-cover" style={{ backgroundColor: '#2f8f9a' }}>
-                  {story.image ? (
-                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
-                  ) : (
-                    <div className="bx-book-fallback">{story.title}</div>
-                  )}
-                </div>
-                <h4 className="bx-book-title">{story.title}</h4>
-                <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
-                <div className="bx-book-meta bx-book-meta-rich">
-                  <span>👁 {Number(story.views || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-adventure" ref={adventureRef}>
+            {renderMixedStoryCards(adventureStories, 'adventure', '#2f8f9a')}
           </div>
           <button
             className="bx-carousel-arrow right"
@@ -1214,31 +1193,8 @@ export default function Home() {
           >
             ‹
           </button>
-          <div className="bx-book-scroll" ref={subscriptionRef}>
-            {subscriptionStories.map((story, idx) => (
-              <div
-                key={`sub-${story.id}-${idx}`}
-                className="bx-book-card"
-                onClick={() => router.push(`/story/${story.id || story._id}`)}
-              >
-                <div className="bx-book-cover" style={{ backgroundColor: '#4169E1' }}>
-                  <span className="bx-book-sub-badge">PRO</span>
-                  {story.image ? (
-                    <img src={story.image || story.cover_image} alt={story.title} loading="lazy" />
-                  ) : (
-                    <div className="bx-book-fallback">{story.title}</div>
-                  )}
-                  <div className="bx-book-locked">
-                    <span className="bx-book-locked-icon">🔒</span>
-                  </div>
-                </div>
-                <h4 className="bx-book-title">{story.title}</h4>
-                <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
-                <div className="bx-book-meta bx-book-meta-rich">
-                  <span>👁 {Number(story.views || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-subscription" ref={subscriptionRef}>
+            {renderMixedStoryCards(subscriptionStories, 'subscription', '#4169E1', true)}
           </div>
           <button
             className="bx-carousel-arrow right"

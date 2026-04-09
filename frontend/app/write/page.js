@@ -5,6 +5,16 @@ import { apiRequest, apiUpload, readToken } from '@/lib/api';
 
 const GENRES = ['Fantasy','Romance','Mystery','Sci-Fi','Horror','Adventure','Drama','Teen Fiction','Fan Fiction','Poetry','Non-Fiction'];
 const STATUS_OPTS = ['Draft','Published'];
+const EMPTY_STORY = {
+  title: '',
+  description: '',
+  genre: 'Fantasy',
+  status: 'Draft',
+  tags: '',
+  cover_image: '',
+  is_premium: false,
+  premium_price: '',
+};
 
 function WritePageContent() {
   const router = useRouter();
@@ -16,14 +26,7 @@ function WritePageContent() {
   const [content, setContent] = useState('');
   const [chapterTitle, setChapterTitle] = useState('Chapter 1');
   const [story, setStory] = useState({
-    title: '',
-    description: '',
-    genre: 'Fantasy',
-    status: 'Draft',
-    tags: '',
-    cover_image: '',
-    is_premium: false,
-    premium_price: '',
+    ...EMPTY_STORY,
   });
   const [tab, setTab] = useState('write');
   const [saving, setSaving] = useState(false);
@@ -32,6 +35,17 @@ function WritePageContent() {
   const editorRef = useRef(null);
 
   const activeChapter = chapters[activeChIdx];
+
+  const toEditorStory = (item) => ({
+    title: item?.title || '',
+    description: item?.description || '',
+    genre: (item?.categories || [])[0] || 'Fantasy',
+    status: item?.status === 'draft' ? 'Draft' : 'Published',
+    tags: Array.isArray(item?.tags) ? item.tags.join(', ') : '',
+    cover_image: item?.cover_image || '',
+    is_premium: !!item?.is_premium,
+    premium_price: item?.premium_price ?? '',
+  });
 
   const plainTextFromHtml = (html) =>
     String(html || '')
@@ -50,6 +64,21 @@ function WritePageContent() {
     setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 2500);
   };
 
+  const resetToNewStory = () => {
+    setStoryId('');
+    setStory({ ...EMPTY_STORY });
+    setChapters([]);
+    setActiveChIdx(0);
+    setChapterTitle('Chapter 1');
+    setContent('');
+    setWordCount(0);
+    setSaved(true);
+
+    if (searchParams.get('storyId')) {
+      router.replace('/write');
+    }
+  };
+
   async function loadStories() {
     const mine = await apiRequest('/stories/mine').catch(() => []);
     const items = Array.isArray(mine) ? mine : [];
@@ -60,33 +89,13 @@ function WritePageContent() {
       if (target) {
         const targetId = target.id || target._id || '';
         setStoryId(targetId);
-        setStory({
-          title: target.title || '',
-          description: target.description || '',
-          genre: (target.categories || [])[0] || 'Fantasy',
-          status: target.status === 'draft' ? 'Draft' : 'Published',
-          tags: Array.isArray(target.tags) ? target.tags.join(', ') : '',
-          cover_image: target.cover_image || '',
-          is_premium: !!target.is_premium,
-          premium_price: target.premium_price ?? '',
-        });
+        setStory(toEditorStory(target));
         return;
       }
     }
-    if (!storyId && items.length) {
-      const first = items[0];
-      setStoryId(first.id || first._id || '');
-      setStory({
-        title: first.title || '',
-        description: first.description || '',
-        genre: (first.categories || [])[0] || 'Fantasy',
-        status: first.status === 'draft' ? 'Draft' : 'Published',
-        tags: Array.isArray(first.tags) ? first.tags.join(', ') : '',
-        cover_image: first.cover_image || '',
-        is_premium: !!first.is_premium,
-        premium_price: first.premium_price ?? '',
-      });
-    }
+    // Default /write should start a fresh story unless a specific storyId is requested.
+    setStoryId('');
+    setStory({ ...EMPTY_STORY });
   }
 
   async function loadChapters(selectedStoryId) {
@@ -130,6 +139,17 @@ function WritePageContent() {
   useEffect(() => {
     loadChapters(storyId).catch(() => {});
   }, [storyId]);
+
+  useEffect(() => {
+    if (!storyId) {
+      setStory({ ...EMPTY_STORY });
+      return;
+    }
+    const selected = stories.find((item) => String(item.id || item._id) === String(storyId));
+    if (selected) {
+      setStory(toEditorStory(selected));
+    }
+  }, [storyId, stories]);
 
   useEffect(() => {
     const plainText = plainTextFromHtml(content);
@@ -293,7 +313,18 @@ function WritePageContent() {
             </div>
           </div>
 
-          <select value={storyId} onChange={(e) => setStoryId(e.target.value)} className="bx-auth-input" style={{fontSize:'12px',padding:'7px 10px',marginBottom:'8px'}}>
+          <select
+            value={storyId}
+            onChange={(e) => {
+              const nextId = e.target.value;
+              setStoryId(nextId);
+              if (!nextId) {
+                setStory({ ...EMPTY_STORY });
+              }
+            }}
+            className="bx-auth-input"
+            style={{fontSize:'12px',padding:'7px 10px',marginBottom:'8px'}}
+          >
             <option value="">New Story</option>
             {stories.map((s) => <option key={s.id || s._id} value={s.id || s._id}>{s.title}</option>)}
           </select>
@@ -331,6 +362,14 @@ function WritePageContent() {
           )}
 
           <div style={{display:'flex',gap:'8px',alignItems:'center',marginLeft:'auto',flexShrink:0}}>
+            <button
+              className="bx-btn-ghost"
+              style={{padding:'6px 14px',fontSize:'13px'}}
+              onClick={resetToNewStory}
+              type="button"
+            >
+              + New Story
+            </button>
             <span style={{fontSize:'12px',color:'var(--muted)',opacity:saving?1:saved?0.6:1}}>{saving ? 'Saving...' : saved ? 'Saved' : 'Unsaved'}</span>
             <button className="bx-btn-ghost" style={{padding:'6px 14px',fontSize:'13px',borderColor:'var(--teal)',color:'var(--teal)'}} onClick={publishStory}>Publish</button>
             <button className="bx-btn-primary" style={{padding:'7px 16px',fontSize:'13px'}} onClick={() => handleSave(false)}>Save</button>

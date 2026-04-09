@@ -575,19 +575,22 @@ export default function StoryDemoPage() {
 
       <section className="below-section">
         <div className="below-wrap">
-          <div className="section-head">
-            <div className="section-copy">
-              <h2>{selectedSeriesTag ? `📚 The ${selectedSeriesTag} Series` : '📚 Story Series'}</h2>
-              <p>Stories connected by this theme</p>
-            </div>
-            <button type="button" onClick={() => router.push('/discover')}>View all →</button>
-          </div>
-          <div className="bx-carousel no-overflow story-home-row series-home-row">
-            <div className="bx-book-scroll">
-            {seriesStories.map((item, idx) => renderStoryCard(item, idx, 'series'))}
-            </div>
-            {!seriesStories.length && <p className="empty-note">No series stories found for this tag yet.</p>}
-          </div>
+          {seriesStories.length > 0 && (
+            <>
+              <div className="section-head">
+                <div className="section-copy">
+                  <h2>{selectedSeriesTag ? `📚 The ${selectedSeriesTag} Series` : '📚 Story Series'}</h2>
+                  <p>Stories connected by this theme</p>
+                </div>
+                <button type="button" onClick={() => router.push('/discover')}>View all →</button>
+              </div>
+              <div className="bx-carousel no-overflow story-home-row series-home-row">
+                <div className="bx-book-scroll">
+                {seriesStories.map((item, idx) => renderStoryCard(item, idx, 'series'))}
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="section-head" style={{ marginTop: 26 }}>
             <div className="section-copy">

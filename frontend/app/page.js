@@ -4,12 +4,213 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiRequest, fetchSiteSettings, readToken } from '@/lib/api';
-import { MOCK_REVIEWS, GENRES } from '@/lib/mockData';
-import StoryCard from '@/components/StoryCard';
 
+/* ═══════════════════════════════════════════════════════
+   MOCK DATA & CONSTANTS
+═══════════════════════════════════════════════════════ */
 
+const HERO_SLIDES = [
+  {
+    id: 1,
+    tag: '⭐ Featured',
+    title: 'The Chronicles of <em>Aeloria</em>',
+    desc: 'A sweeping fantasy epic spanning continents, with intricate magic systems and unforgettable characters.',
+    bg: 'linear-gradient(135deg, #1a0a0a 0%, #2a0a0a 50%, #1a0a2e 100%)',
+  },
+  {
+    id: 2,
+    tag: '🔥 Trending',
+    title: 'Whispers in the <em>Shadows</em>',
+    desc: 'A thrilling paranormal mystery that blurs the line between reality and the supernatural.',
+    bg: 'linear-gradient(135deg, #0a1a2e 0%, #16213e 50%, #0f3460 100%)',
+  },
+  {
+    id: 3,
+    tag: '💕 Romance',
+    title: 'Hearts <em>Entwined</em>',
+    desc: 'An intimate love story that transcends time and challenges everything they believe in.',
+    bg: 'linear-gradient(135deg, #2e0a1a 0%, #3e0a1a 50%, #2e1a2e 100%)',
+  },
+  {
+    id: 4,
+    tag: '🚀 Sci-Fi',
+    title: 'Beyond the <em>Stars</em>',
+    desc: 'Humanity\'s struggle for survival in a vast and hostile universe awaits discovery.',
+    bg: 'linear-gradient(135deg, #0a1a2e 0%, #1a3a4e 50%, #0a2a4e 100%)',
+  },
+];
 
+const GENRES = [
+  { name: 'Fantasy', icon: '🧙', bg: '#1a0a2e' },
+  { name: 'Romance', icon: '💕', bg: '#2e0a1a' },
+  { name: 'Paranormal', icon: '👻', bg: '#0a2a2e' },
+  { name: 'Thriller', icon: '⚡', bg: '#2e2a0a' },
+  { name: 'Sci-Fi', icon: '🚀', bg: '#0a1a2e' },
+  { name: 'Mystery', icon: '🔍', bg: '#1a0a1a' },
+  { name: 'Drama', icon: '🎭', bg: '#2a1a0a' },
+  { name: 'Adventure', icon: '🗺️', bg: '#0a2a1a' },
+  { name: 'Comedy', icon: '😄', bg: '#2a0a2a' },
+];
 
+const MOCK_STORIES = [
+  {
+    id: 1,
+    title: 'The Lost Kingdom',
+    author: 'Elena Rose',
+    genre: 'Fantasy',
+    rating: 4.8,
+    reviews: 2341,
+    image: 'https://picsum.photos/seed/wingsaga-1/320/480',
+    badge: 'New',
+  },
+  {
+    id: 2,
+    title: 'Midnight Echoes',
+    author: 'Marcus Stone',
+    genre: 'Thriller',
+    rating: 4.6,
+    reviews: 1892,
+    image: 'https://picsum.photos/seed/wingsaga-2/320/480',
+    badge: null,
+  },
+  {
+    id: 3,
+    title: 'Love in the Time of Stars',
+    author: 'Aurora Sky',
+    genre: 'Romance',
+    rating: 4.9,
+    reviews: 3124,
+    image: 'https://picsum.photos/seed/wingsaga-3/320/480',
+    badge: null,
+  },
+  {
+    id: 4,
+    title: 'The Ghost Protocol',
+    author: 'Blake Morgan',
+    genre: 'Paranormal',
+    rating: 4.5,
+    reviews: 1456,
+    image: 'https://picsum.photos/seed/wingsaga-4/320/480',
+    badge: 'Trending',
+  },
+  {
+    id: 5,
+    title: 'Nexus Prime',
+    author: 'Dr. Kepler',
+    genre: 'Sci-Fi',
+    rating: 4.7,
+    reviews: 2108,
+    image: 'https://picsum.photos/seed/wingsaga-5/320/480',
+    badge: null,
+  },
+  {
+    id: 6,
+    title: 'When Autumn Falls',
+    author: 'James Chen',
+    genre: 'Drama',
+    rating: 4.4,
+    reviews: 987,
+    image: 'https://picsum.photos/seed/wingsaga-6/320/480',
+    badge: null,
+  },
+  {
+    id: 7,
+    title: 'Ashes of the Crown',
+    author: 'Mina Vale',
+    genre: 'Fantasy',
+    rating: 4.7,
+    reviews: 1743,
+    image: 'https://picsum.photos/seed/wingsaga-7/320/480',
+    badge: 'Trending',
+  },
+  {
+    id: 8,
+    title: 'Silent Meridian',
+    author: 'Noah Rivera',
+    genre: 'Sci-Fi',
+    rating: 4.6,
+    reviews: 1598,
+    image: 'https://picsum.photos/seed/wingsaga-8/320/480',
+    badge: 'New',
+  },
+  {
+    id: 9,
+    title: 'Velvet Storm',
+    author: 'Iris Lane',
+    genre: 'Romance',
+    rating: 4.9,
+    reviews: 2810,
+    image: 'https://picsum.photos/seed/wingsaga-9/320/480',
+    badge: null,
+  },
+  {
+    id: 10,
+    title: 'The Ninth Corridor',
+    author: 'Reed Hawkins',
+    genre: 'Mystery',
+    rating: 4.5,
+    reviews: 1322,
+    image: 'https://picsum.photos/seed/wingsaga-10/320/480',
+    badge: null,
+  },
+  {
+    id: 11,
+    title: 'Neon Hollow',
+    author: 'Aria Winters',
+    genre: 'Thriller',
+    rating: 4.4,
+    reviews: 1104,
+    image: 'https://picsum.photos/seed/wingsaga-11/320/480',
+    badge: 'Trending',
+  },
+  {
+    id: 12,
+    title: 'The Last Orchard',
+    author: 'Ruth Everly',
+    genre: 'Drama',
+    rating: 4.7,
+    reviews: 1689,
+    image: 'https://picsum.photos/seed/wingsaga-12/320/480',
+    badge: null,
+  },
+];
+
+const MOCK_REVIEWS = [
+  {
+    id: 1,
+    user: 'Sophie L.',
+    book: 'The Lost Kingdom',
+    rating: 5,
+    text: '"A masterpiece! The world-building is incredible and I couldn\'t put it down. Elena Rose is a genius."',
+    date: '2 weeks ago',
+    avatar: 'SL',
+    bg: '#E91E63',
+  },
+  {
+    id: 2,
+    user: 'Thomas K.',
+    book: 'Midnight Echoes',
+    rating: 4,
+    text: '"Gripping from start to finish. The twist at the end completely blindsided me. Highly recommend!"',
+    date: '1 week ago',
+    avatar: 'TK',
+    bg: '#2196F3',
+  },
+  {
+    id: 3,
+    user: 'Maya P.',
+    book: 'Love in the Time of Stars',
+    rating: 5,
+    text: '"The most beautiful love story I\'ve read in years. Aurora captured my heart completely. Perfection!"',
+    date: '3 days ago',
+    avatar: 'MP',
+    bg: '#FF69B4',
+  },
+];
+
+/* ═══════════════════════════════════════════════════════
+   CUSTOM HOOKS & UTILITIES
+═══════════════════════════════════════════════════════ */
 
 function useDragScroll(ref) {
   const [isDragging, setIsDragging] = useState(false);
@@ -107,40 +308,8 @@ function dedupeStoriesById(list) {
 /* ═══════════════════════════════════════════════════════
    MAIN COMPONENT
 ═══════════════════════════════════════════════════════ */
-// --- HERO SLIDES FALLBACK ---
-const HERO_SLIDES = [
-  {
-    id: 1,
-    tag: '⭐ Recommended',
-    title: 'Discover new stories',
-    desc: 'Explore trending, new releases, and more from the Wingsaga community.',
-    bg: 'linear-gradient(135deg, #0a1a2e 0%, #1a0a2e 50%, #2e0a2e 100%)',
-  },
-  {
-    id: 2,
-    tag: '🔥 Trending',
-    title: 'See what’s hot',
-    desc: 'Check out the most popular stories right now.',
-    bg: 'linear-gradient(135deg, #2e0a1a 0%, #1a0a2e 100%)',
-  },
-  {
-    id: 3,
-    tag: '📚 New Release',
-    title: 'Fresh reads',
-    desc: 'Browse the latest stories added by our authors.',
-    bg: 'linear-gradient(135deg, #1a0a2e 0%, #2e0a1a 100%)',
-  },
-  {
-    id: 4,
-    tag: '✨ Featured',
-    title: 'Editor’s picks',
-    desc: 'Handpicked stories just for you.',
-    bg: 'linear-gradient(135deg, #0a1a2e 0%, #2e0a1a 100%)',
-  },
-];
 
 export default function Home() {
-    // adventureStories will be defined later in the render scope before use
   const router = useRouter();
   const isLoggedIn = Boolean(readToken());
 
@@ -312,124 +481,6 @@ export default function Home() {
     loadData();
   }, []);
 
-  // --- CATEGORY FILTER HELPERS ---
-  function filterStoriesByCategory(cat) {
-    return stories.filter(
-      (s) =>
-        (Array.isArray(s.categories) && s.categories.map((c) => String(c).toLowerCase()).includes(cat.toLowerCase())) ||
-        String(s.genre || '').toLowerCase() === cat.toLowerCase()
-    );
-  }
-
-  // --- SECTION RENDER HELPERS ---
-  function SectionHeader({ title }) {
-    return (
-      <div className="bx-section-header">
-        <h2 className="bx-section-title">{title}</h2>
-      </div>
-    );
-  }
-
-  // --- MAIN RENDER ---
-  // --- DATA FOR SECTIONS ---
-  const recommendedStories = dedupeStoriesById(recommended.length > 0 ? recommended : stories).slice(0, 12);
-  const continueStories = continueHistory.slice(0, 12);
-  const communityLists = [
-    {
-      title: 'LGBTQIAP+ Fanfics', icon: '🏳️‍🌈', genre: 'Fanfic', stories: filterStoriesByCategory('Fanfic').slice(0, 6)
-    },
-    {
-      title: 'Action Romance', icon: '⚔️', genre: 'Action', stories: filterStoriesByCategory('Action').slice(0, 6)
-    },
-    {
-      title: 'Billionaires', icon: '💰', genre: 'Romance', stories: filterStoriesByCategory('Romance').slice(0, 6)
-    },
-    {
-      title: 'Fanfic Spotlight', icon: '🌟', genre: 'Fanfic', stories: filterStoriesByCategory('Fanfic').slice(6, 12)
-    },
-    {
-      title: 'High Drama', icon: '🎭', genre: 'Chicklit', stories: filterStoriesByCategory('Chicklit').slice(0, 6)
-    },
-  ];
-  const extraCategories = ['Mystery', 'Drama', 'Sci-Fi', 'Thriller', 'Historical'];
-
-  // --- MAIN RETURN ---
-  return (
-    <main>
-      {/* Recommended for You */}
-      <section className="bx-section">
-        <SectionHeader title="Recommended for You" />
-        <div className="bx-carousel-row" ref={recommendedRef}>
-          {recommendedStories.map((story, idx) => (
-            <StoryCard key={story._id || idx} story={story} index={idx} />
-          ))}
-        </div>
-      </section>
-
-      {/* Continue Reading */}
-      {isLoggedIn && continueStories.length > 0 && (
-        <section className="bx-section">
-          <SectionHeader title="Continue Reading" />
-          <div className="bx-carousel-row" ref={continueRef}>
-            {continueStories.map((story, idx) => (
-              <StoryCard key={story._id || idx} story={story} index={idx} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Reading Lists from the Community */}
-      <section className="bx-section">
-        <SectionHeader title="Reading lists from the community" />
-        <div className="bx-community-lists-row" ref={readingListRef}>
-          {communityLists.map((list, idx) => (
-            <div className="bx-community-list" key={list.title}>
-              <div className="bx-community-list-header">
-                <span className="bx-community-list-icon">{list.icon}</span>
-                <span className="bx-community-list-title">{list.title}</span>
-                <span className="bx-community-list-genre">{list.genre}</span>
-              </div>
-              <div className="bx-community-list-cards">
-                {list.stories.map((story, sidx) => (
-                  <StoryCard key={story._id || sidx} story={story} index={sidx} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Adventure Trails */}
-
-
-      {/* Extra 5 Categories */}
-      {extraCategories.map((cat) => {
-        const catStories = filterStoriesByCategory(cat).slice(0, 12);
-        if (!catStories.length) return null;
-        return (
-          <section className="bx-section" key={cat}>
-            <SectionHeader title={cat + ' Stories'} />
-            <div className="bx-carousel-row" ref={genresRef}>
-              {catStories.map((story, idx) => (
-                <StoryCard key={story._id || idx} story={story} index={idx} />
-              ))}
-            </div>
-          </section>
-        );
-      })}
-
-      {/* See More for Newest Stories (at the end) */}
-      <section className="bx-section">
-        <SectionHeader title="Newest Stories" />
-        <div className="bx-carousel-row" ref={newReleasesRef}>
-          {stories.slice(0, 12).map((story, idx) => (
-            <StoryCard key={story._id || idx} story={story} index={idx} />
-          ))}
-        </div>
-      </section>
-    </main>
-  );
-
   // REAL-TIME POLLING FOR CONTINUE READING UPDATES
   useEffect(() => {
     const token = readToken();
@@ -540,16 +591,7 @@ export default function Home() {
   }, []);
 
   const allStories = stories;
-
   const displayStories = allStories;
-
-  // Adventure stories section (must be after displayStories is defined)
-  const adventureStories = dedupeStoriesById(
-    displayStories.filter((item) =>
-      String(item?.genre || '').toLowerCase().includes('adventure') ||
-      (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('adventure')))
-    )
-  ).slice(0, 12);
 
   const byViewsDesc = [...displayStories].sort((a, b) => Number(b?.views || 0) - Number(a?.views || 0));
   const byLikesDesc = [...displayStories].sort((a, b) => Number(b?.likes || 0) - Number(a?.likes || 0));
@@ -562,7 +604,7 @@ export default function Home() {
   // DATA FOR SECTIONS
   const continueReading = continueHistory;
   const readingList = continueHistory.slice(0, 4);
-  // const recommendedStories = dedupeStoriesById(recommended.length > 0 ? recommended : displayStories).slice(0, 12); // Removed duplicate
+  const recommendedStories = dedupeStoriesById(recommended.length > 0 ? recommended : displayStories).slice(0, 12);
   const popularStories = dedupeStoriesById(byViewsDesc).slice(0, 12);
   const newReleases = dedupeStoriesById(byCreatedDesc).slice(0, 12);
   const trendingStories = dedupeStoriesById(byLikesDesc).slice(0, 12);
@@ -575,10 +617,10 @@ export default function Home() {
     String(item?.genre || '').toLowerCase().includes('mystery')
     || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('mystery')))
   )).slice(0, 12);
-  // const adventureStories = dedupeStoriesById(displayStories.filter((item) =>
-  //   String(item?.genre || '').toLowerCase().includes('adventure')
-  //   || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('adventure')))
-  // )).slice(0, 12); // Removed duplicate
+  const adventureStories = dedupeStoriesById(displayStories.filter((item) =>
+    String(item?.genre || '').toLowerCase().includes('adventure')
+    || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('adventure')))
+  )).slice(0, 12);
 
   const heroSlides = displayStories.length
     ? displayStories.slice(0, 4).map((item, idx) => ({

@@ -1,60 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useRef } from 'react';
-// Social share icons SVGs
-const SOCIAL_ICONS = {
-  embed: <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 18l-6-6 6-6M16 6l6 6-6 6" stroke="currentColor" strokeWidth="2" fill="none"/></svg>,
-  whatsapp: <svg viewBox="0 0 24 24" width="22" height="22"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.472-.148-.67.15-.198.297-.767.967-.94 1.166-.173.198-.347.223-.644.075-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.372-.025-.52-.075-.149-.669-1.611-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.372-.01-.571-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.099 3.2 5.077 4.363.71.306 1.263.489 1.694.626.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.288.173-1.413-.074-.124-.272-.198-.57-.347z" fill="#25D366"/><circle cx="12" cy="12" r="10" stroke="#25D366" strokeWidth="2" fill="none"/></svg>,
-  facebook: <svg viewBox="0 0 24 24" width="22" height="22"><path d="M17 2.1A9 9 0 1 0 21 12c0-4.97-4.03-9-9-9zm-1 16.9V12h2.5l.5-2H16V8.5c0-.6.2-1 .9-1H18V5.1c-.2 0-.9-.1-1.7-.1-2 0-3.3 1.2-3.3 3.4V10H10v2h2v6.9z" fill="#1877F3"/></svg>,
-  x: <svg viewBox="0 0 24 24" width="22" height="22"><path d="M17.53 6.47a.75.75 0 0 0-1.06 0L12 10.94 7.53 6.47a.75.75 0 0 0-1.06 1.06L10.94 12l-4.47 4.47a.75.75 0 1 0 1.06 1.06L12 13.06l4.47 4.47a.75.75 0 0 0 1.06-1.06L13.06 12l4.47-4.47a.75.75 0 0 0 0-1.06z" fill="#000"/></svg>,
-  email: <svg viewBox="0 0 24 24" width="22" height="22"><path d="M4 4h16v16H4z" fill="#fff"/><path d="M4 4l8 8 8-8" stroke="#000" strokeWidth="2" fill="none"/></svg>,
-  pinterest: <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="10" fill="#E60023"/><path d="M12 7a5 5 0 0 0-1 9.9c-.14-.12-.27-.26-.37-.42-.1-.16-.18-.34-.23-.53-.05-.19-.07-.39-.07-.59 0-.2.02-.4.07-.59.05-.19.13-.37.23-.53.1-.16.23-.3.37-.42A5 5 0 1 1 12 7z" fill="#fff"/></svg>,
-  linkedin: <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="10" fill="#0077B5"/><rect x="7" y="10" width="2" height="7" fill="#fff"/><rect x="11" y="10" width="2" height="7" fill="#fff"/><rect x="15" y="10" width="2" height="7" fill="#fff"/></svg>,
-  reddit: <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="10" fill="#FF4500"/><circle cx="8.5" cy="13.5" r="1.5" fill="#fff"/><circle cx="15.5" cy="13.5" r="1.5" fill="#fff"/><ellipse cx="12" cy="16" rx="4" ry="2" fill="#fff"/></svg>,
-  copy: <svg viewBox="0 0 24 24" width="22" height="22"><rect x="9" y="9" width="13" height="13" rx="2" fill="#eee" stroke="#888" strokeWidth="2"/><rect x="2" y="2" width="13" height="13" rx="2" fill="#fff" stroke="#888" strokeWidth="2"/></svg>,
-};
-function SharePopup({ open, onClose, url }) {
-  const popupRef = useRef();
-  useEffect(() => {
-    function handleClick(e) {
-      if (popupRef.current && !popupRef.current.contains(e.target)) {
-        onClose();
-      }
-    }
-    if (open) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [open, onClose]);
-
-  function handleCopy() {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url);
-    }
-  }
-
-  if (!open) return null;
-  return (
-    <div className="share-popup-overlay">
-      <div className="share-popup" ref={popupRef}>
-        <div className="share-popup-title">Share this story</div>
-        <div className="share-popup-row">
-          <button className="share-icon" title="Embed">{SOCIAL_ICONS.embed}</button>
-          <button className="share-icon" title="WhatsApp">{SOCIAL_ICONS.whatsapp}</button>
-          <button className="share-icon" title="Facebook">{SOCIAL_ICONS.facebook}</button>
-          <button className="share-icon" title="X (Twitter)">{SOCIAL_ICONS.x}</button>
-          <button className="share-icon" title="Email">{SOCIAL_ICONS.email}</button>
-          <button className="share-icon" title="Pinterest">{SOCIAL_ICONS.pinterest}</button>
-          <button className="share-icon" title="LinkedIn">{SOCIAL_ICONS.linkedin}</button>
-          <button className="share-icon" title="Reddit">{SOCIAL_ICONS.reddit}</button>
-        </div>
-        <div className="share-popup-link-row">
-          <input className="share-link-input" value={url} readOnly />
-          <button className="share-icon" title="Copy link" onClick={handleCopy}>{SOCIAL_ICONS.copy}</button>
-        </div>
-        <button className="share-popup-close" onClick={onClose}>×</button>
-      </div>
-    </div>
-  );
-}
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { apiRequest, readToken } from '@/lib/api';
 
@@ -79,17 +25,6 @@ function renderTagClass(tag) {
 }
 
 export default function StoryDemoPage() {
-    const [shareOpen, setShareOpen] = useState(false);
-    const [currentUserId, setCurrentUserId] = useState(null);
-
-    // Get current user id for author check
-    useEffect(() => {
-      const token = readToken();
-      if (!token) return;
-      apiRequest('/auth/me', { token })
-        .then((me) => setCurrentUserId(me?.id || me?._id || null))
-        .catch(() => setCurrentUserId(null));
-    }, []);
   const params = useParams();
   const router = useRouter();
   const storyId = Array.isArray(params?.id) ? params.id[0] : params?.id;
@@ -318,8 +253,25 @@ export default function StoryDemoPage() {
     }
   }
 
-  function handleShare() {
-    setShareOpen(true);
+  async function handleShare() {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    const title = story?.title || 'Story';
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ title, text: `Check this story: ${title}`, url });
+        setToast('Shared successfully.');
+        return;
+      }
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        setToast('Story link copied.');
+        return;
+      }
+      setToast('Sharing is not available on this device.');
+    } catch {
+      setToast('Could not share this story.');
+    }
   }
 
   async function submitReview() {
@@ -394,11 +346,8 @@ export default function StoryDemoPage() {
     );
   }
 
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
-
   return (
     <main className="story-page-root">
-      <SharePopup open={shareOpen} onClose={() => setShareOpen(false)} url={shareUrl} />
       <div className="hero-bg" />
 
       <section className="hero-section">
@@ -438,23 +387,11 @@ export default function StoryDemoPage() {
               {isBookmarked ? '✓ In Library' : '＋ Add to Library'}
             </button>
 
-            {/* Hide actions if current user is the author */}
-            {(currentUserId && String(currentUserId) === String(authorId)) ? null : (
-              <div className="mini-actions">
-                <button className={`mini-btn${liked ? ' liked' : ''}`} type="button" onClick={handleLike} title="Like">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-                  <span>{liked ? 'Liked' : 'Like'}</span>
-                </button>
-                <button className={`mini-btn${isBookmarked ? ' bookmarked' : ''}`} type="button" onClick={() => toggleLibrary('Save')} title="Save">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
-                  <span>{isBookmarked ? 'Saved' : 'Save'}</span>
-                </button>
-                <button className="mini-btn" type="button" onClick={handleShare} title="Share">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                  <span>Share</span>
-                </button>
-              </div>
-            )}
+            <div className="mini-actions">
+              <button className="mini-btn" type="button" onClick={handleLike}>{liked ? '♥ Liked' : '♥ Like'}</button>
+              <button className="mini-btn" type="button" onClick={() => toggleLibrary('Save')}>{isBookmarked ? '⚡ Saved' : '⚡ Save'}</button>
+              <button className="mini-btn" type="button" onClick={handleShare}>↗ Share</button>
+            </div>
           </div>
         </div>
 
@@ -479,7 +416,7 @@ export default function StoryDemoPage() {
 
           <div className="stats-row">
             <div className="stat-item"><span className="icon">👁</span><span className="val">{formatCompact(story?.reads || story?.views)}</span> Reads</div>
-            <div className="stat-item"><span className="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{verticalAlign:'middle',width:16,height:16}}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></span><span className="val">{formatCompact(story?.likes)}</span> Like</div>
+            <div className="stat-item"><span className="icon">♥</span><span className="val">{formatCompact(story?.votes || story?.likes)}</span> Votes</div>
             <div className="stat-item"><span className="icon">📄</span><span className="val">{story?.parts_count || chapters.length}</span> Parts</div>
             <div className="stat-item"><span className="icon">⭐</span><span className="val">{rating.toFixed(1)}</span> Rating</div>
             <div className="stat-item"><span className="icon">⏱</span><span className="val">{readText}</span></div>
@@ -607,7 +544,6 @@ export default function StoryDemoPage() {
                   onChange={(e) => setReviewText(e.target.value)}
                   placeholder="Share your thoughts about this story..."
                   rows={4}
-                  style={{ background: 'var(--surface2, #f0f0ea)', color: 'var(--text, #222)', borderRadius: 8, border: '1.5px solid var(--border, #ccc)', padding: 10 }}
                 />
                 <button className="btn-primary" type="button" onClick={submitReview} disabled={submittingReview}>
                   {submittingReview ? 'Posting...' : 'Post Review'}
@@ -617,16 +553,16 @@ export default function StoryDemoPage() {
               {reviews.map((row, idx) => {
                 const stars = Math.max(1, Math.min(5, Number(row.rating || 0))) || 0;
                 return (
-                  <article key={row.id || idx} className="review-card" style={{ background: 'var(--surface, #fff)', color: 'var(--text, #222)', borderRadius: 12, border: '1px solid var(--border, #ccc)', marginBottom: 12 }}>
+                  <article key={row.id || idx} className="review-card">
                     <div className="review-head">
-                      <div className="review-avatar" style={{ background: 'linear-gradient(135deg,#1a1a0a,#2e2a08)', color: 'var(--gold, #c9a96e)' }}>{String(row.user_id || 'U').slice(0, 2).toUpperCase()}</div>
+                      <div className="review-avatar">{String(row.user_id || 'U').slice(0, 2).toUpperCase()}</div>
                       <div>
                         <strong>{row.user_id || 'Reader'}</strong>
                         <small>{row.created_at ? new Date(row.created_at).toLocaleDateString() : ''}</small>
                       </div>
                     </div>
                     {stars > 0 && <div className="review-stars">{'★'.repeat(stars)}{'☆'.repeat(5 - stars)}</div>}
-                    <p style={{ color: 'var(--text2, #444)' }}>{row.content}</p>
+                    <p>{row.content}</p>
                   </article>
                 );
               })}

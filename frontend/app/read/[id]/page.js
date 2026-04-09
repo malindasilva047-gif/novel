@@ -1,13 +1,5 @@
-'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { apiRequest, readToken, trackUserActivity } from '@/lib/api';
-import { FaHeart, FaRegHeart, FaBookmark, FaRegBookmark, FaShareAlt, FaEdit, FaWhatsapp, FaFacebook, FaXTwitter, FaEnvelope, FaPinterest, FaLinkedin, FaReddit, FaCode, FaLink } from 'react-icons/fa';
-import { IoMdClose } from 'react-icons/io';
-  const [showShare, setShowShare] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+'use client';
 
 const FALLBACK_CHAPTERS = [
   {
@@ -20,12 +12,18 @@ const FALLBACK_CHAPTERS = [
   },
 ];
 
+
 export default function ReadPage() {
   const { id } = useParams();
   const storyId = Array.isArray(id) ? id[0] : id;
   const isNumericDemoId = /^\d+$/.test(String(storyId || ''));
   const router = useRouter();
   const contentRef = useRef(null);
+
+  // Share icon style (must be outside JSX)
+  const shareIconStyle = {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 12, background: 'var(--surface2)', color: 'var(--text)', fontSize: 22, border: '2px solid transparent', cursor: 'pointer', transition: 'all 0.18s', textDecoration: 'none', outline: 'none', boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
+  };
 
   const [story, setStory] = useState(null);
   const [chapters, setChapters] = useState([]);
@@ -37,265 +35,7 @@ export default function ReadPage() {
   const [theme, setTheme] = useState('light');
   const [fontSize, setFontSize] = useState(18);
   const [liked, setLiked] = useState(false);
-  const [bookmarked, setBookmarked] = useState(false);
-  const [toast, setToast] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [isReadingMode, setIsReadingMode] = useState(true);
-  const [accessChecked, setAccessChecked] = useState(false);
-  const [hasPremiumAccess, setHasPremiumAccess] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [isManagingStory, setIsManagingStory] = useState(false);
-  const lastHistoryWriteRef = useRef({ chapterId: '', progressBucket: -1 });
-  const sessionStartRef = useRef(Date.now());
-  const viewTrackedRef = useRef(false);
 
-  useEffect(() => {
-    if (!storyId) return;
-
-    if (isNumericDemoId) {
-      setStory({
-        id: storyId,
-        title: `Story ${storyId}`,
-        author_name: 'Wingsaga Author',
-        genre: 'Fiction',
-      });
-      setChapters(FALLBACK_CHAPTERS);
-      setComments([]);
-      setRecoStories([]);
-      setLoading(false);
-      return;
-    }
-
-    Promise.all([
-      apiRequest(`/stories/${storyId}`).catch(() => null),
-      apiRequest(`/stories/${storyId}/chapters`).catch(() => null),
-      apiRequest(`/engagement/stories/${storyId}/comments`).catch(() => []),
-      apiRequest('/discovery/trending').catch(() => []),
-    ])
-      .then(([storyData, chapterData, commentData, trendingData]) => {
-        setStory(
-          storyData || {
-            title: 'Story Title',
-            author_name: 'Author',
-            genre: 'Fantasy',
-          }
-        );
-        setChapters(chapterData?.chapters?.length ? chapterData.chapters : FALLBACK_CHAPTERS);
-        setComments(Array.isArray(commentData) ? commentData : []);
-        setRecoStories((Array.isArray(trendingData) ? trendingData : []).slice(0, 4));
-      })
-      .finally(() => setLoading(false));
-  }, [storyId, isNumericDemoId]);
-
-  // REAL-TIME VIEW COUNT & ENGAGEMENT POLLING
-  useEffect(() => {
-    if (!storyId || isNumericDemoId) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const updated = await apiRequest(`/stories/${storyId}`).catch(() => null);
-        if (updated) {
-          setStory((prev) => ({
-            ...prev,
-            views: updated.views,
-            likes: updated.likes,
-            bookmarks: updated.bookmarks,
-            comments_count: updated.comments_count,
-          }));
-        }
-      } catch (err) {
-        // Silently fail on polling errors
-      }
-    }, 8000); // Poll every 8 seconds for view/engagement updates
-
-    return () => clearInterval(interval);
-  }, [storyId, isNumericDemoId]);
-
-  useEffect(() => {
-    const token = readToken();
-    if (!token) {
-      setCurrentUser(null);
-      return;
-    }
-    apiRequest('/users/me', { token }).then(setCurrentUser).catch(() => setCurrentUser(null));
-  }, []);
-
-  useEffect(() => {
-    if (!storyId || isNumericDemoId || viewTrackedRef.current) return;
-    const token = readToken();
-    if (!token) return;
-
-    viewTrackedRef.current = true;
-    trackUserActivity({
-      postId: storyId,
-      actionType: 'view',
-      readTime: 0,
-      scrollDepth: 0,
-      token,
-    }).catch(() => {});
-  }, [storyId, isNumericDemoId]);
-
-  useEffect(() => {
-    if (!story?.is_premium) {
-      setAccessChecked(true);
-      setHasPremiumAccess(true);
-      return;
-    }
-
-    const token = readToken();
-    if (!token) {
-      setAccessChecked(true);
-      setHasPremiumAccess(false);
-      return;
-    }
-
-    apiRequest('/users/me', { token })
-      .then((me) => {
-        const isAuthor = me?.id && story?.author_id && me.id === story.author_id;
-        const canAccess = !!(me?.is_subscribed || me?.is_admin || me?.role === 'admin' || isAuthor);
-        setHasPremiumAccess(canAccess);
-      })
-      .catch(() => setHasPremiumAccess(false))
-      .finally(() => setAccessChecked(true));
-  }, [story]);
-
-  useEffect(() => {
-    const node = contentRef.current;
-    if (!node) return;
-
-    const progressBar = document.getElementById('bx-progress');
-    const onScroll = () => {
-      const scrollableHeight = node.scrollHeight - node.clientHeight;
-      const nextProgress = scrollableHeight > 0 ? Math.min(100, Math.round((node.scrollTop / scrollableHeight) * 100)) : 0;
-      setProgress(nextProgress);
-      if (progressBar) {
-        progressBar.style.width = `${nextProgress}%`;
-      }
-    };
-
-    node.addEventListener('scroll', onScroll, { passive: true });
-    return () => node.removeEventListener('scroll', onScroll);
-  }, [loading]);
-
-  const chapterProgress = Math.max(0, Math.min(100, Number(progress || 0)));
-  const totalChapters = Math.max(1, chapters.length || 1);
-  const overallProgress = Math.min(
-    100,
-    Math.max(
-      0,
-      Math.round((((Math.max(0, chapterIndex) + (chapterProgress / 100)) / totalChapters) * 100))
-    )
-  );
-
-  useEffect(() => {
-    if (!storyId || !chapters.length) return;
-    const token = readToken();
-    if (!token) return;
-
-    const chapterId = chapters[chapterIndex]?._id || chapters[chapterIndex]?.id || null;
-    const progressBucket = Math.floor(Number(overallProgress || 0) / 10);
-    const lastWrite = lastHistoryWriteRef.current;
-    if (lastWrite.chapterId === String(chapterId || '') && lastWrite.progressBucket === progressBucket) {
-      return;
-    }
-
-    lastHistoryWriteRef.current = {
-      chapterId: String(chapterId || ''),
-      progressBucket,
-    };
-
-    apiRequest('/reader/history', {
-      method: 'POST',
-      token,
-      body: {
-        story_id: String(storyId),
-        chapter_id: chapterId,
-        progress_pct: overallProgress,
-      },
-    }).catch(() => {});
-  }, [chapterIndex, overallProgress, storyId, chapters]);
-
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(''), 2400);
-    return () => clearTimeout(t);
-  }, [toast]);
-
-  const reactAction = async () => {
-    const token = readToken();
-    if (!token) {
-      setToast('Please sign in to react.');
-      return;
-    }
-    try {
-      const result = await apiRequest(`/engagement/stories/${storyId}/like`, { method: 'POST' });
-      setLiked(result.message?.toLowerCase().includes('liked'));
-      if (result.message?.toLowerCase().includes('liked')) {
-        await trackUserActivity({
-          postId: storyId,
-          actionType: 'like',
-          readTime: Math.floor((Date.now() - sessionStartRef.current) / 1000),
-          scrollDepth: progress,
-          token,
-        }).catch(() => {});
-      }
-      setToast(result.message || 'Updated');
-    } catch {
-      setToast('Could not update like right now.');
-    }
-  };
-
-  const bookmarkAction = async () => {
-    const token = readToken();
-    if (!token) {
-      setToast('Please sign in to bookmark.');
-      return;
-    }
-    try {
-      const result = await apiRequest(`/reader/bookmarks/${storyId}`, { method: 'POST' });
-      setBookmarked(result.message?.toLowerCase().includes('bookmarked'));
-      if (result.message?.toLowerCase().includes('bookmarked')) {
-        await trackUserActivity({
-          postId: storyId,
-          actionType: 'bookmark',
-          readTime: Math.floor((Date.now() - sessionStartRef.current) / 1000),
-          scrollDepth: progress,
-          token,
-        }).catch(() => {});
-      }
-      setToast(result.message || 'Updated');
-    } catch {
-      setToast('Could not update bookmark right now.');
-    }
-  };
-
-  const submitComment = async () => {
-    const content = commentText.trim();
-    if (content.length < 2) return;
-    const token = readToken();
-    if (!token) {
-      setToast('Please sign in to comment.');
-      return;
-    }
-    try {
-      await apiRequest(`/engagement/stories/${storyId}/comments`, {
-        method: 'POST',
-        body: { content },
-      });
-      await trackUserActivity({
-        postId: storyId,
-        actionType: 'comment',
-        readTime: Math.floor((Date.now() - sessionStartRef.current) / 1000),
-        scrollDepth: progress,
-        token,
-      }).catch(() => {});
-      const latest = await apiRequest(`/engagement/stories/${storyId}/comments`).catch(() => []);
-      setComments(Array.isArray(latest) ? latest : comments);
-      setCommentText('');
-      setToast('Comment added');
-    } catch (err) {
-      setToast(err.message || 'Could not post comment.');
-    }
   };
 
   const currentChapter = chapters[chapterIndex];
@@ -413,12 +153,7 @@ export default function ReadPage() {
                     </div>
                   </div>
                 )}
-          // Share icon style
-          const shareIconStyle = {
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 12, background: 'var(--surface2)', color: 'var(--text)', fontSize: 22, border: '2px solid transparent', cursor: 'pointer', transition: 'all 0.18s', textDecoration: 'none', outline: 'none', boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
-          };
-          // Share icon style ends here. If you want to render a button, do so inside the JSX return, not as a block after a variable declaration.
-          )}
+          {/* Share icon style is now at the top of the function */}
         </div>
         {/* About the Author Section */}
         <div className="author-section" style={{ marginBottom: 18, background: 'var(--surface2)', borderRadius: 10, padding: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -468,99 +203,6 @@ export default function ReadPage() {
       {toast && <div style={{ position: 'fixed', bottom: 32, left: 0, right: 0, margin: '0 auto', maxWidth: 320, background: 'var(--surface)', color: 'var(--text)', borderRadius: 8, boxShadow: '0 2px 16px rgba(0,0,0,0.13)', padding: 16, textAlign: 'center', zIndex: 9999 }}>{toast}</div>}
     </div>
   );
-                <button
-                  onClick={() => {
-                    setChapterIndex(0);
-                  }}
-                  style={{
-                    background: '#0d1117',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '999px',
-                    padding: '14px 26px',
-                    fontWeight: 700,
-                    fontSize: '16px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Start Reading
-                </button>
-                <button onClick={bookmarkAction} style={{ border: '1px solid #d0d7de', background: '#fff', borderRadius: '999px', padding: '14px 18px', cursor: 'pointer', fontWeight: 600 }}>+ Add</button>
-              </div>
-
-              <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '16px', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                  <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#111827', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '12px' }}>
-                    {(story?.author_name || 'AU').slice(0, 2).toUpperCase()}
-                  </div>
-                  <div style={{ color: '#111827', fontWeight: 600 }}>{story?.author_name || 'Unknown Author'}</div>
-                </div>
-                <p style={{ color: '#1f2937', lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>{story?.description || 'No description available yet.'}</p>
-              </div>
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
-                {(story?.tags || []).map((tag) => (
-                  <span key={tag} style={{ background: '#eceff4', color: '#1f2937', borderRadius: '999px', padding: '5px 10px', fontSize: '12px' }}>#{tag}</span>
-                ))}
-                {(story?.categories || []).map((category) => (
-                  <span key={category} style={{ background: '#eef6ff', color: '#16467b', borderRadius: '999px', padding: '5px 10px', fontSize: '12px' }}>{category}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr minmax(260px, 300px)', gap: '24px', marginTop: '26px' }}>
-            <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-              <div style={{ padding: '18px 18px 12px', fontWeight: 700, color: '#111827', fontSize: '28px', fontFamily: 'Cormorant Garamond, serif' }}>Table of Contents</div>
-              <div>
-                {(chapters || []).map((chapter, idx) => (
-                  <button
-                    key={chapter?._id || chapter?.id || idx}
-                    onClick={() => {
-                      setChapterIndex(idx);
-                      setIsReadingMode(true);
-                    }}
-                    style={{
-                      width: '100%',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      textAlign: 'left',
-                      border: 'none',
-                      borderTop: '1px solid #f0f2f5',
-                      background: '#fff',
-                      padding: '14px 18px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <span style={{ color: '#0f172a', fontWeight: 500 }}>Ch. {chapter?.chapter_number || idx + 1}: {chapter?.title || `Chapter ${idx + 1}`}</span>
-                    <span style={{ color: '#6b7280', fontSize: '12px' }}>{chapter?.word_count ? `${chapter.word_count} words` : ''}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <aside style={{ background: '#fff', borderRadius: '12px', border: '1px solid #e5e7eb', padding: '14px' }}>
-              <div style={{ fontWeight: 700, fontSize: '36px', lineHeight: 1, fontFamily: 'Cormorant Garamond, serif', color: '#0f172a', marginBottom: '12px' }}>You may also like</div>
-              <div style={{ display: 'grid', gap: '12px' }}>
-                {recoStories.map((rs, i) => (
-                  <a key={`${rs.id || rs._id}-${i}`} href={`/story/${rs.id || rs._id}`} style={{ display: 'grid', gridTemplateColumns: '68px 1fr', gap: '10px', textDecoration: 'none', color: 'inherit' }}>
-                    <div style={{ borderRadius: '8px', overflow: 'hidden', background: 'linear-gradient(160deg,#1a0a2e,#3d1a5e)', height: '94px' }}>
-                      {rs.cover_image ? <img src={rs.cover_image} alt={rs.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
-                    </div>
-                    <div>
-                      <div style={{ color: '#0f172a', fontWeight: 700, fontSize: '14px', lineHeight: 1.3 }}>{rs.title}</div>
-                      <div style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px' }}>{(rs.categories || [])[0] || 'Fiction'}</div>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </aside>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div style={{ minHeight: 'calc(100vh - 60px)', background: activeTheme.bg, transition: 'background 0.3s', position: 'relative' }}>
@@ -723,4 +365,3 @@ export default function ReadPage() {
       )}
     </div>
   );
-}

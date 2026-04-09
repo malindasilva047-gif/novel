@@ -1,11 +1,12 @@
 import asyncio
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 import logging
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel, Field
 
@@ -221,6 +222,12 @@ def _to_text(value: Any) -> str:
     return str(value or "").strip()
 
 
+def _percent_change(current: float, previous: float) -> float:
+    if previous <= 0:
+        return 100.0 if current > 0 else 0.0
+    return ((current - previous) / previous) * 100
+
+
 def _normalize_role(value: str | None, *, is_admin: bool = False) -> str:
     role = str(value or "").strip().lower()
     if role in {"super_admin", "super-admin"}:
@@ -347,11 +354,13 @@ async def _build_report_rows(database: AsyncIOMotorDatabase, report_kind: str) -
                 "report_kind": _to_text(report.get("report_kind") or "story"),
                 "reported_entity_type": entity_type,
                 "reported_by": {
+                    "id": _to_text(report.get("user_id")),
                     "name": reporter.get("full_name") or reporter.get("username", "Unknown User"),
                     "email": reporter.get("email", ""),
                     "image": reporter.get("profile_image", ""),
                 },
                 "reported_user": {
+                    "id": _to_text(report.get("target_user_id")),
                     "name": target_user.get("full_name") or target_user.get("username", "Unknown User"),
                     "email": target_user.get("email", ""),
                     "image": target_user.get("profile_image", ""),
@@ -539,10 +548,19 @@ async def _build_cms_rows(database: AsyncIOMotorDatabase) -> list[dict]:
 
 @router.get("/analytics")
 async def analytics(
+    period_days: int = Query(default=30, ge=7, le=90),
     current_user: dict = Depends(get_current_user),
     database: AsyncIOMotorDatabase = Depends(get_database),
 ) -> dict:
     ensure_admin(current_user)
+
+    now = datetime.now(timezone.utc)
+    history_days = max(60, period_days * 2)
+    start_history = now - timedelta(days=history_days - 1)
+    start_current = now - timedelta(days=period_days - 1)
+    start_prev = now - timedelta(days=(period_days * 2) - 1)
+    end_prev = now - timedelta(days=period_days)
+    start_7d = now - timedelta(days=6)
 
     users = await database.users.count_documents({})
     stories_count = await database.stories.count_documents({})
@@ -553,55 +571,158 @@ async def analytics(
     hidden_comments = await database.comments.count_documents({"status": "hidden"})
     badges_earned = await database.badges.count_documents({})
 
-    story_rows = await database.stories.find({}, {"created_at": 1, "views": 1, "likes": 1}).to_list(length=3000)
-    comments_rows = await database.comments.find({}, {"created_at": 1}).to_list(length=5000)
+    user_rows_60d = await database.users.find(
+        {"created_at": {"$gte": start_history}},
+        {"created_at": 1},
+    ).to_list(length=200000)
+    activity_rows_60d = await database.user_activity.find(
+        {"created_at": {"$gte": start_history}},
+        {"created_at": 1, "action_type": 1, "read_time": 1},
+    ).to_list(length=500000)
+    like_rows_60d = await database.likes.find(
+        {"created_at": {"$gte": start_history}},
+        {"created_at": 1},
+    ).to_list(length=500000)
+    comment_rows_28d = await database.comments.find(
+        {"created_at": {"$gte": now - timedelta(days=max(27, period_days - 1))}},
+        {"created_at": 1},
+    ).to_list(length=300000)
 
-    now = datetime.now(timezone.utc)
-    monthly_labels = [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ]
+    day_labels_30 = []
+    day_to_index_30: dict[datetime.date, int] = {}
+    for offset in range(period_days - 1, -1, -1):
+        day = (now - timedelta(days=offset)).date()
+        day_labels_30.append(day.strftime("%d %b") if period_days > 31 else str(day.day))
+        day_to_index_30[day] = len(day_labels_30) - 1
+
+    day_labels_7 = []
+    day_to_index_7: dict[datetime.date, int] = {}
+    for offset in range(6, -1, -1):
+        day = (now - timedelta(days=offset)).date()
+        day_labels_7.append(day.strftime("%a"))
+        day_to_index_7[day] = len(day_labels_7) - 1
+
+    daily_user_reg_30 = [0] * period_days
+    daily_user_reg_7 = [0] * 7
+
+    for row in user_rows_60d:
+        created_at = row.get("created_at")
+        if not isinstance(created_at, datetime):
+            continue
+        key = created_at.date()
+        if key in day_to_index_30:
+            daily_user_reg_30[day_to_index_30[key]] += 1
+        if key in day_to_index_7:
+            daily_user_reg_7[day_to_index_7[key]] += 1
+
+    cumulative_user_growth_30: list[int] = []
+    running_total = 0
+    for value in daily_user_reg_30:
+        running_total += value
+        cumulative_user_growth_30.append(running_total)
+
+    story_views_30 = [0] * period_days
+    daily_reads_7 = [0] * 7
+    read_time_30_total = 0
+    read_time_30_count = 0
+    read_time_prev_total = 0
+    read_time_prev_count = 0
+    read_actions = {"open_story", "chapter_view", "read", "view", "open", "continue_reading"}
+
+    monthly_labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     month_reads = [0] * 12
+
+    for row in activity_rows_60d:
+        created_at = row.get("created_at")
+        if not isinstance(created_at, datetime):
+            continue
+
+        action_type = str(row.get("action_type") or "").strip().lower()
+        row_date = created_at.date()
+
+        if row_date in day_to_index_30 and (action_type in read_actions or not action_type):
+            story_views_30[day_to_index_30[row_date]] += 1
+        if row_date in day_to_index_7 and (action_type in read_actions or not action_type):
+            daily_reads_7[day_to_index_7[row_date]] += 1
+
+        if created_at >= start_current:
+            read_time = _safe_int(row.get("read_time", 0), 0)
+            if read_time > 0:
+                read_time_30_total += read_time
+                read_time_30_count += 1
+        elif start_prev <= created_at <= end_prev:
+            read_time = _safe_int(row.get("read_time", 0), 0)
+            if read_time > 0:
+                read_time_prev_total += read_time
+                read_time_prev_count += 1
+
+        month_reads[max(0, min(11, created_at.month - 1))] += 1
+
     month_likes = [0] * 12
-
-    for item in story_rows:
-        created_at = item.get("created_at")
-        if isinstance(created_at, datetime):
-            month_index = max(0, min(11, created_at.month - 1))
-            month_reads[month_index] += _safe_int(item.get("views", 0), 0)
-            month_likes[month_index] += _safe_int(item.get("likes", 0), 0)
-
-    day_labels = []
-    daily_views = []
-    for offset in range(29, -1, -1):
-        target = now - timedelta(days=offset)
-        day_labels.append(str(target.day))
-        total_day_views = 0
-        for item in story_rows:
-            created_at = item.get("created_at")
-            if isinstance(created_at, datetime) and created_at.date() == target.date():
-                total_day_views += _safe_int(item.get("views", 0), 0)
-        daily_views.append(total_day_views)
+    likes_30d = 0
+    likes_prev_30d = 0
+    for row in like_rows_60d:
+        created_at = row.get("created_at")
+        if not isinstance(created_at, datetime):
+            continue
+        month_likes[max(0, min(11, created_at.month - 1))] += 1
+        if created_at >= start_current:
+            likes_30d += 1
+        elif start_prev <= created_at <= end_prev:
+            likes_prev_30d += 1
 
     week_labels = ["W1", "W2", "W3", "W4"]
     weekly_likes = [0, 0, 0, 0]
     weekly_comments = [0, 0, 0, 0]
-    for item in story_rows:
-        created_at = item.get("created_at")
-        if isinstance(created_at, datetime):
-            days_ago = (now.date() - created_at.date()).days
-            if 0 <= days_ago < 28:
-                idx = min(3, days_ago // 7)
-                weekly_likes[3 - idx] += _safe_int(item.get("likes", 0), 0)
-    for item in comments_rows:
-        created_at = item.get("created_at")
-        if isinstance(created_at, datetime):
-            days_ago = (now.date() - created_at.date()).days
-            if 0 <= days_ago < 28:
-                idx = min(3, days_ago // 7)
-                weekly_comments[3 - idx] += 1
+
+    for row in like_rows_60d:
+        created_at = row.get("created_at")
+        if not isinstance(created_at, datetime):
+            continue
+        days_ago = (now.date() - created_at.date()).days
+        if 0 <= days_ago < max(28, period_days):
+            idx = min(3, days_ago // 7)
+            weekly_likes[3 - idx] += 1
+
+    for row in comment_rows_28d:
+        created_at = row.get("created_at")
+        if not isinstance(created_at, datetime):
+            continue
+        days_ago = (now.date() - created_at.date()).days
+        if 0 <= days_ago < max(28, period_days):
+            idx = min(3, days_ago // 7)
+            weekly_comments[3 - idx] += 1
+
+    genre_rows = await database.stories.aggregate([
+        {"$match": {"categories": {"$exists": True, "$ne": []}}},
+        {"$unwind": "$categories"},
+        {"$group": {"_id": "$categories", "value": {"$sum": 1}}},
+        {"$sort": {"value": -1}},
+        {"$limit": 6},
+    ]).to_list(length=6)
+
+    current_user_growth_30 = sum(daily_user_reg_30)
+    previous_user_growth_30 = await database.users.count_documents({
+        "created_at": {"$gte": start_prev, "$lte": end_prev},
+    })
+
+    current_story_views_30 = sum(story_views_30)
+    previous_story_views_30 = 0
+    for row in activity_rows_60d:
+        created_at = row.get("created_at")
+        if not isinstance(created_at, datetime):
+            continue
+        action_type = str(row.get("action_type") or "").strip().lower()
+        if action_type not in read_actions and action_type:
+            continue
+        if start_prev <= created_at <= end_prev:
+            previous_story_views_30 += 1
+
+    avg_read_time_30 = (read_time_30_total / read_time_30_count) if read_time_30_count else 0
+    avg_read_time_prev = (read_time_prev_total / read_time_prev_count) if read_time_prev_count else 0
 
     return {
+        "period_days": period_days,
         "total_users": users,
         "total_stories": stories_count,
         "total_comments": comments,
@@ -610,8 +731,18 @@ async def analytics(
         "banned_users": banned_users,
         "hidden_comments": hidden_comments,
         "badges_earned": badges_earned,
+        "kpis": {
+            "user_growth": current_user_growth_30,
+            "user_growth_change": round(_percent_change(current_user_growth_30, previous_user_growth_30), 1),
+            "story_views": current_story_views_30,
+            "story_views_change": round(_percent_change(current_story_views_30, previous_story_views_30), 1),
+            "avg_read_time_minutes": round(avg_read_time_30 / 60, 1),
+            "avg_read_time_change": round(_percent_change(avg_read_time_30, avg_read_time_prev), 1),
+            "total_likes": likes,
+            "total_likes_change": round(_percent_change(likes_30d, likes_prev_30d), 1),
+        },
         "charts": {
-            "daily_views": {"labels": day_labels, "values": daily_views},
+            "daily_views": {"labels": day_labels_30, "values": story_views_30},
             "monthly_reads": {"labels": monthly_labels, "values": month_reads},
             "monthly_likes": {"labels": monthly_labels, "values": month_likes},
             "weekly_engagement": {
@@ -619,6 +750,150 @@ async def analytics(
                 "likes": weekly_likes,
                 "comments": weekly_comments,
             },
+            "dashboard_user_growth_7": {"labels": day_labels_7, "values": daily_user_reg_7},
+            "dashboard_daily_reads_7": {"labels": day_labels_7, "values": daily_reads_7},
+            "user_growth_period": {"labels": day_labels_30, "values": cumulative_user_growth_30},
+            "story_views_period": {"labels": day_labels_30, "values": story_views_30},
+            "genre_distribution": {
+                "labels": [str(row.get("_id") or "Unknown") for row in genre_rows],
+                "values": [_safe_int(row.get("value", 0), 0) for row in genre_rows],
+            },
+        },
+    }
+
+
+@router.get("/monetization")
+async def monetization(
+    period_days: int = Query(default=30, ge=7, le=90),
+    current_user: dict = Depends(get_current_user),
+    database: AsyncIOMotorDatabase = Depends(get_database),
+) -> dict:
+    ensure_admin(current_user)
+
+    now = datetime.now(timezone.utc)
+    start_year = datetime(now.year, 1, 1, tzinfo=timezone.utc)
+    start_prev = now - timedelta(days=(period_days * 2) - 1)
+    start_current = now - timedelta(days=period_days - 1)
+    end_prev = now - timedelta(days=period_days)
+
+    monthly_labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    monthly_subscriptions = [0] * 12
+    monthly_coin_sales = [0] * 12
+
+    bookmark_rows = await database.bookmarks.find(
+        {"created_at": {"$gte": start_year}},
+        {"created_at": 1, "user_id": 1},
+    ).to_list(length=500000)
+    like_rows = await database.likes.find(
+        {"created_at": {"$gte": start_year}},
+        {"created_at": 1},
+    ).to_list(length=500000)
+
+    bookmark_rows_period = [
+        row for row in bookmark_rows if isinstance(row.get("created_at"), datetime) and row.get("created_at") >= start_prev
+    ]
+    like_rows_period = [
+        row for row in like_rows if isinstance(row.get("created_at"), datetime) and row.get("created_at") >= start_prev
+    ]
+
+    for row in bookmark_rows:
+        created_at = row.get("created_at")
+        if not isinstance(created_at, datetime):
+            continue
+        monthly_subscriptions[max(0, min(11, created_at.month - 1))] += 1
+
+    for row in like_rows:
+        created_at = row.get("created_at")
+        if not isinstance(created_at, datetime):
+            continue
+        monthly_coin_sales[max(0, min(11, created_at.month - 1))] += 1
+
+    month_start = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
+    prev_month_end = month_start - timedelta(seconds=1)
+    prev_month_start = datetime(prev_month_end.year, prev_month_end.month, 1, tzinfo=timezone.utc)
+
+    subs_this_month = sum(1 for row in bookmark_rows if isinstance(row.get("created_at"), datetime) and row.get("created_at") >= month_start)
+    subs_prev_month = sum(
+        1
+        for row in bookmark_rows
+        if isinstance(row.get("created_at"), datetime) and prev_month_start <= row.get("created_at") <= prev_month_end
+    )
+
+    users_this_month = {str(row.get("user_id") or "") for row in bookmark_rows if isinstance(row.get("created_at"), datetime) and row.get("created_at") >= month_start}
+    users_prev_month = {
+        str(row.get("user_id") or "")
+        for row in bookmark_rows
+        if isinstance(row.get("created_at"), datetime) and prev_month_start <= row.get("created_at") <= prev_month_end
+    }
+    users_this_month.discard("")
+    users_prev_month.discard("")
+
+    premium_subs = len(users_this_month)
+    renewals_pct = round((len(users_this_month.intersection(users_prev_month)) / max(1, len(users_prev_month))) * 100, 1)
+
+    coin_sales = sum(monthly_coin_sales)
+    total_revenue = round((sum(monthly_subscriptions) * 2.99) + (coin_sales * 0.35), 2)
+    coin_sales_this_month = sum(1 for row in like_rows if isinstance(row.get("created_at"), datetime) and row.get("created_at") >= month_start)
+    coin_sales_prev_month = sum(
+        1
+        for row in like_rows
+        if isinstance(row.get("created_at"), datetime) and prev_month_start <= row.get("created_at") <= prev_month_end
+    )
+
+    period_labels = []
+    period_subscriptions = []
+    period_coin_sales = []
+    day_map_subs: dict[datetime.date, int] = defaultdict(int)
+    day_map_coins: dict[datetime.date, int] = defaultdict(int)
+
+    for row in bookmark_rows_period:
+        created_at = row.get("created_at")
+        if isinstance(created_at, datetime):
+            day_map_subs[created_at.date()] += 1
+
+    for row in like_rows_period:
+        created_at = row.get("created_at")
+        if isinstance(created_at, datetime):
+            day_map_coins[created_at.date()] += 1
+
+    for offset in range(period_days - 1, -1, -1):
+        day = (now - timedelta(days=offset)).date()
+        period_labels.append(day.strftime("%d %b") if period_days > 31 else str(day.day))
+        period_subscriptions.append(day_map_subs.get(day, 0))
+        period_coin_sales.append(day_map_coins.get(day, 0))
+
+    subs_current_period = sum(period_subscriptions)
+    coins_current_period = sum(period_coin_sales)
+    subs_previous_period = sum(
+        1
+        for row in bookmark_rows_period
+        if isinstance(row.get("created_at"), datetime) and start_prev <= row.get("created_at") <= end_prev
+    )
+    coins_previous_period = sum(
+        1
+        for row in like_rows_period
+        if isinstance(row.get("created_at"), datetime) and start_prev <= row.get("created_at") <= end_prev
+    )
+
+    return {
+        "period_days": period_days,
+        "total_revenue": total_revenue,
+        "premium_subs": premium_subs,
+        "coin_sales": coin_sales_this_month,
+        "renewals_pct": renewals_pct,
+        "kpi_changes": {
+            "revenue_change": round(_percent_change(subs_current_period * 2.99 + coins_current_period * 0.35, subs_previous_period * 2.99 + coins_previous_period * 0.35), 1),
+            "premium_subs_change": round(_percent_change(subs_this_month, subs_prev_month), 1),
+            "coin_sales_change": round(_percent_change(coin_sales_this_month, coin_sales_prev_month), 1),
+            "renewals_change": 0.0,
+        },
+        "charts": {
+            "labels": period_labels,
+            "subscriptions": period_subscriptions,
+            "coin_sales": period_coin_sales,
+            "monthly_labels": monthly_labels,
+            "monthly_subscriptions": monthly_subscriptions,
+            "monthly_coin_sales": monthly_coin_sales,
         },
     }
 
@@ -979,6 +1254,7 @@ async def list_stories_for_admin(
 
 @router.get("/dashboard")
 async def dashboard_summary(
+    period_days: int = Query(default=7, ge=7, le=90),
     current_user: dict = Depends(get_current_user),
     database: AsyncIOMotorDatabase = Depends(get_database),
 ) -> dict:
@@ -992,13 +1268,155 @@ async def dashboard_summary(
     pending_books = await database.stories.count_documents({"status": {"$ne": "published"}})
     total_downloads = await database.bookmarks.count_documents({})
 
-    story_rows = await database.stories.find({}, {"title": 1, "cover_image": 1, "categories": 1, "status": 1, "created_at": 1, "views": 1}).sort("created_at", -1).limit(8).to_list(length=8)
+    now = datetime.now(timezone.utc)
+    start_7d = now - timedelta(days=period_days - 1)
+
+    story_rows = await database.stories.find(
+        {},
+        {"title": 1, "cover_image": 1, "categories": 1, "status": 1, "created_at": 1, "views": 1, "author_id": 1},
+    ).sort("created_at", -1).limit(12).to_list(length=12)
     total_views = sum(_safe_int(item.get("views", 0), 0) for item in story_rows)
     total_views_all_rows = await database.stories.aggregate([
         {"$group": {"_id": None, "views": {"$sum": "$views"}}}
     ]).to_list(length=1)
     if total_views_all_rows:
         total_views = _safe_int(total_views_all_rows[0].get("views", 0), 0)
+
+    trending_rows = await database.stories.find(
+        {},
+        {"_id": 1, "title": 1, "cover_image": 1, "views": 1, "categories": 1, "author_id": 1},
+    ).sort("views", -1).limit(8).to_list(length=8)
+
+    author_ids = [row.get("author_id", "") for row in trending_rows if row.get("author_id")]
+    author_lookup = await _fetch_users_by_ids(database, author_ids)
+
+    trending_stories: list[dict] = []
+    for index, row in enumerate(trending_rows, start=1):
+        author = author_lookup.get(row.get("author_id", ""), {})
+        trending_stories.append(
+            {
+                "rank": index,
+                "id": row.get("_id"),
+                "title": row.get("title", "Untitled"),
+                "image": row.get("cover_image", ""),
+                "author_name": author.get("full_name") or author.get("username") or "Unknown",
+                "category": (row.get("categories") or ["Fiction"])[0],
+                "views": _safe_int(row.get("views", 0), 0),
+            }
+        )
+
+    recent_reports_raw = await database.reports.find(
+        {},
+        {
+            "_id": 1,
+            "reason": 1,
+            "status": 1,
+            "created_at": 1,
+            "report_kind": 1,
+            "story_id": 1,
+            "target_user_id": 1,
+            "user_id": 1,
+        },
+    ).sort("created_at", -1).limit(8).to_list(length=8)
+    report_user_ids = [
+        _to_text(item.get("target_user_id"))
+        for item in recent_reports_raw
+        if _to_text(item.get("target_user_id"))
+    ]
+    report_user_ids.extend([
+        _to_text(item.get("user_id"))
+        for item in recent_reports_raw
+        if _to_text(item.get("user_id"))
+    ])
+    report_story_ids = [_to_text(item.get("story_id")) for item in recent_reports_raw if _to_text(item.get("story_id"))]
+
+    report_users = await _fetch_users_by_ids(database, report_user_ids)
+    report_stories_rows = await database.stories.find(
+        {"_id": {"$in": list({item for item in report_story_ids if item})}},
+        {"_id": 1, "title": 1},
+    ).to_list(length=200)
+    report_story_lookup = {row.get("_id"): row for row in report_stories_rows}
+
+    recent_reports: list[dict] = []
+    for row in recent_reports_raw:
+        target_user_id = _to_text(row.get("target_user_id"))
+        reporter_id = _to_text(row.get("user_id"))
+        story_id = _to_text(row.get("story_id"))
+        target_user = report_users.get(target_user_id, {})
+        reporter = report_users.get(reporter_id, {})
+        story = report_story_lookup.get(story_id, {})
+        reason = _to_text(row.get("reason")) or "Report submitted"
+        recent_reports.append(
+            {
+                "id": _to_text(row.get("_id")),
+                "reason": reason,
+                "status": row.get("status", "open"),
+                "report_kind": _to_text(row.get("report_kind") or "story"),
+                "created_at": row.get("created_at"),
+                "reported_user_id": target_user_id,
+                "reported_user_name": target_user.get("full_name") or target_user.get("username") or "Unknown user",
+                "reporter_name": reporter.get("full_name") or reporter.get("username") or "Unknown reporter",
+                "story_id": story_id,
+                "story_title": story.get("title") or "Story",
+            }
+        )
+
+    recent_activity_rows = await database.user_activity.find(
+        {"created_at": {"$gte": start_7d}},
+        {"user_id": 1, "post_id": 1, "action_type": 1, "created_at": 1},
+    ).sort("created_at", -1).limit(max(20, period_days * 2)).to_list(length=max(20, period_days * 2))
+
+    activity_user_ids = [_to_text(item.get("user_id")) for item in recent_activity_rows if _to_text(item.get("user_id"))]
+    activity_post_ids = [_to_text(item.get("post_id")) for item in recent_activity_rows if _to_text(item.get("post_id"))]
+    activity_users = await _fetch_users_by_ids(database, activity_user_ids)
+    activity_stories_rows = await database.stories.find(
+        {"_id": {"$in": list({item for item in activity_post_ids if item})}},
+        {"_id": 1, "title": 1},
+    ).to_list(length=300)
+    activity_story_lookup = {row.get("_id"): row for row in activity_stories_rows}
+
+    recent_activities: list[dict] = []
+    for row in recent_activity_rows:
+        user_id = _to_text(row.get("user_id"))
+        post_id = _to_text(row.get("post_id"))
+        user = activity_users.get(user_id, {})
+        story = activity_story_lookup.get(post_id, {})
+        recent_activities.append(
+            {
+                "id": f"{user_id}-{post_id}-{_to_text(row.get('created_at'))}",
+                "user_id": user_id,
+                "user_name": user.get("full_name") or user.get("username") or "Reader",
+                "story_id": post_id,
+                "story_title": story.get("title") or "Story",
+                "action_type": _to_text(row.get("action_type") or "activity"),
+                "created_at": row.get("created_at"),
+            }
+        )
+
+    user_growth_labels = []
+    user_growth_values = []
+    daily_reads_values = []
+    daily_reads_by_date: dict[datetime.date, int] = defaultdict(int)
+    for row in recent_activity_rows:
+        created_at = row.get("created_at")
+        if isinstance(created_at, datetime):
+            daily_reads_by_date[created_at.date()] += 1
+
+    users_by_date: dict[datetime.date, int] = defaultdict(int)
+    users_7d_rows = await database.users.find(
+        {"created_at": {"$gte": start_7d}},
+        {"created_at": 1},
+    ).to_list(length=100000)
+    for row in users_7d_rows:
+        created_at = row.get("created_at")
+        if isinstance(created_at, datetime):
+            users_by_date[created_at.date()] += 1
+
+    for offset in range(period_days - 1, -1, -1):
+        day = (now - timedelta(days=offset)).date()
+        user_growth_labels.append(day.strftime("%a") if period_days <= 14 else day.strftime("%d %b"))
+        user_growth_values.append(users_by_date.get(day, 0))
+        daily_reads_values.append(daily_reads_by_date.get(day, 0))
 
     recent_books = []
     for item in story_rows:
@@ -1014,6 +1432,7 @@ async def dashboard_summary(
         )
 
     return {
+        "period_days": period_days,
         "summary": {
             "total_users": total_users,
             "active_users": active_users,
@@ -1025,6 +1444,13 @@ async def dashboard_summary(
             "total_views": total_views,
         },
         "recent_books": recent_books,
+        "charts": {
+            "user_growth": {"labels": user_growth_labels, "values": user_growth_values},
+            "daily_reads": {"labels": user_growth_labels, "values": daily_reads_values},
+        },
+        "trending_stories": trending_stories,
+        "recent_reports": recent_reports,
+        "recent_activities": recent_activities,
     }
 
 
@@ -1793,16 +2219,15 @@ async def admin_panel_data(
     task_specs: list[tuple[str, Any, Any]] = [
         ("dashboard", dashboard_summary(current_user=current_user, database=database), {}),
         ("analytics", analytics(current_user=current_user, database=database), {}),
+        ("monetization", monetization(current_user=current_user, database=database), {}),
         ("users", list_users(current_user=current_user, database=database), []),
         ("admin_users", _build_admin_users_rows(database), []),
-        ("reels", _build_admin_story_rows(database, sort_field="views", limit=80), []),
         ("stories", _build_admin_story_rows(database, sort_field="created_at", limit=120), []),
         ("user_reports", _build_report_rows(database, "user"), []),
         ("story_reports", _build_report_rows(database, "story"), []),
         ("chapter_reports", _build_report_rows(database, "chapter"), []),
         ("comment_reports", _build_report_rows(database, "comment"), []),
         ("post_reports", _build_report_rows(database, "story"), []),
-        ("reel_reports", _build_report_rows(database, "reel"), []),
         ("country_users", _build_country_rows(database), []),
         ("hashtags", _build_hashtag_rows(database), []),
         ("languages", _build_language_rows(database), []),

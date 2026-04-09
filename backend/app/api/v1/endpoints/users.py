@@ -257,6 +257,8 @@ async def get_public_profile(user_id: str, database: AsyncIOMotorDatabase = Depe
     user = await database.users.find_one({"_id": user_id})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if bool(user.get("is_banned", False)):
+        raise HTTPException(status_code=404, detail="User not found")
 
     return {
         "id": user["_id"],

@@ -109,10 +109,10 @@ function normalizeApiError(detail) {
   return "Request failed";
 }
 
-export async function apiRequest(path, { method = "GET", body, token } = {}) {
+export async function apiRequest(path, { method = "GET", body, token, skipAuth = false } = {}) {
   const headers = { "Content-Type": "application/json" };
-  const authToken = token || readToken();
-  if (authToken) {
+  const authToken = skipAuth ? "" : (token || readToken());
+  if (authToken && !skipAuth) {
     headers.Authorization = `Bearer ${authToken}`;
   }
 
@@ -138,10 +138,10 @@ export async function apiRequest(path, { method = "GET", body, token } = {}) {
   return data;
 }
 
-export async function apiUpload(path, { file, fieldName = "image", token } = {}) {
+export async function apiUpload(path, { file, fieldName = "image", token, skipAuth = false } = {}) {
   const headers = {};
-  const authToken = token || readToken();
-  if (authToken) {
+  const authToken = skipAuth ? "" : (token || readToken());
+  if (authToken && !skipAuth) {
     headers.Authorization = `Bearer ${authToken}`;
   }
 

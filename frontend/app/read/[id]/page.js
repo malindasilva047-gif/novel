@@ -417,11 +417,7 @@ export default function ReadPage() {
           const shareIconStyle = {
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 12, background: 'var(--surface2)', color: 'var(--text)', fontSize: 22, border: '2px solid transparent', cursor: 'pointer', transition: 'all 0.18s', textDecoration: 'none', outline: 'none', boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
           };
-          {canManageStory && (
-            <button className="icon-btn" onClick={handleTogglePublishStatus} title="Edit">
-              <FaEdit />
-              <span style={{ marginLeft: 4 }}>Edit</span>
-            </button>
+          // Share icon style ends here. If you want to render a button, do so inside the JSX return, not as a block after a variable declaration.
           )}
         </div>
         {/* About the Author Section */}

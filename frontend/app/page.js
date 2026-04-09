@@ -140,6 +140,7 @@ const HERO_SLIDES = [
 ];
 
 export default function Home() {
+    // adventureStories will be defined later in the render scope before use
   const router = useRouter();
   const isLoggedIn = Boolean(readToken());
 
@@ -311,6 +312,124 @@ export default function Home() {
     loadData();
   }, []);
 
+  // --- CATEGORY FILTER HELPERS ---
+  function filterStoriesByCategory(cat) {
+    return stories.filter(
+      (s) =>
+        (Array.isArray(s.categories) && s.categories.map((c) => String(c).toLowerCase()).includes(cat.toLowerCase())) ||
+        String(s.genre || '').toLowerCase() === cat.toLowerCase()
+    );
+  }
+
+  // --- SECTION RENDER HELPERS ---
+  function SectionHeader({ title }) {
+    return (
+      <div className="bx-section-header">
+        <h2 className="bx-section-title">{title}</h2>
+      </div>
+    );
+  }
+
+  // --- MAIN RENDER ---
+  // --- DATA FOR SECTIONS ---
+  const recommendedStories = dedupeStoriesById(recommended.length > 0 ? recommended : stories).slice(0, 12);
+  const continueStories = continueHistory.slice(0, 12);
+  const communityLists = [
+    {
+      title: 'LGBTQIAP+ Fanfics', icon: '🏳️‍🌈', genre: 'Fanfic', stories: filterStoriesByCategory('Fanfic').slice(0, 6)
+    },
+    {
+      title: 'Action Romance', icon: '⚔️', genre: 'Action', stories: filterStoriesByCategory('Action').slice(0, 6)
+    },
+    {
+      title: 'Billionaires', icon: '💰', genre: 'Romance', stories: filterStoriesByCategory('Romance').slice(0, 6)
+    },
+    {
+      title: 'Fanfic Spotlight', icon: '🌟', genre: 'Fanfic', stories: filterStoriesByCategory('Fanfic').slice(6, 12)
+    },
+    {
+      title: 'High Drama', icon: '🎭', genre: 'Chicklit', stories: filterStoriesByCategory('Chicklit').slice(0, 6)
+    },
+  ];
+  const extraCategories = ['Mystery', 'Drama', 'Sci-Fi', 'Thriller', 'Historical'];
+
+  // --- MAIN RETURN ---
+  return (
+    <main>
+      {/* Recommended for You */}
+      <section className="bx-section">
+        <SectionHeader title="Recommended for You" />
+        <div className="bx-carousel-row" ref={recommendedRef}>
+          {recommendedStories.map((story, idx) => (
+            <StoryCard key={story._id || idx} story={story} index={idx} />
+          ))}
+        </div>
+      </section>
+
+      {/* Continue Reading */}
+      {isLoggedIn && continueStories.length > 0 && (
+        <section className="bx-section">
+          <SectionHeader title="Continue Reading" />
+          <div className="bx-carousel-row" ref={continueRef}>
+            {continueStories.map((story, idx) => (
+              <StoryCard key={story._id || idx} story={story} index={idx} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Reading Lists from the Community */}
+      <section className="bx-section">
+        <SectionHeader title="Reading lists from the community" />
+        <div className="bx-community-lists-row" ref={readingListRef}>
+          {communityLists.map((list, idx) => (
+            <div className="bx-community-list" key={list.title}>
+              <div className="bx-community-list-header">
+                <span className="bx-community-list-icon">{list.icon}</span>
+                <span className="bx-community-list-title">{list.title}</span>
+                <span className="bx-community-list-genre">{list.genre}</span>
+              </div>
+              <div className="bx-community-list-cards">
+                {list.stories.map((story, sidx) => (
+                  <StoryCard key={story._id || sidx} story={story} index={sidx} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Adventure Trails */}
+
+
+      {/* Extra 5 Categories */}
+      {extraCategories.map((cat) => {
+        const catStories = filterStoriesByCategory(cat).slice(0, 12);
+        if (!catStories.length) return null;
+        return (
+          <section className="bx-section" key={cat}>
+            <SectionHeader title={cat + ' Stories'} />
+            <div className="bx-carousel-row" ref={genresRef}>
+              {catStories.map((story, idx) => (
+                <StoryCard key={story._id || idx} story={story} index={idx} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
+
+      {/* See More for Newest Stories (at the end) */}
+      <section className="bx-section">
+        <SectionHeader title="Newest Stories" />
+        <div className="bx-carousel-row" ref={newReleasesRef}>
+          {stories.slice(0, 12).map((story, idx) => (
+            <StoryCard key={story._id || idx} story={story} index={idx} />
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+
   // REAL-TIME POLLING FOR CONTINUE READING UPDATES
   useEffect(() => {
     const token = readToken();
@@ -421,7 +540,16 @@ export default function Home() {
   }, []);
 
   const allStories = stories;
+
   const displayStories = allStories;
+
+  // Adventure stories section (must be after displayStories is defined)
+  const adventureStories = dedupeStoriesById(
+    displayStories.filter((item) =>
+      String(item?.genre || '').toLowerCase().includes('adventure') ||
+      (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('adventure')))
+    )
+  ).slice(0, 12);
 
   const byViewsDesc = [...displayStories].sort((a, b) => Number(b?.views || 0) - Number(a?.views || 0));
   const byLikesDesc = [...displayStories].sort((a, b) => Number(b?.likes || 0) - Number(a?.likes || 0));
@@ -434,7 +562,7 @@ export default function Home() {
   // DATA FOR SECTIONS
   const continueReading = continueHistory;
   const readingList = continueHistory.slice(0, 4);
-  const recommendedStories = dedupeStoriesById(recommended.length > 0 ? recommended : displayStories).slice(0, 12);
+  // const recommendedStories = dedupeStoriesById(recommended.length > 0 ? recommended : displayStories).slice(0, 12); // Removed duplicate
   const popularStories = dedupeStoriesById(byViewsDesc).slice(0, 12);
   const newReleases = dedupeStoriesById(byCreatedDesc).slice(0, 12);
   const trendingStories = dedupeStoriesById(byLikesDesc).slice(0, 12);
@@ -447,10 +575,10 @@ export default function Home() {
     String(item?.genre || '').toLowerCase().includes('mystery')
     || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('mystery')))
   )).slice(0, 12);
-  const adventureStories = dedupeStoriesById(displayStories.filter((item) =>
-    String(item?.genre || '').toLowerCase().includes('adventure')
-    || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('adventure')))
-  )).slice(0, 12);
+  // const adventureStories = dedupeStoriesById(displayStories.filter((item) =>
+  //   String(item?.genre || '').toLowerCase().includes('adventure')
+  //   || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('adventure')))
+  // )).slice(0, 12); // Removed duplicate
 
   const heroSlides = displayStories.length
     ? displayStories.slice(0, 4).map((item, idx) => ({

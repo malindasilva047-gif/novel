@@ -71,17 +71,6 @@ SAMPLE_GENRES: list[dict] = [
     {"name": "Sci-Fi", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f680.png"},
     {"name": "Thriller", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/26a1.png"},
     {"name": "Adventure", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f5fa.png"},
-    {"name": "Fantasy", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f9d9.png"},
-    {"name": "Romance", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f495.png"},
-    {"name": "Mystery", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f50d.png"},
-    {"name": "Sci-Fi", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f680.png"},
-    {"name": "Thriller", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/26a1.png"},
-    {"name": "Adventure", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f5fa.png"},
-    {"name": "Historical", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3f0.png"},
-    {"name": "Horror", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f47b.png"},
-    {"name": "Comedy", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f923.png"},
-    {"name": "Slice of Life", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f33f.png"},
-    {"name": "Young Adult", "icon_url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f393.png"},
 ]
 
 DUMMY_STORIES: list[dict] = [
@@ -139,76 +128,6 @@ DUMMY_STORIES: list[dict] = [
         "likes": 389,
         "views": 1920,
         "chapter_title": "Chapter 1: Springs and Sparks",
-    },
-    {
-        "_id": "demo-story-historic-echoes",
-        "title": "Echoes of the Past",
-        "description": "A historian unearths a diary that reveals a hidden love story from the colonial era.",
-        "cover_image": "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=1200&q=80",
-        "tags": ["historical", "romance"],
-        "categories": ["Historical", "Romance"],
-        "likes": 120,
-        "views": 900,
-    },
-    {
-        "_id": "demo-story-haunted-mansion",
-        "title": "The Haunted Manor",
-        "description": "A group of friends spend the night in a haunted mansion and uncover its dark secrets.",
-        "cover_image": "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80",
-        "tags": ["horror", "ghost", "mystery"],
-        "categories": ["Horror", "Mystery"],
-        "likes": 210,
-        "views": 1500,
-    },
-    {
-        "_id": "demo-story-laugh-track",
-        "title": "Laugh Track",
-        "description": "A stand-up comedian’s life takes a wild turn after a viral joke.",
-        "cover_image": "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?auto=format&fit=crop&w=1200&q=80",
-        "tags": ["comedy", "slice of life"],
-        "categories": ["Comedy", "Slice of Life"],
-        "likes": 95,
-        "views": 700,
-    },
-    {
-        "_id": "demo-story-green-days",
-        "title": "Green Days",
-        "description": "A coming-of-age story about a group of teens navigating high school and friendship.",
-        "cover_image": "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=1200&q=80",
-        "tags": ["young adult", "school", "friendship"],
-        "categories": ["Young Adult", "Slice of Life"],
-        "likes": 180,
-        "views": 1100,
-    },
-    {
-        "_id": "demo-story-life-in-frames",
-        "title": "Life in Frames",
-        "description": "A photographer captures the hidden stories of city dwellers, one frame at a time.",
-        "cover_image": "https://images.unsplash.com/photo-1465101178521-c1a9136a3c8b?auto=format&fit=crop&w=1200&q=80",
-        "tags": ["slice of life", "city", "photography"],
-        "categories": ["Slice of Life"],
-        "likes": 75,
-        "views": 600,
-    },
-    {
-        "_id": "demo-story-nightmare-lake",
-        "title": "Nightmare at Lake Hollow",
-        "description": "A summer camp turns terrifying when campers start vanishing at night.",
-        "cover_image": "https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=1200&q=80",
-        "tags": ["horror", "thriller", "camp"],
-        "categories": ["Horror", "Thriller"],
-        "likes": 160,
-        "views": 980,
-    },
-    {
-        "_id": "demo-story-ya-journey",
-        "title": "The YA Journey",
-        "description": "A young adult embarks on a journey of self-discovery and adventure.",
-        "cover_image": "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=1200&q=80",
-        "tags": ["young adult", "adventure"],
-        "categories": ["Young Adult", "Adventure"],
-        "likes": 140,
-        "views": 850,
     },
 ]
 
@@ -357,13 +276,12 @@ async def ensure_dummy_stories(database: AsyncIOMotorDatabase, author_id: str) -
         }
         await database.stories.update_one({"_id": story_doc["_id"]}, {"$set": story_doc}, upsert=True)
 
-        chapter_title = story.get("chapter_title", story["title"])
         chapter_doc = {
             "_id": f"{story_doc['_id']}-chapter-1",
             "story_id": story_doc["_id"],
-            "title": chapter_title,
+            "title": story["chapter_title"],
             "content": story.get("chapter_content") or (
-                f"<h2>{chapter_title}</h2>"
+                f"<h2>{story['chapter_title']}</h2>"
                 f"<p>{story['description']}</p>"
                 "<p>The scene opens with tension already in the air. Every small detail matters, and the protagonist senses that today's choice will change the path ahead.</p>"
                 "<p>By the time the chapter closes, the promise of a larger mystery has fully taken shape.</p>"

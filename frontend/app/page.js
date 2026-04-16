@@ -323,6 +323,7 @@ export default function Home() {
   const [followed, setFollowed] = useState(new Set());
   const [bookmarkedStoryIds, setBookmarkedStoryIds] = useState(new Set());
   const [toast, setToast] = useState('');
+  const [seeMoreOpen, setSeeMoreOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sliderNav, setSliderNav] = useState({
     recommended: { left: false, right: false },
@@ -337,6 +338,11 @@ export default function Home() {
     readingList: { left: false, right: false },
     reviews: { left: false, right: false },
     genres: { left: false, right: false },
+    fantasy: { left: false, right: false },
+    scifi: { left: false, right: false },
+    thriller: { left: false, right: false },
+    drama: { left: false, right: false },
+    paranormal: { left: false, right: false },
   });
 
   // CAROUSEL REFS
@@ -352,6 +358,11 @@ export default function Home() {
   const readingListRef = useRef(null);
   const reviewsRef = useRef(null);
   const genresRef = useRef(null);
+  const fantasyRef = useRef(null);
+  const scifiRef = useRef(null);
+  const thrillerRef = useRef(null);
+  const dramaRef = useRef(null);
+  const paranormalRef = useRef(null);
 
   // DRAG SCROLLING
   useDragScroll(recommendedRef);
@@ -366,6 +377,11 @@ export default function Home() {
   useDragScroll(readingListRef);
   useDragScroll(reviewsRef);
   useDragScroll(genresRef);
+  useDragScroll(fantasyRef);
+  useDragScroll(scifiRef);
+  useDragScroll(thrillerRef);
+  useDragScroll(dramaRef);
+  useDragScroll(paranormalRef);
 
   useEffect(() => {
     const refs = {
@@ -381,6 +397,11 @@ export default function Home() {
       readingList: readingListRef,
       reviews: reviewsRef,
       genres: genresRef,
+      fantasy: fantasyRef,
+      scifi: scifiRef,
+      thriller: thrillerRef,
+      drama: dramaRef,
+      paranormal: paranormalRef,
     };
 
     const updateKey = (key) => {
@@ -621,6 +642,26 @@ export default function Home() {
     String(item?.genre || '').toLowerCase().includes('adventure')
     || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('adventure')))
   )).slice(0, 12);
+  const fantasyStories = dedupeStoriesById(displayStories.filter((item) =>
+    String(item?.genre || '').toLowerCase().includes('fantasy')
+    || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('fantasy')))
+  )).slice(0, 12);
+  const scifiStories = dedupeStoriesById(displayStories.filter((item) =>
+    ['sci', 'sf', 'space'].some((kw) => String(item?.genre || '').toLowerCase().includes(kw))
+    || (Array.isArray(item?.categories) && item.categories.some((cat) => ['sci', 'sf', 'space'].some((kw) => String(cat).toLowerCase().includes(kw))))
+  )).slice(0, 12);
+  const thrillerStories = dedupeStoriesById(displayStories.filter((item) =>
+    String(item?.genre || '').toLowerCase().includes('thriller')
+    || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('thriller')))
+  )).slice(0, 12);
+  const dramaStories = dedupeStoriesById(displayStories.filter((item) =>
+    String(item?.genre || '').toLowerCase().includes('drama')
+    || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('drama')))
+  )).slice(0, 12);
+  const paranormalStories = dedupeStoriesById(displayStories.filter((item) =>
+    String(item?.genre || '').toLowerCase().includes('paranormal')
+    || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('paranormal')))
+  )).slice(0, 12);
 
   const heroSlides = displayStories.length
     ? displayStories.slice(0, 4).map((item, idx) => ({
@@ -827,6 +868,38 @@ export default function Home() {
       </div>
     </div>
   );
+
+  const fmtViews = (n) => {
+    const num = Number(n || 0);
+    if (num >= 1e9) return (num / 1e9).toFixed(1).replace(/\.0$/, '') + 'B';
+    if (num >= 1e6) return (num / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (num >= 1e3) return (num / 1e3).toFixed(1).replace(/\.0$/, '') + 'K';
+    return String(num);
+  };
+
+  const renderWpRow = (list, prefix) =>
+    list.map((story, idx) => (
+      <div
+        key={getStoryIdentity(story, idx, prefix)}
+        className="bx-book-card"
+        onClick={() => router.push(`/story/${story.id || story._id}`)}
+      >
+        <div className="bx-book-cover">
+          {storyCoverSrc(story) ? (
+            <img
+              src={storyCoverSrc(story)}
+              alt={story.title}
+              loading="lazy"
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          ) : (
+            <div className="bx-book-fallback">{story.title}</div>
+          )}
+        </div>
+        <h4 className="bx-book-title">{story.title}</h4>
+        <div className="bx-book-meta"><span>👁 {fmtViews(story.views)}</span></div>
+      </div>
+    ));
 
   const renderMixedStoryCards = (storiesList, sectionKey, tone, isPremium = false) => {
     const items = buildMixedStoryItems(storiesList, sectionKey);
@@ -1050,6 +1123,7 @@ export default function Home() {
       <section className="bx-section">
         <div className="bx-sec-header">
           <h2 className="bx-sec-title">New Releases</h2>
+          <Link href="/discover?sort=new" className="bx-sec-link">See all</Link>
         </div>
 
         <div className={`bx-carousel ${hasOverflow('newReleases') ? 'has-overflow' : 'no-overflow'}`}>
@@ -1061,8 +1135,8 @@ export default function Home() {
           >
             ‹
           </button>
-          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-new" ref={newReleasesRef}>
-            {renderMixedStoryCards(newReleases, 'newReleases', '#663399')}
+          <div className="bx-book-scroll" ref={newReleasesRef}>
+            {renderWpRow(newReleases, 'newReleases')}
           </div>
           <button
             className="bx-carousel-arrow right"
@@ -1081,6 +1155,7 @@ export default function Home() {
       <section className="bx-section">
         <div className="bx-sec-header">
           <h2 className="bx-sec-title">🔥 Trending This Week</h2>
+          <Link href="/discover?sort=trending" className="bx-sec-link">See all</Link>
         </div>
 
         <div className={`bx-carousel ${hasOverflow('trending') ? 'has-overflow' : 'no-overflow'}`}>
@@ -1092,8 +1167,8 @@ export default function Home() {
           >
             ‹
           </button>
-          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-trending" ref={trendingRef}>
-            {renderMixedStoryCards(trendingStories, 'trending', '#DC143C')}
+          <div className="bx-book-scroll" ref={trendingRef}>
+            {renderWpRow(trendingStories, 'trending')}
           </div>
           <button
             className="bx-carousel-arrow right"
@@ -1106,9 +1181,19 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ─── SEE MORE CATEGORIES ─── */}
+      <div className="bx-see-more-wrap">
+        <button className="bx-see-more-btn" onClick={() => setSeeMoreOpen((v) => !v)}>
+          {seeMoreOpen ? '▲ Show Less' : '▼ Explore More Categories'}
+        </button>
+      </div>
+
+      {seeMoreOpen && (
+      <>
       <section className="bx-section">
         <div className="bx-sec-header">
-          <h2 className="bx-sec-title">Romance Spotlight</h2>
+          <h2 className="bx-sec-title">💕 Romance Spotlight</h2>
+          <Link href="/discover?genre=romance" className="bx-sec-link">See all</Link>
         </div>
 
         <div className={`bx-carousel ${hasOverflow('romance') ? 'has-overflow' : 'no-overflow'}`}>
@@ -1120,8 +1205,8 @@ export default function Home() {
           >
             ‹
           </button>
-          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-romance" ref={romanceRef}>
-            {renderMixedStoryCards(romanceStories, 'romance', '#cc4c8f')}
+          <div className="bx-book-scroll" ref={romanceRef}>
+            {renderWpRow(romanceStories, 'romance')}
           </div>
           <button
             className="bx-carousel-arrow right"
@@ -1136,7 +1221,8 @@ export default function Home() {
 
       <section className="bx-section">
         <div className="bx-sec-header">
-          <h2 className="bx-sec-title">Mystery Vault</h2>
+          <h2 className="bx-sec-title">🔍 Mystery Vault</h2>
+          <Link href="/discover?genre=mystery" className="bx-sec-link">See all</Link>
         </div>
 
         <div className={`bx-carousel ${hasOverflow('mystery') ? 'has-overflow' : 'no-overflow'}`}>
@@ -1148,8 +1234,8 @@ export default function Home() {
           >
             ‹
           </button>
-          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-mystery" ref={mysteryRef}>
-            {renderMixedStoryCards(mysteryStories, 'mystery', '#4a4d89')}
+          <div className="bx-book-scroll" ref={mysteryRef}>
+            {renderWpRow(mysteryStories, 'mystery')}
           </div>
           <button
             className="bx-carousel-arrow right"
@@ -1164,7 +1250,8 @@ export default function Home() {
 
       <section className="bx-section">
         <div className="bx-sec-header">
-          <h2 className="bx-sec-title">Adventure Trails</h2>
+          <h2 className="bx-sec-title">🗺️ Adventure Trails</h2>
+          <Link href="/discover?genre=adventure" className="bx-sec-link">See all</Link>
         </div>
 
         <div className={`bx-carousel ${hasOverflow('adventure') ? 'has-overflow' : 'no-overflow'}`}>
@@ -1176,8 +1263,8 @@ export default function Home() {
           >
             ‹
           </button>
-          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-adventure" ref={adventureRef}>
-            {renderMixedStoryCards(adventureStories, 'adventure', '#2f8f9a')}
+          <div className="bx-book-scroll" ref={adventureRef}>
+            {renderWpRow(adventureStories, 'adventure')}
           </div>
           <button
             className="bx-carousel-arrow right"
@@ -1189,6 +1276,78 @@ export default function Home() {
           </button>
         </div>
       </section>
+
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">⚔️ Fantasy & Magic</h2>
+          <Link href="/discover?genre=fantasy" className="bx-sec-link">See all</Link>
+        </div>
+        <div className={`bx-carousel ${hasOverflow('fantasy') ? 'has-overflow' : 'no-overflow'}`}>
+          <button className="bx-carousel-arrow left" onClick={() => scrollCarousel(fantasyRef, 'left')} disabled={isArrowDisabled('fantasy', 'left')}>‹</button>
+          <div className="bx-book-scroll" ref={fantasyRef}>
+            {renderWpRow(fantasyStories, 'fantasy')}
+          </div>
+          <button className="bx-carousel-arrow right" onClick={() => scrollCarousel(fantasyRef, 'right')} disabled={isArrowDisabled('fantasy', 'right')}>›</button>
+        </div>
+      </section>
+
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">🚀 Sci-Fi & Space</h2>
+          <Link href="/discover?genre=scifi" className="bx-sec-link">See all</Link>
+        </div>
+        <div className={`bx-carousel ${hasOverflow('scifi') ? 'has-overflow' : 'no-overflow'}`}>
+          <button className="bx-carousel-arrow left" onClick={() => scrollCarousel(scifiRef, 'left')} disabled={isArrowDisabled('scifi', 'left')}>‹</button>
+          <div className="bx-book-scroll" ref={scifiRef}>
+            {renderWpRow(scifiStories, 'scifi')}
+          </div>
+          <button className="bx-carousel-arrow right" onClick={() => scrollCarousel(scifiRef, 'right')} disabled={isArrowDisabled('scifi', 'right')}>›</button>
+        </div>
+      </section>
+
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">⚡ Thriller</h2>
+          <Link href="/discover?genre=thriller" className="bx-sec-link">See all</Link>
+        </div>
+        <div className={`bx-carousel ${hasOverflow('thriller') ? 'has-overflow' : 'no-overflow'}`}>
+          <button className="bx-carousel-arrow left" onClick={() => scrollCarousel(thrillerRef, 'left')} disabled={isArrowDisabled('thriller', 'left')}>‹</button>
+          <div className="bx-book-scroll" ref={thrillerRef}>
+            {renderWpRow(thrillerStories, 'thriller')}
+          </div>
+          <button className="bx-carousel-arrow right" onClick={() => scrollCarousel(thrillerRef, 'right')} disabled={isArrowDisabled('thriller', 'right')}>›</button>
+        </div>
+      </section>
+
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">🎭 Drama</h2>
+          <Link href="/discover?genre=drama" className="bx-sec-link">See all</Link>
+        </div>
+        <div className={`bx-carousel ${hasOverflow('drama') ? 'has-overflow' : 'no-overflow'}`}>
+          <button className="bx-carousel-arrow left" onClick={() => scrollCarousel(dramaRef, 'left')} disabled={isArrowDisabled('drama', 'left')}>‹</button>
+          <div className="bx-book-scroll" ref={dramaRef}>
+            {renderWpRow(dramaStories, 'drama')}
+          </div>
+          <button className="bx-carousel-arrow right" onClick={() => scrollCarousel(dramaRef, 'right')} disabled={isArrowDisabled('drama', 'right')}>›</button>
+        </div>
+      </section>
+
+      <section className="bx-section">
+        <div className="bx-sec-header">
+          <h2 className="bx-sec-title">👻 Paranormal</h2>
+          <Link href="/discover?genre=paranormal" className="bx-sec-link">See all</Link>
+        </div>
+        <div className={`bx-carousel ${hasOverflow('paranormal') ? 'has-overflow' : 'no-overflow'}`}>
+          <button className="bx-carousel-arrow left" onClick={() => scrollCarousel(paranormalRef, 'left')} disabled={isArrowDisabled('paranormal', 'left')}>‹</button>
+          <div className="bx-book-scroll" ref={paranormalRef}>
+            {renderWpRow(paranormalStories, 'paranormal')}
+          </div>
+          <button className="bx-carousel-arrow right" onClick={() => scrollCarousel(paranormalRef, 'right')} disabled={isArrowDisabled('paranormal', 'right')}>›</button>
+        </div>
+      </section>
+      </>
+      )}
 
       {/* ───────────────────────────────────────────────────
           9. SUBSCRIPTION STORIES SECTION
@@ -1230,73 +1389,7 @@ export default function Home() {
       {/* ───────────────────────────────────────────────────
           10. CONTINUE READING SECTION
       ─────────────────────────────────────────────────── */}
-      {false && showContinueSection && (
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title">Continue Reading</h2>
-        </div>
 
-        <div className={`bx-carousel ${hasOverflow('continue') ? 'has-overflow' : 'no-overflow'}`}>
-          <button
-            className="bx-carousel-arrow left"
-            onClick={() => scrollCarousel(continueRef, 'left')}
-            aria-label="Scroll left"
-            disabled={isArrowDisabled('continue', 'left')}
-          >
-            ‹
-          </button>
-          <div className="bx-continue-scroll" ref={continueRef}>
-            {continueReading.map((story, idx) => (
-              (() => {
-                const progress = getDeterministicProgress(story, idx);
-                return (
-              <div
-                key={`continue-${idx}`}
-                className="bx-book-card bx-continue-card-flat"
-                onClick={() => router.push(`/story/${story.id || story._id}`)}
-              >
-                <div className="bx-book-cover" style={{ backgroundColor: '#8B4513' }}>
-                  {story.cover_image || story.image ? (
-                    <img src={story.cover_image || story.image} alt={story.title} loading="eager" />
-                  ) : (
-                    <div className="bx-book-fallback" style={{ fontSize: '10px' }}>
-                      {story.title}
-                    </div>
-                  )}
-                </div>
-                <div className="bx-book-info">
-                  <h4 className="bx-book-title">{story.title}</h4>
-                  <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
-                  <p className="bx-book-progress">Last read part: {story.chapter_id || 'Chapter 1'}</p>
-                  <p className="bx-book-progress">👁 {Number(story.views || 0).toLocaleString()}</p>
-                  <div className="bx-continue-progress-wrap">
-                    <div className="bx-continue-progress-bar">
-                      <div
-                        className="bx-continue-progress-fill"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <span className="bx-continue-progress-label">
-                      {progress}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-                );
-              })()
-            ))}
-          </div>
-          <button
-            className="bx-carousel-arrow right"
-            onClick={() => scrollCarousel(continueRef, 'right')}
-            aria-label="Scroll right"
-            disabled={isArrowDisabled('continue', 'right')}
-          >
-            ›
-          </button>
-        </div>
-      </section>
-      )}
 
       {/* ───────────────────────────────────────────────────
           11. MY READING LIST SECTION

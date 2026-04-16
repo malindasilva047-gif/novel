@@ -2,47 +2,96 @@ from datetime import datetime, timezone
 
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-EXTRA_HOME_CATEGORY_STORIES = [
-    {
-        "_id": "demo-story-rose-lanterns",
-        "title": "Rose Lantern Letters",
-        "description": "A city archivist and a street violinist trade anonymous letters that slowly rewrite both their lives.",
-        "cover_image": "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1200&q=80",
-        "tags": ["letters", "slowburn", "city"],
-        "categories": ["Romance", "Drama"],
-        "likes": 620,
-        "views": 3480,
-        "chapter_title": "Chapter 1: The First Envelope",
-    },
-    {
-        "_id": "demo-story-velvet-evidence",
-        "title": "Velvet Evidence",
-        "description": "A forensic linguist finds a pattern hidden inside witness statements from an impossible case.",
-        "cover_image": "https://images.unsplash.com/photo-1453873623425-02b132c5f5ee?auto=format&fit=crop&w=1200&q=80",
-        "tags": ["crime", "linguistics", "noir"],
-        "categories": ["Mystery", "Thriller"],
-        "likes": 540,
-        "views": 2970,
-        "chapter_title": "Chapter 1: The Missing Verb",
-    },
-    {
-        "_id": "demo-story-ember-trail",
-        "title": "Ember Trail Atlas",
-        "description": "A mountain guide and a cartographer chase a shifting map that points to a lost pass in the clouds.",
-        "cover_image": "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=80",
-        "tags": ["expedition", "map", "mountains"],
-        "categories": ["Adventure", "Fantasy"],
-        "likes": 590,
-        "views": 3215,
-        "chapter_title": "Chapter 1: The Living Map",
-    },
+# ─────────────────────────────────────────────────────────────────────────────
+# COMPREHENSIVE HOME CATEGORY SEED DATA  (auto-seeded on startup)
+# ─────────────────────────────────────────────────────────────────────────────
+
+CATEGORY_STORIES: list[dict] = [
+
+    # ── ROMANCE ──────────────────────────────────────────────────────────────
+    {"_id":"seed-romance-rose-lanterns","title":"Rose Lantern Letters","description":"A city archivist and a street violinist trade anonymous letters that slowly rewrite both their lives.","cover_image":"https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=600&q=80","tags":["letters","slow-burn","city"],"categories":["Romance","Drama"],"likes":6200,"views":348000,"chapter_title":"Chapter 1: The First Envelope"},
+    {"_id":"seed-romance-midnight-crush","title":"Midnight Crush","description":"Two rival coffee shop owners fall in love over stolen glances and shared playlists.","cover_image":"https://images.unsplash.com/photo-1533038590840-1cde6e668a91?auto=format&fit=crop&w=600&q=80","tags":["enemies-to-lovers","coffee","romance"],"categories":["Romance"],"likes":8400,"views":520000,"chapter_title":"Chapter 1: Black Coffee"},
+    {"_id":"seed-romance-fallen-lord","title":"Fallen to the Enigmatic Mafia Lord","description":"Ollie Grey harbored a secret love for his best friend Lucas — a formidable mafia lord with a cold demeanor.","cover_image":"https://images.unsplash.com/photo-1511367461989-f85a21fda167?auto=format&fit=crop&w=600&q=80","tags":["BxB","mafia","angst","mature"],"categories":["Romance","Mafia"],"likes":3400,"views":180000,"chapter_title":"Chapter 1: Welcome to the Family"},
+    {"_id":"seed-romance-second-chance","title":"Second Chance in Paris","description":"Estranged childhood sweethearts reunite at a rainy Paris café, ten years and three secrets later.","cover_image":"https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=600&q=80","tags":["second-chance","paris","slow-burn"],"categories":["Romance"],"likes":7100,"views":430000,"chapter_title":"Chapter 1: Rue des Rêves"},
+    {"_id":"seed-romance-fake-dating","title":"The Fake Girlfriend Agreement","description":"A bookish introvert and the university's star athlete sign a fake-dating contract that goes very real, very fast.","cover_image":"https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=600&q=80","tags":["fake-dating","campus","comedy"],"categories":["Romance","Comedy"],"likes":11200,"views":890000,"chapter_title":"Chapter 1: Contract Terms"},
+    {"_id":"seed-romance-ceo-assistant","title":"The CEO's Reluctant Heart","description":"His empire is built on ice. Her warmth is the one thing that could melt every wall he built.","cover_image":"https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=600&q=80","tags":["CEO","office-romance","billionaire"],"categories":["Romance"],"likes":9600,"views":740000,"chapter_title":"Chapter 1: First Day"},
+    {"_id":"seed-romance-moonlight-bride","title":"Moonlight Bride","description":"An arranged marriage to a stranger who turns out to be the boy who broke her heart at seventeen.","cover_image":"https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?auto=format&fit=crop&w=600&q=80","tags":["arranged-marriage","second-chance","drama"],"categories":["Romance","Drama"],"likes":5800,"views":310000,"chapter_title":"Chapter 1: Unexpected Vows"},
+    {"_id":"seed-romance-rivals-kiss","title":"One Last Rival","description":"They've competed for everything since kindergarten. The scholarship. The trophy. Now, somehow, each other.","cover_image":"https://images.unsplash.com/photo-1536924940846-227afb31e2a5?auto=format&fit=crop&w=600&q=80","tags":["rivals-to-lovers","campus","sports"],"categories":["Romance"],"likes":6900,"views":405000,"chapter_title":"Chapter 1: Final Round"},
+
+    # ── MYSTERY ──────────────────────────────────────────────────────────────
+    {"_id":"seed-mystery-velvet-evidence","title":"Velvet Evidence","description":"A forensic linguist finds a pattern hidden inside witness statements from an impossible case.","cover_image":"https://images.unsplash.com/photo-1453873623425-02b132c5f5ee?auto=format&fit=crop&w=600&q=80","tags":["crime","linguistics","noir"],"categories":["Mystery","Thriller"],"likes":5400,"views":297000,"chapter_title":"Chapter 1: The Missing Verb"},
+    {"_id":"seed-mystery-midnight-library","title":"Midnight Library of Dust","description":"A historian enters a cursed archive where every page rewrites the reader's past.","cover_image":"https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80","tags":["dark","mystery","supernatural"],"categories":["Mystery","Drama"],"likes":2780,"views":147500,"chapter_title":"Chapter 1: The Silent Shelf"},
+    {"_id":"seed-mystery-hollow-room","title":"The Hollow Room","description":"A detective discovers a room that shouldn't exist — in a building she's searched a hundred times before.","cover_image":"https://images.unsplash.com/photo-1509248961158-e54f6934749c?auto=format&fit=crop&w=600&q=80","tags":["detective","supernatural","puzzle"],"categories":["Mystery"],"likes":4100,"views":228000,"chapter_title":"Chapter 1: Room 13B"},
+    {"_id":"seed-mystery-last-witness","title":"The Last Witness","description":"The only person who saw the murder is an eight-year-old girl who hasn't spoken since.","cover_image":"https://images.unsplash.com/photo-1508921234172-b68ed235c072?auto=format&fit=crop&w=600&q=80","tags":["courtroom","crime","drama"],"categories":["Mystery","Drama"],"likes":6300,"views":380000,"chapter_title":"Chapter 1: Silence in the Stand"},
+    {"_id":"seed-mystery-coded-letters","title":"Coded in Red","description":"A cryptographer receives letters in a cipher only she can solve — each revealing a crime that hasn't happened yet.","cover_image":"https://images.unsplash.com/photo-1479920252409-6e3d8e8d4866?auto=format&fit=crop&w=600&q=80","tags":["cipher","thriller","race-against-time"],"categories":["Mystery","Thriller"],"likes":7800,"views":470000,"chapter_title":"Chapter 1: Red Ink"},
+    {"_id":"seed-mystery-ghost-station","title":"Ghost Station","description":"Commuters on a delayed metro train realize the station they're stuck at doesn't appear on any map.","cover_image":"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&q=80","tags":["urban","paranormal","mystery"],"categories":["Mystery","Paranormal"],"likes":5500,"views":325000,"chapter_title":"Chapter 1: Platform Zero"},
+    {"_id":"seed-mystery-vanished-heir","title":"The Vanished Heir","description":"When a billionaire's daughter disappears on her wedding night, her twin becomes the only detective left to find her.","cover_image":"https://images.unsplash.com/photo-1436871906060-d7bbce0bb4e9?auto=format&fit=crop&w=600&q=80","tags":["twins","crime","family-secrets"],"categories":["Mystery"],"likes":4900,"views":276000,"chapter_title":"Chapter 1: The Empty Dress"},
+    {"_id":"seed-mystery-winter-crime","title":"Where the Snow Hides","description":"A small-town sheriff investigates a murder where all evidence points to someone who died three years ago.","cover_image":"https://images.unsplash.com/photo-1491555103944-7c647fd857e6?auto=format&fit=crop&w=600&q=80","tags":["small-town","winter","cold-case"],"categories":["Mystery"],"likes":3600,"views":198000,"chapter_title":"Chapter 1: Frozen Ground"},
+
+    # ── ADVENTURE ────────────────────────────────────────────────────────────
+    {"_id":"seed-adventure-ember-trail","title":"Ember Trail Atlas","description":"A mountain guide and a cartographer chase a shifting map that points to a lost pass in the clouds.","cover_image":"https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=600&q=80","tags":["expedition","map","mountains"],"categories":["Adventure","Fantasy"],"likes":5900,"views":321500,"chapter_title":"Chapter 1: The Living Map"},
+    {"_id":"seed-adventure-coral-kingdom","title":"Coral Kingdom Archive","description":"A diver discovers an underwater library that stores forgotten human memories.","cover_image":"https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=600&q=80","tags":["ocean","mystery","adventure"],"categories":["Adventure","Fantasy"],"likes":4120,"views":210400,"chapter_title":"Chapter 1: Breath of Salt"},
+    {"_id":"seed-adventure-last-expedition","title":"The Last Expedition","description":"A disgraced archaeologist leads a ragtag team into an unmapped jungle after a satellite photo shows ruins no civilisation built.","cover_image":"https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=600&q=80","tags":["archaeology","jungle","ruins"],"categories":["Adventure"],"likes":6700,"views":392000,"chapter_title":"Chapter 1: The Photo"},
+    {"_id":"seed-adventure-desert-heist","title":"Desert Heist","description":"Stolen artifacts, a cross-border chase, and a thief who falls for the Interpol agent hunting her.","cover_image":"https://images.unsplash.com/photo-1509316785289-025f5b846b35?auto=format&fit=crop&w=600&q=80","tags":["heist","desert","action"],"categories":["Adventure","Romance"],"likes":8200,"views":560000,"chapter_title":"Chapter 1: Stolen Gold"},
+    {"_id":"seed-adventure-pirates-isle","title":"Pirates of the Forgotten Isle","description":"A historian is kidnapped by modern-day pirates who believe she holds the key to a treasure that reshapes power.","cover_image":"https://images.unsplash.com/photo-1505118380757-91f5f5632de0?auto=format&fit=crop&w=600&q=80","tags":["pirates","treasure","action"],"categories":["Adventure"],"likes":9400,"views":640000,"chapter_title":"Chapter 1: Overboard"},
+    {"_id":"seed-adventure-polar-race","title":"Ice & Iron","description":"Two rival explorers race to be the first to reach an isolated Antarctic station where radio contact has gone dark.","cover_image":"https://images.unsplash.com/photo-1517411032315-54ef2cb783bb?auto=format&fit=crop&w=600&q=80","tags":["antarctic","survival","race"],"categories":["Adventure"],"likes":4700,"views":258000,"chapter_title":"Chapter 1: The Last Signal"},
+    {"_id":"seed-adventure-clockwork-heart","title":"Clockwork Heartline","description":"A watchmaker and a rebel courier race against time to stop a mechanized coup.","cover_image":"https://images.unsplash.com/photo-1473186578172-c141e6798cf4?auto=format&fit=crop&w=600&q=80","tags":["steampunk","action","rebels"],"categories":["Adventure","Fantasy"],"likes":3890,"views":192000,"chapter_title":"Chapter 1: Springs and Sparks"},
+
+    # ── FANTASY ──────────────────────────────────────────────────────────────
+    {"_id":"seed-fantasy-aeloria","title":"The Chronicles of Aeloria","description":"A sweeping fantasy epic spanning continents, with intricate magic systems and unforgettable characters.","cover_image":"https://images.unsplash.com/photo-1566896546083-cf7b3ee53d2b?auto=format&fit=crop&w=600&q=80","tags":["epic-fantasy","magic","world-building"],"categories":["Fantasy"],"likes":14200,"views":1200000,"chapter_title":"Chapter 1: A Crack in the Sky"},
+    {"_id":"seed-fantasy-shadow-crown","title":"The Shadow Crown","description":"An exiled princess discovers she can bend shadows — and that the man sworn to kill her is the only one who can protect her.","cover_image":"https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&fit=crop&w=600&q=80","tags":["princess","dark-magic","chosen-one"],"categories":["Fantasy","Romance"],"likes":10800,"views":820000,"chapter_title":"Chapter 1: Exile"},
+    {"_id":"seed-fantasy-forge-of-gods","title":"Forge of the Fallen Gods","description":"A blacksmith's apprentice inherits a hammer forged by a dead god — and the war that comes with it.","cover_image":"https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80","tags":["mythology","war","blacksmith"],"categories":["Fantasy"],"likes":8600,"views":580000,"chapter_title":"Chapter 1: The Inheritance"},
+    {"_id":"seed-fantasy-mage-school","title":"Academy of the Unseen","description":"Students at the most prestigious mage school start disappearing — and only the worst student in class notices.","cover_image":"https://images.unsplash.com/photo-1515378791036-0648a814c963?auto=format&fit=crop&w=600&q=80","tags":["magic-school","mystery","friendship"],"categories":["Fantasy"],"likes":12400,"views":960000,"chapter_title":"Chapter 1: Registration"},
+    {"_id":"seed-fantasy-cursed-kingdom","title":"Kingdom Under Glass","description":"A curse has frozen every citizen in the capital mid-movement. One wandering thief is the only one left awake.","cover_image":"https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=600&q=80","tags":["curse","lone-hero","fairytale"],"categories":["Fantasy"],"likes":7300,"views":440000,"chapter_title":"Chapter 1: Glass City"},
+    {"_id":"seed-fantasy-dragon-rider","title":"The Last Dragonbinder","description":"When the last dragon hatches in 300 years, it chooses a disgraced soldier — not the chosen heir the kingdom expected.","cover_image":"https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80","tags":["dragons","military","rebellion"],"categories":["Fantasy"],"likes":9700,"views":710000,"chapter_title":"Chapter 1: The Wrong Bond"},
+    {"_id":"seed-fantasy-fae-bargain","title":"A Bargain in Thorns","description":"She sold seven years of her voice to save her brother. Now the Fae lord who owns her debt wants to renegotiate.","cover_image":"https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&w=600&q=80","tags":["fae","bargain","dark-fantasy"],"categories":["Fantasy","Romance"],"likes":11500,"views":870000,"chapter_title":"Chapter 1: Seven Years"},
+    {"_id":"seed-fantasy-river-prophet","title":"Daughter of the River Prophet","description":"A girl born with the power to see rivers' futures must navigate a kingdom obsessed with controlling prophecy.","cover_image":"https://images.unsplash.com/photo-1516912481808-3406841bd33c?auto=format&fit=crop&w=600&q=80","tags":["prophecy","rivers","chosen"],"categories":["Fantasy"],"likes":6100,"views":358000,"chapter_title":"Chapter 1: Visions at Dawn"},
+
+    # ── SCI-FI ───────────────────────────────────────────────────────────────
+    {"_id":"seed-scifi-nexus-prime","title":"Nexus Prime","description":"When Earth's first interstellar colony goes dark, one rogue pilot breaks quarantine to find out why.","cover_image":"https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=600&q=80","tags":["space","colony","mystery"],"categories":["Sci-Fi"],"likes":9200,"views":680000,"chapter_title":"Chapter 1: Dark Signal"},
+    {"_id":"seed-scifi-sky-garden","title":"The Last Sky Garden","description":"In a smog-choked world, one rooftop garden could restart the planet's ecosystem.","cover_image":"https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?auto=format&fit=crop&w=600&q=80","tags":["eco","hope","dystopia"],"categories":["Sci-Fi","Drama"],"likes":5010,"views":300800,"chapter_title":"Chapter 1: Seeds Above Asphalt"},
+    {"_id":"seed-scifi-mind-upload","title":"Upload Protocol","description":"A neuroscientist's consciousness is illegally uploaded after her death. Now she must survive inside corporate servers.","cover_image":"https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=600&q=80","tags":["AI","consciousness","thriller"],"categories":["Sci-Fi","Thriller"],"likes":7600,"views":490000,"chapter_title":"Chapter 1: Reboot"},
+    {"_id":"seed-scifi-mars-war","title":"Red Dust Rebellion","description":"Mars colony workers stage history's first off-world revolution — and the AI governing them has to choose a side.","cover_image":"https://images.unsplash.com/photo-1614728423169-3f65fd722b7e?auto=format&fit=crop&w=600&q=80","tags":["mars","revolution","AI"],"categories":["Sci-Fi"],"likes":6400,"views":382000,"chapter_title":"Chapter 1: The Vote"},
+    {"_id":"seed-scifi-time-war","title":"The Fracture War","description":"Two time agencies are destroying history from opposite ends of the timeline. One agent works for both.","cover_image":"https://images.unsplash.com/photo-1494972308805-463bc619d34e?auto=format&fit=crop&w=600&q=80","tags":["time-travel","war","double-agent"],"categories":["Sci-Fi"],"likes":8100,"views":555000,"chapter_title":"Chapter 1: Year Zero"},
+    {"_id":"seed-scifi-android-love","title":"Iron Heart","description":"An android social worker develops emotions she was never programmed to have — and falls for the human trying to shut her down.","cover_image":"https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=600&q=80","tags":["android","romance","AI"],"categories":["Sci-Fi","Romance"],"likes":9800,"views":730000,"chapter_title":"Chapter 1: Empathy Subroutine"},
+    {"_id":"seed-scifi-deep-sea-city","title":"Pressure City","description":"A noir detective in an underwater megacity investigates a murder where the victim has been dead for six years.","cover_image":"https://images.unsplash.com/photo-1559827260-dc66d52bef19?auto=format&fit=crop&w=600&q=80","tags":["underwater","noir","mystery"],"categories":["Sci-Fi","Mystery"],"likes":5300,"views":295000,"chapter_title":"Chapter 1: The Depth Files"},
+    {"_id":"seed-scifi-clone-rebels","title":"Second Original","description":"When a woman discovers she's the third clone of a missing scientist, she must find the first two before the government does.","cover_image":"https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=600&q=80","tags":["clone","conspiracy","thriller"],"categories":["Sci-Fi","Thriller"],"likes":7000,"views":420000,"chapter_title":"Chapter 1: The Match"},
+
+    # ── THRILLER ─────────────────────────────────────────────────────────────
+    {"_id":"seed-thriller-neon-monsoon","title":"Neon Monsoon","description":"A whistleblower on the run through monsoon-drenched Bangkok must decode a conspiracy hidden inside a corporate app.","cover_image":"https://images.unsplash.com/photo-1535083783855-aaaa1731e93d?auto=format&fit=crop&w=600&q=80","tags":["conspiracy","Bangkok","chase"],"categories":["Thriller"],"likes":6800,"views":418000,"chapter_title":"Chapter 1: The Leak"},
+    {"_id":"seed-thriller-dark-network","title":"Dark Network","description":"A cyber-security analyst finds a dark web listing for her own murder — scheduled in 72 hours.","cover_image":"https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=600&q=80","tags":["dark-web","hacker","countdown"],"categories":["Thriller"],"likes":8900,"views":620000,"chapter_title":"Chapter 1: The Listing"},
+    {"_id":"seed-thriller-room-404","title":"Room 404","description":"A journalist checking into a remote mountain hotel realizes the same week is replaying — and only she can break the loop.","cover_image":"https://images.unsplash.com/photo-1455587734955-081b22074882?auto=format&fit=crop&w=600&q=80","tags":["time-loop","journalist","hotel"],"categories":["Thriller","Mystery"],"likes":7200,"views":448000,"chapter_title":"Chapter 1: Check-In"},
+    {"_id":"seed-thriller-body-double","title":"The Body Double","description":"An actress hired to stand in for a celebrity discovers she's being used as a target for an assassination.","cover_image":"https://images.unsplash.com/photo-1492515114975-b062d1a270ae?auto=format&fit=crop&w=600&q=80","tags":["celebrity","assassination","spy"],"categories":["Thriller"],"likes":5700,"views":334000,"chapter_title":"Chapter 1: The Offer"},
+    {"_id":"seed-thriller-silent-partner","title":"Silent Partner","description":"A corporate lawyer discovers her most trusted colleague has been systematically building a case against her for three years.","cover_image":"https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=600&q=80","tags":["legal","betrayal","workplace"],"categories":["Thriller","Drama"],"likes":4500,"views":258000,"chapter_title":"Chapter 1: The File"},
+    {"_id":"seed-thriller-cross-the-line","title":"Cross the Line","description":"Two intelligence agents from opposing nations are told to eliminate each other — and fall in love instead.","cover_image":"https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=600&q=80","tags":["spy","romance","geopolitics"],"categories":["Thriller","Romance"],"likes":10200,"views":780000,"chapter_title":"Chapter 1: Mission Brief"},
+    {"_id":"seed-thriller-blackout","title":"Blackout Hour","description":"Every city in the northern hemisphere loses power for exactly one hour at midnight. What happens in the dark changes everything.","cover_image":"https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80","tags":["blackout","survival","society"],"categories":["Thriller"],"likes":7600,"views":510000,"chapter_title":"Chapter 1: Midnight"},
+    {"_id":"seed-thriller-profiler","title":"Inside the Mind","description":"A criminal profiler realizes the killer she's hunting is mirroring her own unsolved childhood trauma — deliberately.","cover_image":"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80","tags":["profiler","serial-killer","psychological"],"categories":["Thriller","Mystery"],"likes":9100,"views":668000,"chapter_title":"Chapter 1: Mirror Pattern"},
+
+    # ── DRAMA ────────────────────────────────────────────────────────────────
+    {"_id":"seed-drama-autumn-falls","title":"When Autumn Falls","description":"A musician returns to her hometown after 10 years to face the family she left behind.","cover_image":"https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=600&q=80","tags":["family","music","homecoming"],"categories":["Drama"],"likes":4400,"views":247000,"chapter_title":"Chapter 1: Leaves"},
+    {"_id":"seed-drama-paper-walls","title":"Paper Walls","description":"Three siblings clearing out their childhood home discover letters that rewrite everything they believed about their parents.","cover_image":"https://images.unsplash.com/photo-1484820540004-14229fe36ca4?auto=format&fit=crop&w=600&q=80","tags":["family-secrets","siblings","emotional"],"categories":["Drama"],"likes":5200,"views":298000,"chapter_title":"Chapter 1: The Attic"},
+    {"_id":"seed-drama-curtain-call","title":"Curtain Call","description":"Backstage at a dying theater, the ensemble cast discovers their performances have been literally keeping the building alive.","cover_image":"https://images.unsplash.com/photo-1503095396549-807759245b35?auto=format&fit=crop&w=600&q=80","tags":["theater","magical-realism","ensemble"],"categories":["Drama","Fantasy"],"likes":4700,"views":265000,"chapter_title":"Chapter 1: Opening Night"},
+    {"_id":"seed-drama-last-speaker","title":"The Last Speaker","description":"A linguist races to document a dying language before its only remaining speaker passes — and discovers the language holds secrets.","cover_image":"https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=600&q=80","tags":["linguistics","culture","race-against-time"],"categories":["Drama"],"likes":3200,"views":176000,"chapter_title":"Chapter 1: Last Words"},
+    {"_id":"seed-drama-night-floor","title":"Night Floor","description":"The overnight staff of a hospital emergency department navigates impossible choices, unlikely bonds, and small miracles.","cover_image":"https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=600&q=80","tags":["hospital","medical","ensemble"],"categories":["Drama"],"likes":6100,"views":355000,"chapter_title":"Chapter 1: Triage"},
+
+    # ── PARANORMAL ───────────────────────────────────────────────────────────
+    {"_id":"seed-para-blackmoor","title":"The Haunting of Blackmoor Hall","description":"A grief counsellor inherits a manor where she can hear every death that ever happened inside its walls.","cover_image":"https://images.unsplash.com/photo-1509248961158-e54f6934749c?auto=format&fit=crop&w=600&q=80","tags":["haunted","grief","ghosts"],"categories":["Paranormal","Mystery"],"likes":6900,"views":430000,"chapter_title":"Chapter 1: The Will"},
+    {"_id":"seed-para-shadow-walker","title":"Shadow Walker","description":"She can step between worlds by walking through shadows — but every trip costs a piece of her memory.","cover_image":"https://images.unsplash.com/photo-1451188502541-13943edb6acb?auto=format&fit=crop&w=600&q=80","tags":["shadow-magic","dimension","sacrifice"],"categories":["Paranormal","Fantasy"],"likes":8300,"views":590000,"chapter_title":"Chapter 1: The Crossing"},
+    {"_id":"seed-para-siren-girl","title":"Siren Without a Sea","description":"A siren stranded in a landlocked city must find her voice — literally — before the next new moon kills her.","cover_image":"https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=600&q=80","tags":["siren","urban-fantasy","race-against-time"],"categories":["Paranormal","Fantasy"],"likes":7100,"views":465000,"chapter_title":"Chapter 1: Landlocked"},
+    {"_id":"seed-para-dead-letters","title":"Letters from the Dead","description":"A postal worker starts receiving letters addressed to people who have been dead for decades — and they're asking for help.","cover_image":"https://images.unsplash.com/photo-1516585427167-9f4af9627e6c?auto=format&fit=crop&w=600&q=80","tags":["ghosts","letters","mystery"],"categories":["Paranormal","Mystery"],"likes":5600,"views":322000,"chapter_title":"Chapter 1: Undeliverable"},
+    {"_id":"seed-para-oracle","title":"Born With Answers","description":"A girl who involuntarily answers any question with absolute truth is hunted by those who want to weaponise her gift.","cover_image":"https://images.unsplash.com/photo-1553729459-efe14ef6055d?auto=format&fit=crop&w=600&q=80","tags":["oracle","gifts","chase"],"categories":["Paranormal","Thriller"],"likes":4800,"views":278000,"chapter_title":"Chapter 1: The Question"},
+    {"_id":"seed-para-reborn","title":"Reborn in the Wrong Story","description":"She wakes up inside the pages of a book she's read — as the villain. And the hero's sword is already drawn.","cover_image":"https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&w=600&q=80","tags":["isekai","reincarnation","villain"],"categories":["Paranormal","Fantasy"],"likes":12800,"views":1050000,"chapter_title":"Chapter 1: Wrong Page"},
 ]
+
+# Keep backwards-compat name for older imports
+EXTRA_HOME_CATEGORY_STORIES = CATEGORY_STORIES
 
 
 async def ensure_home_category_seed(database: AsyncIOMotorDatabase, author_id: str) -> None:
+    """Upsert all category stories and chapters. Called automatically on every backend startup."""
     now = datetime.now(timezone.utc)
 
-    for story in EXTRA_HOME_CATEGORY_STORIES:
+    for story in CATEGORY_STORIES:
         story_doc = {
             "_id": story["_id"],
             "author_id": author_id,
@@ -68,24 +117,28 @@ async def ensure_home_category_seed(database: AsyncIOMotorDatabase, author_id: s
             "content": (
                 f"<h2>{story['chapter_title']}</h2>"
                 f"<p>{story['description']}</p>"
-                "<p>This chapter is seeded automatically for homepage category showcases."
-                " Replace or extend it anytime from writer tools.</p>"
+                "<p>This chapter is seeded automatically. Replace it anytime from Writer Studio.</p>"
             ),
             "chapter_number": 1,
+            "word_count": len(story["description"].split()),
         }
         await database.chapters.update_one({"_id": chapter_doc["_id"]}, {"$set": chapter_doc}, upsert=True)
 
     await database.home_category_sections.update_one(
         {"_id": "home-category-sections"},
-        {
-            "$set": {
-                "sections": [
-                    {"key": "romance", "label": "Romance Spotlight"},
-                    {"key": "mystery", "label": "Mystery Vault"},
-                    {"key": "adventure", "label": "Adventure Trails"},
-                ],
-                "updated_at": now,
-            }
-        },
+        {"$set": {
+            "sections": [
+                {"key": "romance",    "label": "Romance",          "icon": "💕"},
+                {"key": "mystery",    "label": "Mystery",          "icon": "🔍"},
+                {"key": "adventure",  "label": "Adventure",        "icon": "🗺️"},
+                {"key": "fantasy",    "label": "Fantasy & Magic",  "icon": "⚔️"},
+                {"key": "scifi",      "label": "Sci-Fi & Space",   "icon": "🚀"},
+                {"key": "thriller",   "label": "Thriller",         "icon": "⚡"},
+                {"key": "drama",      "label": "Drama",            "icon": "🎭"},
+                {"key": "paranormal", "label": "Paranormal",       "icon": "👻"},
+            ],
+            "updated_at": now,
+        }},
         upsert=True,
     )
+

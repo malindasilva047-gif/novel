@@ -1001,8 +1001,8 @@ export default function Home() {
           >
             ‹
           </button>
-          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-recommended" ref={recommendedRef}>
-            {renderMixedStoryCards(recommendedStories, 'recommended', '#3f7a6a')}
+          <div className="bx-book-scroll" ref={recommendedRef}>
+            {renderWpRow(recommendedStories, 'recommended')}
           </div>
           <button
             className="bx-carousel-arrow right"
@@ -1167,8 +1167,8 @@ export default function Home() {
           >
             ‹
           </button>
-          <div className="bx-book-scroll" ref={trendingRef}>
-            {renderWpRow(trendingStories, 'trending')}
+          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-trending" ref={trendingRef}>
+            {renderMixedStoryCards(trendingStories, 'trending', '#DC143C')}
           </div>
           <button
             className="bx-carousel-arrow right"

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { apiRequest, fetchSiteSettings, readToken } from '@/lib/api';
+import { appRoutes } from '@/lib/routes';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -18,6 +19,7 @@ export default function Navbar() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [theme, setTheme] = useState('dark');
   const userRef = useRef(null);
   const writeRef = useRef(null);
   const browseRef = useRef(null);
@@ -116,6 +118,27 @@ export default function Navbar() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // Theme init — read localStorage, fallback to system preference
+  useEffect(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'light' || saved === 'dark') {
+      setTheme(saved);
+      document.documentElement.setAttribute('data-theme', saved);
+    } else {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const initial = prefersDark ? 'dark' : 'light';
+      setTheme(initial);
+      document.documentElement.setAttribute('data-theme', initial);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  };
 
   useEffect(() => {
     const handler = (e) => {
@@ -325,6 +348,10 @@ export default function Navbar() {
                       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} style={{width:'14px',height:'14px',color:'var(--muted)',flexShrink:0}}><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
                       Profile
                     </div>
+                    <div className="bx-dd-row" onClick={() => { setUserDd(false); router.push(appRoutes.profileBadges()); }}>
+                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} style={{width:'14px',height:'14px',color:'var(--muted)',flexShrink:0}}><path d="M12 3l2.4 4.85L20 8.63l-4 3.9.94 5.47L12 15.72 7.06 18l.94-5.47-4-3.9 5.6-.78L12 3z"/></svg>
+                      Badges
+                    </div>
                     <div className="bx-dd-row" onClick={() => { setUserDd(false); router.push('/library'); }}>
                       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} style={{width:'14px',height:'14px',color:'var(--muted)',flexShrink:0}}><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
                       Library
@@ -352,6 +379,18 @@ export default function Navbar() {
               <button className="bx-btn-ghost" style={{fontSize:'13px'}}>Sign In</button>
             </Link>
           )}
+
+          {/* Theme toggle */}
+          <button
+            className="theme-toggle-btn"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          >
+            <span className="theme-toggle-knob">
+              {theme === 'dark' ? '🌙' : '☀️'}
+            </span>
+          </button>
 
           <button className="bx-hamburger" onClick={() => setMobileOpen(true)} aria-label="Menu">
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{width:'22px',height:'22px'}}>
@@ -386,6 +425,21 @@ export default function Navbar() {
               placeholder="Search stories"
             />
             <button onClick={submitSearch}>Go</button>
+          </div>
+          {/* Theme toggle in mobile nav */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px'}}>
+            <span style={{fontSize:'13px',color:'var(--muted)',fontFamily:'DM Sans,sans-serif'}}>
+              {theme === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+            </span>
+            <button
+              className="theme-toggle-btn"
+              onClick={toggleTheme}
+              aria-label="Toggle theme"
+            >
+              <span className="theme-toggle-knob">
+                {theme === 'dark' ? '🌙' : '☀️'}
+              </span>
+            </button>
           </div>
           <div className="bx-mobile-nav-divider" />
           {user ? (

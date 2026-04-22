@@ -11,6 +11,19 @@ export default function AppChrome({ children }) {
   const pathname = usePathname();
   const isAdminRoute = pathname?.startsWith("/admin");
 
+  // Sync theme from localStorage on every mount (handles SSR mismatch)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'light' || saved === 'dark') {
+        document.documentElement.setAttribute('data-theme', saved);
+      } else {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     if (isAdminRoute) {
       return;

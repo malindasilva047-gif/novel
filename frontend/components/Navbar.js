@@ -211,7 +211,7 @@ export default function Navbar() {
               Browse
               <svg style={{width:'11px',height:'11px',marginLeft:'6px',opacity:0.7}} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M6 9l6 6 6-6"/></svg>
             </button>
-            <div className={`bx-dd bx-dd-light${browseDd ? ' open' : ''}`} style={{minWidth:'420px',left:0,right:'auto'}}>
+            <div className={`bx-dd bx-dd-light${browseDd ? ' open' : ''}`} style={{minWidth:'min(420px, calc(100vw - 24px))',left:0,right:'auto'}}>
               <div className="bx-dd-sec" style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:'4px 14px'}}>
                 {browseCategories.map((category) => (
                   <div

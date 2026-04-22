@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { apiRequest, fetchSiteSettings, readToken } from '@/lib/api';
+import { appRoutes } from '@/lib/routes';
 
 /* ═══════════════════════════════════════════════════════
    MOCK DATA & CONSTANTS
@@ -1434,7 +1435,7 @@ export default function Home() {
               <div
                 key={item.tag}
                 className="wp-hash-card-new"
-                onClick={() => router.push(`/discover?q=${encodeURIComponent(item.tag)}`)}
+                onClick={() => router.push(appRoutes.hashtag(item.tag.replace('#', '')))}
               >
                 <div className="wp-hash-covers">
                   {item.keys.map((k, i) => (

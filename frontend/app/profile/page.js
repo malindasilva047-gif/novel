@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiRequest, readToken } from '@/lib/api';
 import ShareModal from '@/components/ShareModal';
+import { appRoutes } from '@/lib/routes';
 
 const COVER_GRADIENTS = [
   'linear-gradient(135deg,#0a1628 0%,#1a0a2e 40%,#0d1f2a 70%,#1a1a0a 100%)',
@@ -450,7 +451,7 @@ export default function ProfilePage() {
               </div>
             ))}
             {badges.length > 4 && (
-              <button className="b-see-all" onClick={() => setTab('badges')}>View all {badges.length} →</button>
+              <button className="b-see-all" onClick={() => router.push(appRoutes.profileBadges())}>View all {badges.length} →</button>
             )}
           </div>
         )}
@@ -753,4 +754,4 @@ export default function ProfilePage() {
     </div>
   );
 }
-
+

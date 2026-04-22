@@ -98,7 +98,7 @@ function DiscoverInner() {
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const payload = await apiRequest('/stories?limit=120&sort_by=views');
+        const payload = await apiRequest('/stories?limit=100&sort_by=views');
         const rows = Array.isArray(payload?.stories) ? payload.stories : [];
         if (!rows.length) return;
 

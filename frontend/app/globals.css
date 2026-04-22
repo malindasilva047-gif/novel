@@ -4900,7 +4900,22 @@ select.bx-select-control {
 
 /* ─── Overflow-x prevention ─── */
 html, body { max-width: 100%; overflow-x: hidden; }
-.bx-header, .bx-channel-nav { overflow: hidden; }
+/* Keep header dropdowns visible outside header bounds. */
+.bx-header { overflow: visible; }
+.bx-channel-nav { overflow: hidden; }
+
+/* Dropdown responsiveness */
+.bx-dd {
+  max-width: min(420px, calc(100vw - 24px));
+}
+
+@media (max-width: 860px) {
+  .bx-dd {
+    right: 0;
+    left: auto;
+    min-width: min(300px, calc(100vw - 24px));
+  }
+}
 
 /* ─── Print / accessibility ─── */
 @media print {

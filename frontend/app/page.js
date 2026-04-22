@@ -16,6 +16,7 @@ const HERO_SLIDES = [
     title: 'The Chronicles of <em>Aeloria</em>',
     desc: 'A sweeping fantasy epic spanning continents, with intricate magic systems and unforgettable characters.',
     bg: 'linear-gradient(135deg, #1a0a0a 0%, #2a0a0a 50%, #1a0a2e 100%)',
+    localCover: '/story-covers/838a5bd1-9865-4b1d-a43f-d9031def487f.jpg',
   },
   {
     id: 2,
@@ -23,6 +24,7 @@ const HERO_SLIDES = [
     title: 'Whispers in the <em>Shadows</em>',
     desc: 'A thrilling paranormal mystery that blurs the line between reality and the supernatural.',
     bg: 'linear-gradient(135deg, #0a1a2e 0%, #16213e 50%, #0f3460 100%)',
+    localCover: '/story-covers/3afa73d3-a7fd-4461-94a2-f27ecb4f5ce5.jpg',
   },
   {
     id: 3,
@@ -30,6 +32,7 @@ const HERO_SLIDES = [
     title: 'Hearts <em>Entwined</em>',
     desc: 'An intimate love story that transcends time and challenges everything they believe in.',
     bg: 'linear-gradient(135deg, #2e0a1a 0%, #3e0a1a 50%, #2e1a2e 100%)',
+    localCover: '/story-covers/6005008f-8a71-488e-a3cb-7338786e318b.jpg',
   },
   {
     id: 4,
@@ -37,6 +40,7 @@ const HERO_SLIDES = [
     title: 'Beyond the <em>Stars</em>',
     desc: 'Humanity\'s struggle for survival in a vast and hostile universe awaits discovery.',
     bg: 'linear-gradient(135deg, #0a1a2e 0%, #1a3a4e 50%, #0a2a4e 100%)',
+    localCover: '/story-covers/8a117e79-24fc-4545-b020-bd5d697e4a71.jpg',
   },
 ];
 
@@ -630,6 +634,10 @@ export default function Home() {
   const newReleases = dedupeStoriesById(byCreatedDesc).slice(0, 12);
   const trendingStories = dedupeStoriesById(byLikesDesc).slice(0, 12);
   const subscriptionStories = dedupeStoriesById(displayStories.filter((item) => item?.is_premium)).slice(0, 12);
+  const werewolfStories = dedupeStoriesById(displayStories.filter((item) =>
+    String(item?.genre || '').toLowerCase().includes('werewolf')
+    || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('werewolf')))
+  )).slice(0, 12);
   const romanceStories = dedupeStoriesById(displayStories.filter((item) =>
     String(item?.genre || '').toLowerCase().includes('romance')
     || (Array.isArray(item?.categories) && item.categories.some((cat) => String(cat).toLowerCase().includes('romance')))
@@ -911,655 +919,580 @@ export default function Home() {
     });
   };
 
+  // Slide tag styles
+  const slideTagClass = (idx) => {
+    if (idx === 0) return 'wp-slide-tag wp-slide-tag-featured';
+    if (idx === 1) return 'wp-slide-tag wp-slide-tag-editors';
+    return 'wp-slide-tag wp-slide-tag-trending';
+  };
+
   return (
-    <main>
+    <main className="wp-home">
       {/* ───────────────────────────────────────────────────
-          1. HERO SLIDER
+          1. HERO SLIDESHOW (Wingsaga style)
       ─────────────────────────────────────────────────── */}
-      <section className="bx-hero">
-        <div
-          className="bx-hero-track"
-          style={{
-            transform: `translateX(-${currentSlide * 100}%)`,
-          }}
-        >
-          {heroSlides.map((slide, idx) => (
-            <div key={slide.id} className="bx-hero-slide" style={{ backgroundImage: slide.bg }}>
-              <div className="bx-hero-bg" style={{ backgroundImage: slide.bg }} />
-              <div className="bx-hero-content">
-                <span className="bx-hero-tag">{slide.tag}</span>
-                <h1 className="bx-hero-title" dangerouslySetInnerHTML={{ __html: slide.title }} />
-                <p className="bx-hero-desc">{slide.desc}</p>
-                <div className="bx-hero-actions">
-                  <button
-                    className="bx-hero-btn-read"
-                    onClick={() => {
-                      const targetStory = getHeroStoryByIndex(idx);
-                      const targetId = targetStory?.id || targetStory?._id;
-                      if (targetId) {
-                        router.push(`/story/${targetId}`);
-                      }
-                    }}
-                  >
-                    Start Reading
-                  </button>
-                  <button className="bx-hero-btn-list" onClick={handleHeroSaveToList}>
-                    {(() => {
-                      const activeStory = getActiveHeroStory();
-                      const storyId = activeStory?.id || activeStory?._id;
-                      const isSaved = storyId ? bookmarkedStoryIds.has(storyId) : false;
-                      return isSaved ? 'Saved' : 'Save to List';
-                    })()}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Hero Arrows */}
-        <button className="bx-hero-arrow prev" onClick={handlePrevSlide} aria-label="Previous slide">
-          ‹
-        </button>
-        <button className="bx-hero-arrow next" onClick={handleNextSlide} aria-label="Next slide">
-          ›
-        </button>
-
-        {/* Hero Dots */}
-        <div className="bx-hero-dots">
-          {heroSlides.map((_, idx) => (
-            <button
-              key={idx}
-              className={`bx-hero-dot ${idx === currentSlide ? 'active' : ''}`}
-              onClick={() => setCurrentSlide(idx)}
-              aria-label={`Go to slide ${idx + 1}`}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* ───────────────────────────────────────────────────
-          2. RECOMMENDED FOR YOU
-      ─────────────────────────────────────────────────── */}
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <div>
-            <h2 className="bx-sec-title">Recommended for You</h2>
-            <p className="bx-sec-subtitle">
-              {recommendationMeta.reason}
-              {recommendationMeta.location_hint ? ` • ${recommendationMeta.location_hint}` : ''}
-            </p>
-          </div>
-        </div>
-
-        <div className={`bx-carousel ${hasOverflow('recommended') ? 'has-overflow' : 'no-overflow'}`}>
-          <button
-            className="bx-carousel-arrow left"
-            onClick={() => scrollCarousel(recommendedRef, 'left')}
-            aria-label="Scroll left"
-            disabled={isArrowDisabled('recommended', 'left')}
-          >
-            ‹
-          </button>
-          <div className="bx-book-scroll" ref={recommendedRef}>
-            {renderWpRow(recommendedStories, 'recommended')}
-          </div>
-          <button
-            className="bx-carousel-arrow right"
-            onClick={() => scrollCarousel(recommendedRef, 'right')}
-            aria-label="Scroll right"
-            disabled={isArrowDisabled('recommended', 'right')}
-          >
-            ›
-          </button>
-        </div>
-      </section>
-
-      {/* ───────────────────────────────────────────────────
-          3. CONTINUE READING SECTION
-      ─────────────────────────────────────────────────── */}
-      {showContinueSection && (
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title">Continue Reading</h2>
-        </div>
-
-        <div className={`bx-carousel ${hasOverflow('continue') ? 'has-overflow' : 'no-overflow'}`}>
-          <button
-            className="bx-carousel-arrow left"
-            onClick={() => scrollCarousel(continueRef, 'left')}
-            aria-label="Scroll left"
-            disabled={isArrowDisabled('continue', 'left')}
-          >
-            ‹
-          </button>
-          <div className="bx-continue-scroll" ref={continueRef}>
-            {continueReading.map((story, idx) => (
-              (() => {
-                const progress = getDeterministicProgress(story, idx);
-                return (
+      <section style={{ marginTop: '8px' }}>
+        <div className="wp-hero">
+          {heroSlides.map((slide, idx) => {
+            const story = getHeroStoryByIndex(idx);
+            const coverSrc = story?.cover_image || story?.image || slide.localCover || '';
+            return (
               <div
-                key={`continue-top-${idx}`}
-                className="bx-book-card bx-continue-card-flat"
-                onClick={() => router.push(`/story/${story.id || story._id}`)}
+                key={slide.id}
+                className={`wp-slide${idx === currentSlide ? ' active' : ''}`}
               >
-                <div className="bx-book-cover" style={{ backgroundColor: '#8B4513' }}>
-                  {story.cover_image || story.image ? (
-                    <img src={story.cover_image || story.image} alt={story.title} loading="eager" />
-                  ) : (
-                    <div className="bx-book-fallback" style={{ fontSize: '10px' }}>
-                      {story.title}
+                {coverSrc ? (
+                  <img src={coverSrc} alt={slide.tag} />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', background: slide.bg }} />
+                )}
+                <div className="wp-slide-overlay" />
+                <div className="wp-slide-content">
+                  <div className="wp-slide-inner">
+                    <span className={slideTagClass(idx)}>{slide.tag}</span>
+                    <h3 className="wp-slide-title" dangerouslySetInnerHTML={{ __html: slide.title }} />
+                    <div className="wp-slide-stats">
+                      {story?.avg_rating > 0 && (
+                        <>
+                          <div className="wp-slide-rating">
+                            ★ {Number(story.avg_rating).toFixed(1)}
+                          </div>
+                          <div className="wp-slide-divider" />
+                        </>
+                      )}
+                      {story?.views > 0 && (
+                        <div className="wp-slide-views">
+                          👁 {fmtViews(story.views)} Reads
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="bx-book-info">
-                  <h4 className="bx-book-title">{story.title}</h4>
-                  <p className="bx-book-author">{story.publisher || story.author_name || story.author || 'Unknown Author'}</p>
-                  <p className="bx-book-progress">Last read part: {story.chapter_id || 'Chapter 1'}</p>
-                  <p className="bx-book-progress">👁 {Number(story.views || 0).toLocaleString()}</p>
-                  <div className="bx-continue-progress-wrap">
-                    <div className="bx-continue-progress-bar">
-                      <div
-                        className="bx-continue-progress-fill"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <span className="bx-continue-progress-label">
-                      {progress}%
-                    </span>
+                    <p className="wp-slide-desc">{slide.desc}</p>
+                    <button
+                      className="wp-slide-btn"
+                      onClick={() => {
+                        const targetId = story?.id || story?._id;
+                        if (targetId) router.push(`/story/${targetId}`);
+                      }}
+                    >
+                      Start Reading
+                    </button>
                   </div>
                 </div>
               </div>
-                );
-              })()
+            );
+          })}
+
+          {/* Dots */}
+          <div className="wp-slide-dots">
+            {heroSlides.map((_, idx) => (
+              <button
+                key={idx}
+                className={`wp-slide-dot${idx === currentSlide ? ' active' : ''}`}
+                onClick={() => setCurrentSlide(idx)}
+                aria-label={`Slide ${idx + 1}`}
+              />
             ))}
           </div>
-          <button
-            className="bx-carousel-arrow right"
-            onClick={() => scrollCarousel(continueRef, 'right')}
-            aria-label="Scroll right"
-            disabled={isArrowDisabled('continue', 'right')}
-          >
-            ›
-          </button>
-        </div>
-      </section>
-      )}
 
-      {/* ───────────────────────────────────────────────────
-          5. POPULAR RIGHT NOW CAROUSEL
-      ─────────────────────────────────────────────────── */}
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title">Reading lists from the community</h2>
-        </div>
-
-        <div className={`bx-carousel ${hasOverflow('popular') ? 'has-overflow' : 'no-overflow'}`}>
-          <button
-            className="bx-carousel-arrow left"
-            onClick={() => scrollCarousel(popularRef, 'left')}
-            aria-label="Scroll left"
-            disabled={isArrowDisabled('popular', 'left')}
-          >
-            ‹
-          </button>
-          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-popular" ref={popularRef}>
-            {renderMixedStoryCards(popularStories, 'popular', '#2F4F4F')}
-          </div>
-          <button
-            className="bx-carousel-arrow right"
-            onClick={() => scrollCarousel(popularRef, 'right')}
-            aria-label="Scroll right"
-            disabled={isArrowDisabled('popular', 'right')}
-          >
-            ›
-          </button>
+          {/* Prev / Next arrows */}
+          <button className="wp-slide-arrow prev" onClick={handlePrevSlide} aria-label="Previous">‹</button>
+          <button className="wp-slide-arrow next" onClick={handleNextSlide} aria-label="Next">›</button>
         </div>
       </section>
 
       {/* ───────────────────────────────────────────────────
-          6. NEW RELEASES CAROUSEL
+          2. SECRET OBSESSIONS
       ─────────────────────────────────────────────────── */}
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title">New Releases</h2>
-          <Link href="/discover?sort=new" className="bx-sec-link">See all</Link>
+      <div className="wp-section-new">
+        <div className="wp-sec-header-new" onClick={() => router.push('/discover')}>
+          <h2 className="wp-sec-title-new">Secret obsessions</h2>
+          <span className="wp-sec-chevron">›</span>
         </div>
-
-        <div className={`bx-carousel ${hasOverflow('newReleases') ? 'has-overflow' : 'no-overflow'}`}>
-          <button
-            className="bx-carousel-arrow left"
-            onClick={() => scrollCarousel(newReleasesRef, 'left')}
-            aria-label="Scroll left"
-            disabled={isArrowDisabled('newReleases', 'left')}
-          >
-            ‹
-          </button>
-          <div className="bx-book-scroll" ref={newReleasesRef}>
-            {renderWpRow(newReleases, 'newReleases')}
+        <div className="wp-scroll-wrap">
+          <button className="wp-carousel-arrow-new left" onClick={() => scrollCarousel(recommendedRef, 'left')}>‹</button>
+          <div className="wp-scroll-row-new" ref={recommendedRef}>
+            {recommendedStories.map((story, idx) => (
+              <div
+                key={getStoryIdentity(story, idx, 'secret')}
+                className="wp-book-card-new"
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
+              >
+                <div className="wp-book-cover-new">
+                  {storyCoverSrc(story) ? (
+                    <img src={storyCoverSrc(story)} alt={story.title} loading="lazy"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  ) : (
+                    <div className="wp-book-fallback-new">{story.title}</div>
+                  )}
+                  {idx % 3 === 0 && <span className="wp-badge-hot">Hot</span>}
+                  {idx % 5 === 1 && <span className="wp-badge-new">New</span>}
+                </div>
+                <p className="wp-book-title-new">{story.title}</p>
+                <p className="wp-book-meta-new">{story.genre} · {fmtViews(story.views)} reads</p>
+                <div className="wp-tag-bar-new">
+                  {(story.categories || []).slice(0, 2).map((tag) => (
+                    <span key={tag} className="wp-tag-pill-new">#{tag}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
-          <button
-            className="bx-carousel-arrow right"
-            onClick={() => scrollCarousel(newReleasesRef, 'right')}
-            aria-label="Scroll right"
-            disabled={isArrowDisabled('newReleases', 'right')}
-          >
-            ›
-          </button>
+          <button className="wp-carousel-arrow-new right" onClick={() => scrollCarousel(recommendedRef, 'right')}>›</button>
         </div>
-      </section>
-
-      {/* ───────────────────────────────────────────────────
-          7. TRENDING THIS WEEK CAROUSEL
-      ─────────────────────────────────────────────────── */}
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title">🔥 Trending This Week</h2>
-          <Link href="/discover?sort=trending" className="bx-sec-link">See all</Link>
-        </div>
-
-        <div className={`bx-carousel ${hasOverflow('trending') ? 'has-overflow' : 'no-overflow'}`}>
-          <button
-            className="bx-carousel-arrow left"
-            onClick={() => scrollCarousel(trendingRef, 'left')}
-            aria-label="Scroll left"
-            disabled={isArrowDisabled('trending', 'left')}
-          >
-            ‹
-          </button>
-          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-trending" ref={trendingRef}>
-            {renderMixedStoryCards(trendingStories, 'trending', '#DC143C')}
-          </div>
-          <button
-            className="bx-carousel-arrow right"
-            onClick={() => scrollCarousel(trendingRef, 'right')}
-            aria-label="Scroll right"
-            disabled={isArrowDisabled('trending', 'right')}
-          >
-            ›
-          </button>
-        </div>
-      </section>
-
-      {/* ─── SEE MORE CATEGORIES ─── */}
-      <div className="bx-see-more-wrap">
-        <button className="bx-see-more-btn" onClick={() => setSeeMoreOpen((v) => !v)}>
-          {seeMoreOpen ? '▲ Show Less' : '▼ Explore More Categories'}
-        </button>
       </div>
 
-      {seeMoreOpen && (
-      <>
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title">💕 Romance Spotlight</h2>
-          <Link href="/discover?genre=romance" className="bx-sec-link">See all</Link>
-        </div>
-
-        <div className={`bx-carousel ${hasOverflow('romance') ? 'has-overflow' : 'no-overflow'}`}>
-          <button
-            className="bx-carousel-arrow left"
-            onClick={() => scrollCarousel(romanceRef, 'left')}
-            aria-label="Scroll left"
-            disabled={isArrowDisabled('romance', 'left')}
-          >
-            ‹
-          </button>
-          <div className="bx-book-scroll" ref={romanceRef}>
-            {renderWpRow(romanceStories, 'romance')}
-          </div>
-          <button
-            className="bx-carousel-arrow right"
-            onClick={() => scrollCarousel(romanceRef, 'right')}
-            aria-label="Scroll right"
-            disabled={isArrowDisabled('romance', 'right')}
-          >
-            ›
-          </button>
-        </div>
-      </section>
-
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title">🔍 Mystery Vault</h2>
-          <Link href="/discover?genre=mystery" className="bx-sec-link">See all</Link>
-        </div>
-
-        <div className={`bx-carousel ${hasOverflow('mystery') ? 'has-overflow' : 'no-overflow'}`}>
-          <button
-            className="bx-carousel-arrow left"
-            onClick={() => scrollCarousel(mysteryRef, 'left')}
-            aria-label="Scroll left"
-            disabled={isArrowDisabled('mystery', 'left')}
-          >
-            ‹
-          </button>
-          <div className="bx-book-scroll" ref={mysteryRef}>
-            {renderWpRow(mysteryStories, 'mystery')}
-          </div>
-          <button
-            className="bx-carousel-arrow right"
-            onClick={() => scrollCarousel(mysteryRef, 'right')}
-            aria-label="Scroll right"
-            disabled={isArrowDisabled('mystery', 'right')}
-          >
-            ›
-          </button>
-        </div>
-      </section>
-
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title">🗺️ Adventure Trails</h2>
-          <Link href="/discover?genre=adventure" className="bx-sec-link">See all</Link>
-        </div>
-
-        <div className={`bx-carousel ${hasOverflow('adventure') ? 'has-overflow' : 'no-overflow'}`}>
-          <button
-            className="bx-carousel-arrow left"
-            onClick={() => scrollCarousel(adventureRef, 'left')}
-            aria-label="Scroll left"
-            disabled={isArrowDisabled('adventure', 'left')}
-          >
-            ‹
-          </button>
-          <div className="bx-book-scroll" ref={adventureRef}>
-            {renderWpRow(adventureStories, 'adventure')}
-          </div>
-          <button
-            className="bx-carousel-arrow right"
-            onClick={() => scrollCarousel(adventureRef, 'right')}
-            aria-label="Scroll right"
-            disabled={isArrowDisabled('adventure', 'right')}
-          >
-            ›
-          </button>
-        </div>
-      </section>
-
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title">⚔️ Fantasy & Magic</h2>
-          <Link href="/discover?genre=fantasy" className="bx-sec-link">See all</Link>
-        </div>
-        <div className={`bx-carousel ${hasOverflow('fantasy') ? 'has-overflow' : 'no-overflow'}`}>
-          <button className="bx-carousel-arrow left" onClick={() => scrollCarousel(fantasyRef, 'left')} disabled={isArrowDisabled('fantasy', 'left')}>‹</button>
-          <div className="bx-book-scroll" ref={fantasyRef}>
-            {renderWpRow(fantasyStories, 'fantasy')}
-          </div>
-          <button className="bx-carousel-arrow right" onClick={() => scrollCarousel(fantasyRef, 'right')} disabled={isArrowDisabled('fantasy', 'right')}>›</button>
-        </div>
-      </section>
-
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title">🚀 Sci-Fi & Space</h2>
-          <Link href="/discover?genre=scifi" className="bx-sec-link">See all</Link>
-        </div>
-        <div className={`bx-carousel ${hasOverflow('scifi') ? 'has-overflow' : 'no-overflow'}`}>
-          <button className="bx-carousel-arrow left" onClick={() => scrollCarousel(scifiRef, 'left')} disabled={isArrowDisabled('scifi', 'left')}>‹</button>
-          <div className="bx-book-scroll" ref={scifiRef}>
-            {renderWpRow(scifiStories, 'scifi')}
-          </div>
-          <button className="bx-carousel-arrow right" onClick={() => scrollCarousel(scifiRef, 'right')} disabled={isArrowDisabled('scifi', 'right')}>›</button>
-        </div>
-      </section>
-
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title">⚡ Thriller</h2>
-          <Link href="/discover?genre=thriller" className="bx-sec-link">See all</Link>
-        </div>
-        <div className={`bx-carousel ${hasOverflow('thriller') ? 'has-overflow' : 'no-overflow'}`}>
-          <button className="bx-carousel-arrow left" onClick={() => scrollCarousel(thrillerRef, 'left')} disabled={isArrowDisabled('thriller', 'left')}>‹</button>
-          <div className="bx-book-scroll" ref={thrillerRef}>
-            {renderWpRow(thrillerStories, 'thriller')}
-          </div>
-          <button className="bx-carousel-arrow right" onClick={() => scrollCarousel(thrillerRef, 'right')} disabled={isArrowDisabled('thriller', 'right')}>›</button>
-        </div>
-      </section>
-
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title">🎭 Drama</h2>
-          <Link href="/discover?genre=drama" className="bx-sec-link">See all</Link>
-        </div>
-        <div className={`bx-carousel ${hasOverflow('drama') ? 'has-overflow' : 'no-overflow'}`}>
-          <button className="bx-carousel-arrow left" onClick={() => scrollCarousel(dramaRef, 'left')} disabled={isArrowDisabled('drama', 'left')}>‹</button>
-          <div className="bx-book-scroll" ref={dramaRef}>
-            {renderWpRow(dramaStories, 'drama')}
-          </div>
-          <button className="bx-carousel-arrow right" onClick={() => scrollCarousel(dramaRef, 'right')} disabled={isArrowDisabled('drama', 'right')}>›</button>
-        </div>
-      </section>
-
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title">👻 Paranormal</h2>
-          <Link href="/discover?genre=paranormal" className="bx-sec-link">See all</Link>
-        </div>
-        <div className={`bx-carousel ${hasOverflow('paranormal') ? 'has-overflow' : 'no-overflow'}`}>
-          <button className="bx-carousel-arrow left" onClick={() => scrollCarousel(paranormalRef, 'left')} disabled={isArrowDisabled('paranormal', 'left')}>‹</button>
-          <div className="bx-book-scroll" ref={paranormalRef}>
-            {renderWpRow(paranormalStories, 'paranormal')}
-          </div>
-          <button className="bx-carousel-arrow right" onClick={() => scrollCarousel(paranormalRef, 'right')} disabled={isArrowDisabled('paranormal', 'right')}>›</button>
-        </div>
-      </section>
-      </>
-      )}
-
       {/* ───────────────────────────────────────────────────
-          9. SUBSCRIPTION STORIES SECTION
+          3. TOP PICKS FOR YOU
       ─────────────────────────────────────────────────── */}
-      <section className="bx-section">
-        <div className="bx-sub-banner">
-          <div>
-            <div className="bx-sub-banner-title">♛ Subscription Stories</div>
-            <p className="bx-sub-banner-desc">Unlock exclusive premium content & full access</p>
-          </div>
-          <button className="bx-sub-banner-btn" onClick={() => router.push('/auth/signup')}>
-            Upgrade
-          </button>
+      <div className="wp-section-new">
+        <div className="wp-sec-header-new" onClick={() => router.push('/discover')}>
+          <h2 className="wp-sec-title-new">Top picks for you</h2>
+          <span className="wp-sec-chevron">›</span>
         </div>
-
-        <div className={`bx-carousel ${hasOverflow('subscription') ? 'has-overflow' : 'no-overflow'}`}>
-          <button
-            className="bx-carousel-arrow left"
-            onClick={() => scrollCarousel(subscriptionRef, 'left')}
-            aria-label="Scroll left"
-            disabled={isArrowDisabled('subscription', 'left')}
-          >
-            ‹
-          </button>
-          <div className="bx-book-scroll bx-book-scroll-mixed bx-rail-subscription" ref={subscriptionRef}>
-            {renderMixedStoryCards(subscriptionStories, 'subscription', '#4169E1', true)}
-          </div>
-          <button
-            className="bx-carousel-arrow right"
-            onClick={() => scrollCarousel(subscriptionRef, 'right')}
-            aria-label="Scroll right"
-            disabled={isArrowDisabled('subscription', 'right')}
-          >
-            ›
-          </button>
-        </div>
-      </section>
-
-      {/* ───────────────────────────────────────────────────
-          10. CONTINUE READING SECTION
-      ─────────────────────────────────────────────────── */}
-
-
-      {/* ───────────────────────────────────────────────────
-          11. MY READING LIST SECTION
-      ─────────────────────────────────────────────────── */}
-      {showReadingListSection && (
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title">My Reading List</h2>
-        </div>
-
-        <div className={`bx-carousel ${hasOverflow('readingList') ? 'has-overflow' : 'no-overflow'}`}>
-          <button
-            className="bx-carousel-arrow left"
-            onClick={() => scrollCarousel(readingListRef, 'left')}
-            aria-label="Scroll left"
-            disabled={isArrowDisabled('readingList', 'left')}
-          >
-            ‹
-          </button>
-          <div className="bx-readlist-scroll" ref={readingListRef}>
-            {readingList.map((story, idx) => (
-              (() => {
-                const followKey = `author-${story.author || idx}`;
-                return (
+        <div className="wp-scroll-wrap">
+          <button className="wp-carousel-arrow-new left" onClick={() => scrollCarousel(popularRef, 'left')}>‹</button>
+          <div className="wp-scroll-row-new" ref={popularRef}>
+            {popularStories.map((story, idx) => (
               <div
-                key={`readlist-${idx}`}
-                className="bx-readlist-card"
+                key={getStoryIdentity(story, idx, 'toppick')}
+                className="wp-book-card-new"
                 onClick={() => router.push(`/story/${story.id || story._id}`)}
               >
-                <div className="bx-readlist-cover" style={{ backgroundColor: '#2F4F4F' }}>
-                  {story.image ? (
-                    <img src={story.image} alt={story.title} loading="eager" />
+                <div className="wp-book-cover-new">
+                  {storyCoverSrc(story) ? (
+                    <img src={storyCoverSrc(story)} alt={story.title} loading="lazy"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                   ) : (
-                    <div className="bx-book-fallback">{story.title}</div>
+                    <div className="wp-book-fallback-new">{story.title}</div>
                   )}
+                  {idx === 0 && <span className="wp-badge-hot">Hot</span>}
+                  {idx % 4 === 3 && <span className="wp-badge-new">New</span>}
+                  {/* reading progress bar for top picks */}
+                  <div className="wp-reading-bar" style={{ width: `${30 + ((idx * 13) % 60)}%` }} />
                 </div>
-                <div className="bx-readlist-info">
-                  <h4 className="bx-readlist-title">{story.title}</h4>
-                  <p className="bx-readlist-meta">{story.author}</p>
-                  <p className="bx-readlist-meta">👁 {Number(story.views || 0).toLocaleString()}</p>
-                  <span className={`bx-readlist-status ${idx % 2 === 0 ? 'ongoing' : 'complete'}`}>
-                    {idx % 2 === 0 ? 'Ongoing' : 'Complete'}
-                  </span>
-                  <button
-                    className={`bx-readlist-follow ${followed.has(followKey) ? 'followed' : ''}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleGeek(followKey);
-                    }}
-                  >
-                    {followed.has(followKey) ? 'Geeking' : 'Geek'}
-                  </button>
-                </div>
+                <p className="wp-book-title-new">{story.title}</p>
+                <p className="wp-book-meta-new">{story.genre} · {fmtViews(story.views)} reads</p>
               </div>
-                );
-              })()
             ))}
           </div>
-          <button
-            className="bx-carousel-arrow right"
-            onClick={() => scrollCarousel(readingListRef, 'right')}
-            aria-label="Scroll right"
-            disabled={isArrowDisabled('readingList', 'right')}
-          >
-            ›
-          </button>
+          <button className="wp-carousel-arrow-new right" onClick={() => scrollCarousel(popularRef, 'right')}>›</button>
         </div>
-      </section>
+      </div>
+
+      {/* ───────────────────────────────────────────────────
+          4. AD BANNER
+      ─────────────────────────────────────────────────── */}
+      <div style={{ marginTop: '20px' }}>
+        <div className="wp-ad-banner-new">
+          <div style={{ flex: 1 }}>
+            <p className="wp-ad-label">Sponsored</p>
+            <p className="wp-ad-title">Midterms? Ignored.</p>
+            <p className="wp-ad-sub">Study dates that turn into something else..</p>
+            <button className="wp-ad-btn" onClick={() => router.push('/discover')}>Read Now</button>
+          </div>
+          <div className="wp-ad-cover">
+            <img src="/story-covers/4305a7ac-1647-4986-bb2c-8abca47a90b5.jpg" alt="Ad" loading="lazy"
+              onError={(e) => { e.currentTarget.src = 'https://picsum.photos/seed/adbanner/140/210'; }} />
+          </div>
+        </div>
+      </div>
+
+      {/* ───────────────────────────────────────────────────
+          5. CONTINUE READING (logged-in only, new dark card style)
+      ─────────────────────────────────────────────────── */}
+      {showContinueSection && (
+        <div className="wp-section-new">
+          <div className="wp-sec-header-new">
+            <h2 className="wp-sec-title-new">
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#ff6a00" strokeWidth={2} style={{ flexShrink: 0 }}>
+                <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+              </svg>
+              Continue Reading
+            </h2>
+            <span className="wp-sec-see-all" onClick={() => router.push('/library')}>See all</span>
+          </div>
+          <div className="wp-scroll-wrap">
+            <button className="wp-carousel-arrow-new left" onClick={() => scrollCarousel(continueRef, 'left')}>‹</button>
+            <div className="wp-scroll-row-new" ref={continueRef}>
+              {continueReading.map((story, idx) => {
+                const progress = getDeterministicProgress(story, idx);
+                return (
+                  <div
+                    key={`continue-wp-${idx}`}
+                    className="wp-continue-card-new"
+                    onClick={() => router.push(`/story/${story.id || story._id}`)}
+                  >
+                    <div className="wp-continue-thumb">
+                      {story.cover_image || story.image ? (
+                        <img src={story.cover_image || story.image} alt={story.title} loading="eager" />
+                      ) : (
+                        <div className="wp-book-fallback-new" style={{ fontSize: '9px' }}>{story.title}</div>
+                      )}
+                      <div className="wp-continue-progress" style={{ width: `${progress}%` }} />
+                    </div>
+                    <div className="wp-continue-info">
+                      <div>
+                        <p className="wp-continue-title-new">{story.title}</p>
+                        <p className="wp-continue-author-new">by {story.author_name || story.author || 'Unknown'}</p>
+                        <p className="wp-continue-views-new">👁 {fmtViews(story.views)} views</p>
+                      </div>
+                      <div className="wp-continue-footer">
+                        <span className="wp-continue-chapter">{story.chapter_id || 'Chapter 1'}</span>
+                        <span className="wp-continue-time">{progress}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <button className="wp-carousel-arrow-new right" onClick={() => scrollCarousel(continueRef, 'right')}>›</button>
+          </div>
+        </div>
       )}
 
       {/* ───────────────────────────────────────────────────
-          12. TOP REVIEWS SECTION
+          6. BINGEABLE READS
       ─────────────────────────────────────────────────── */}
-      <section className="bx-section">
-        <div className="bx-sec-header">
-          <h2 className="bx-sec-title">⭐ Top Reviews</h2>
+      <div className="wp-section-new">
+        <div className="wp-sec-header-new" onClick={() => router.push('/discover?sort=new')}>
+          <h2 className="wp-sec-title-new">Bingeable reads for you</h2>
+          <span className="wp-sec-chevron">›</span>
         </div>
+        <div className="wp-scroll-wrap">
+          <button className="wp-carousel-arrow-new left" onClick={() => scrollCarousel(newReleasesRef, 'left')}>‹</button>
+          <div className="wp-scroll-row-new" ref={newReleasesRef}>
+            {newReleases.map((story, idx) => (
+              <div
+                key={getStoryIdentity(story, idx, 'binge')}
+                className="wp-book-card-new"
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
+              >
+                <div className="wp-book-cover-new">
+                  {storyCoverSrc(story) ? (
+                    <img src={storyCoverSrc(story)} alt={story.title} loading="lazy"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  ) : (
+                    <div className="wp-book-fallback-new">{story.title}</div>
+                  )}
+                </div>
+                <p className="wp-book-title-new">{story.title}</p>
+                <p className="wp-book-meta-new">{story.genre} · {fmtViews(story.views)} reads</p>
+              </div>
+            ))}
+          </div>
+          <button className="wp-carousel-arrow-new right" onClick={() => scrollCarousel(newReleasesRef, 'right')}>›</button>
+        </div>
+      </div>
 
-        <div className={`bx-carousel ${hasOverflow('reviews') ? 'has-overflow' : 'no-overflow'}`}>
-          <button
-            className="bx-carousel-arrow left"
-            onClick={() => scrollCarousel(reviewsRef, 'left')}
-            aria-label="Scroll left"
-            disabled={isArrowDisabled('reviews', 'left')}
-          >
-            ‹
-          </button>
-          <div className="bx-reviews-list" ref={reviewsRef}>
-            {MOCK_REVIEWS.map((review) => (
-              <div key={review.id} className="bx-review-card">
-                <div className="bx-review-top">
-                  <div
-                    className="bx-review-avatar"
-                    style={{ backgroundColor: review.bg }}
-                  >
-                    {review.avatar}
-                  </div>
-                  <div>
-                    <p className="bx-review-username">{review.user}</p>
-                    <p className="bx-review-book">
-                      on <span>{review.book}</span>
-                    </p>
+      {/* ───────────────────────────────────────────────────
+          7. READING LISTS FROM THE COMMUNITY
+      ─────────────────────────────────────────────────── */}
+      <div className="wp-section-new">
+        <div className="wp-sec-header-new" onClick={() => router.push('/discover')}>
+          <h2 className="wp-sec-title-new">Reading Lists</h2>
+          <span className="wp-sec-chevron">›</span>
+        </div>
+        <div className="wp-scroll-wrap">
+          <button className="wp-carousel-arrow-new left" onClick={() => scrollCarousel(readingListRef, 'left')}>‹</button>
+          <div className="wp-scroll-row-new" ref={readingListRef}>
+            {(readingList.length > 0 ? readingList : popularStories.slice(0, 6)).map((story, idx) => {
+              const geekKey = `rl-${story.id || story._id || idx}`;
+              const tags = [['#slowburn','#drama'],['#romance','#family'],['#fantasy','#magic'],['#friends'],['#mafia'],['#alpha']];
+              return (
+                <div key={`rl-wp-${idx}`} className="wp-list-card-new"
+                  onClick={() => router.push(`/story/${story.id || story._id}`)}
+                >
+                  <div className="wp-list-body">
+                    <div className="wp-list-cover-row">
+                      <div className="wp-list-thumb">
+                        {storyCoverSrc(story) ? (
+                          <img src={storyCoverSrc(story)} alt={story.title} loading="lazy"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                        ) : (
+                          <div className="wp-book-fallback-new" style={{ fontSize: '9px' }}>{story.title}</div>
+                        )}
+                      </div>
+                      <div className="wp-list-meta-col">
+                        <p className="wp-list-title-new">{story.title}</p>
+                        <p className="wp-list-user">{story.author_name || story.author || 'Reader'}</p>
+                      </div>
+                    </div>
+                    <div className="wp-list-stats">
+                      <span className="wp-list-count">{4 + idx} stories</span>
+                      <span className="wp-list-reads">{fmtViews(story.views)} reads</span>
+                    </div>
+                    <div className="wp-tag-bar-new" style={{ marginBottom: '8px' }}>
+                      {(tags[idx % tags.length]).map((t) => (
+                        <span key={t} className="wp-tag-pill-new">{t}</span>
+                      ))}
+                    </div>
+                    <button
+                      className={`wp-geek-btn-new${followed.has(geekKey) ? ' geeking' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); handleToggleGeek(geekKey); }}
+                    >
+                      {followed.has(geekKey) ? 'Geeking' : 'Geek'}
+                    </button>
                   </div>
                 </div>
-                <div className="bx-review-stars">
-                  {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
-                </div>
-                <p className="bx-review-text">{review.text}</p>
-                <div className="bx-review-footer">
-                  <span className="bx-review-date">{review.date}</span>
-                  <button className="bx-review-helpful" onClick={() => setToast('Thanks for your feedback!')}>👍 Helpful</button>
+              );
+            })}
+          </div>
+          <button className="wp-carousel-arrow-new right" onClick={() => scrollCarousel(readingListRef, 'right')}>›</button>
+        </div>
+      </div>
+
+      {/* ───────────────────────────────────────────────────
+          8. BROWSE BY CATEGORY
+      ─────────────────────────────────────────────────── */}
+      <div className="wp-section-new">
+        <div className="wp-sec-header-new" onClick={() => router.push('/discover')}>
+          <h2 className="wp-sec-title-new">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#ff6a00" strokeWidth={2} style={{ flexShrink: 0 }}>
+              <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            Browse by Category
+          </h2>
+          <span className="wp-sec-chevron">›</span>
+        </div>
+        <div className="wp-scroll-wrap">
+          <button className="wp-carousel-arrow-new left" onClick={() => scrollCarousel(genresRef, 'left')}>‹</button>
+          <div className="wp-scroll-row-new" ref={genresRef} style={{ gap: '10px' }}>
+            {[
+              { name: 'Romance',     count: '2.4M', img: '/story-covers/3afa73d3-a7fd-4461-94a2-f27ecb4f5ce5.jpg' },
+              { name: 'Werewolf',    count: '890K', img: '/story-covers/35d59c07-2bd9-47d0-b626-b7427e456a1a.jpg' },
+              { name: 'Teen Fiction',count: '1.1M', img: '/story-covers/1c6b14e2-33a5-4896-a1ea-a7087f9d2978.jpg' },
+              { name: 'Vampire',     count: '456K', img: '/story-covers/4c4a664c-b1f0-4f0e-b698-aea3bfe370fb.jpg' },
+              { name: 'Thriller',    count: '670K', img: '/story-covers/59d66543-1da3-471d-af95-6725f0299b73.jpg' },
+              { name: 'Fantasy',     count: '1.3M', img: '/story-covers/6005008f-8a71-488e-a3cb-7338786e318b.jpg' },
+              { name: 'Horror',      count: '340K', img: '/story-covers/69feb672-c82a-4a27-b674-73ee9381f97e.jpg' },
+              { name: 'Dark Romance',count: '620K', img: '/story-covers/838a5bd1-9865-4b1d-a43f-d9031def487f.jpg' },
+              { name: 'Sci-Fi',      count: '230K', img: '/story-covers/8a117e79-24fc-4545-b020-bd5d697e4a71.jpg' },
+              { name: 'Mystery',     count: '510K', img: '/story-covers/94e1eac8-3c87-44ec-ab90-0e92680c768a.jpg' },
+            ].map((cat) => (
+              <div
+                key={cat.name}
+                className="wp-cat-card-new"
+                onClick={() => router.push(`/discover?genre=${encodeURIComponent(cat.name.toLowerCase())}`)}
+              >
+                <img src={cat.img} alt={cat.name} loading="lazy"
+                  onError={(e) => { e.currentTarget.src = `https://picsum.photos/seed/${cat.name}/210/280`; }} />
+                <div className="wp-cat-label-new">
+                  <span className="wp-cat-name-new">{cat.name}</span>
+                  <span className="wp-cat-count-new">{cat.count}</span>
                 </div>
               </div>
             ))}
           </div>
-          <button
-            className="bx-carousel-arrow right"
-            onClick={() => scrollCarousel(reviewsRef, 'right')}
-            aria-label="Scroll right"
-            disabled={isArrowDisabled('reviews', 'right')}
-          >
-            ›
-          </button>
+          <button className="wp-carousel-arrow-new right" onClick={() => scrollCarousel(genresRef, 'right')}>›</button>
         </div>
-      </section>
+      </div>
 
       {/* ───────────────────────────────────────────────────
-          13. STATS SECTION (3 columns)
+          9. POPULAR IN WEREWOLF
+      ─────────────────────────────────────────────────── */}
+      <div className="wp-section-new">
+        <div className="wp-sec-header-new" onClick={() => router.push('/discover?genre=werewolf')}>
+          <h2 className="wp-sec-title-new">Popular in Werewolf</h2>
+          <span className="wp-sec-chevron">›</span>
+        </div>
+        <div className="wp-scroll-wrap">
+          <button className="wp-carousel-arrow-new left" onClick={() => scrollCarousel(romanceRef, 'left')}>‹</button>
+          <div className="wp-scroll-row-new" ref={romanceRef}>
+            {(werewolfStories.length > 0 ? werewolfStories : popularStories).map((story, idx) => (
+              <div
+                key={getStoryIdentity(story, idx, 'wolf')}
+                className="wp-book-card-new"
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
+              >
+                <div className="wp-book-cover-new">
+                  {storyCoverSrc(story) ? (
+                    <img src={storyCoverSrc(story)} alt={story.title} loading="lazy"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  ) : (
+                    <div className="wp-book-fallback-new">{story.title}</div>
+                  )}
+                  {idx === 0 && <span className="wp-badge-hot">Hot</span>}
+                </div>
+                <p className="wp-book-title-new">{story.title}</p>
+                <p className="wp-book-meta-new">{story.genre} · {fmtViews(story.views)} reads</p>
+              </div>
+            ))}
+          </div>
+          <button className="wp-carousel-arrow-new right" onClick={() => scrollCarousel(romanceRef, 'right')}>›</button>
+        </div>
+      </div>
+
+      {/* ───────────────────────────────────────────────────
+          10. TRENDING NOW
+      ─────────────────────────────────────────────────── */}
+      <div className="wp-section-new">
+        <div className="wp-sec-header-new" onClick={() => router.push('/discover?sort=trending')}>
+          <h2 className="wp-sec-title-new">Trending now 🔥</h2>
+          <span className="wp-sec-chevron">›</span>
+        </div>
+        <div className="wp-scroll-wrap">
+          <button className="wp-carousel-arrow-new left" onClick={() => scrollCarousel(trendingRef, 'left')}>‹</button>
+          <div className="wp-scroll-row-new" ref={trendingRef}>
+            {trendingStories.map((story, idx) => (
+              <div
+                key={getStoryIdentity(story, idx, 'trend')}
+                className="wp-book-card-new"
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
+              >
+                <div className="wp-book-cover-new">
+                  {storyCoverSrc(story) ? (
+                    <img src={storyCoverSrc(story)} alt={story.title} loading="lazy"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  ) : (
+                    <div className="wp-book-fallback-new">{story.title}</div>
+                  )}
+                  {idx === 0
+                    ? <span className="wp-badge-rank">#1</span>
+                    : idx < 5
+                      ? <span className="wp-badge-rank-plain">#{idx + 1}</span>
+                      : null
+                  }
+                </div>
+                <p className="wp-book-title-new">{story.title}</p>
+                <p className="wp-book-meta-new">{story.genre} · {fmtViews(story.views)} reads</p>
+              </div>
+            ))}
+          </div>
+          <button className="wp-carousel-arrow-new right" onClick={() => scrollCarousel(trendingRef, 'right')}>›</button>
+        </div>
+      </div>
+
+      {/* ───────────────────────────────────────────────────
+          11. WINGSAGA PREMIUM
+      ─────────────────────────────────────────────────── */}
+      <div className="wp-section-new">
+        <div className="wp-sec-header-new" onClick={() => router.push('/auth/signup')}>
+          <h2 className="wp-sec-title-new">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#e0a800" style={{ flexShrink: 0 }}>
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            Wingsaga Premium
+          </h2>
+          <span className="wp-sec-chevron">›</span>
+        </div>
+        <div className="wp-scroll-wrap">
+          <button className="wp-carousel-arrow-new left" onClick={() => scrollCarousel(subscriptionRef, 'left')}>‹</button>
+          <div className="wp-scroll-row-new" ref={subscriptionRef}>
+            {(subscriptionStories.length > 0 ? subscriptionStories : popularStories).map((story, idx) => (
+              <div
+                key={getStoryIdentity(story, idx, 'prem')}
+                className="wp-prem-card-new"
+                onClick={() => router.push(`/story/${story.id || story._id}`)}
+              >
+                <div className="wp-book-cover-new">
+                  {storyCoverSrc(story) ? (
+                    <img src={storyCoverSrc(story)} alt={story.title} loading="lazy"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                  ) : (
+                    <div className="wp-book-fallback-new">{story.title}</div>
+                  )}
+                  <span className="wp-badge-prem">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                    Premium
+                  </span>
+                </div>
+                <p className="wp-book-title-new">{story.title}</p>
+                <p className="wp-book-meta-new" style={{ fontSize: '9px' }}>
+                  {story.genre} · {fmtViews(story.views)} reads
+                </p>
+              </div>
+            ))}
+          </div>
+          <button className="wp-carousel-arrow-new right" onClick={() => scrollCarousel(subscriptionRef, 'right')}>›</button>
+        </div>
+      </div>
+
+      {/* ───────────────────────────────────────────────────
+          12. HASHTAG SECTION
+      ─────────────────────────────────────────────────── */}
+      <div className="wp-section-new">
+        <div className="wp-sec-header-new">
+          <h2 className="wp-sec-title-new">
+            <span style={{ color: 'var(--wp-orange)' }}>#</span>Hashtag
+          </h2>
+          <span className="wp-sec-see-all" onClick={() => router.push('/discover')}>See all</span>
+        </div>
+        <div className="wp-scroll-wrap">
+          <button className="wp-carousel-arrow-new left" onClick={() => scrollCarousel(mysteryRef, 'left')}>‹</button>
+          <div className="wp-scroll-row-new" ref={mysteryRef}>
+            {[
+              { tag: '#BadBoy',         count: '1.2K', keys: ['h1a','h1b','h1c'], gk: 'hash-badboy' },
+              { tag: '#AlphaMate',      count: '3.4K', keys: ['h2a','h2b','h2c'], gk: 'hash-alphamate' },
+              { tag: '#EnemiesToLovers',count: '890',  keys: ['h3a','h3b','h3c'], gk: 'hash-enemies' },
+              { tag: '#DarkRomance',    count: '2.1K', keys: ['h4a','h4b','h4c'], gk: 'hash-darkromance' },
+              { tag: '#SlowBurn',       count: '1.5K', keys: ['h5a','h5b','h5c'], gk: 'hash-slowburn' },
+              { tag: '#Mafia',          count: '980',  keys: ['h6a','h6b','h6c'], gk: 'hash-mafia' },
+            ].map((item) => (
+              <div
+                key={item.tag}
+                className="wp-hash-card-new"
+                onClick={() => router.push(`/discover?q=${encodeURIComponent(item.tag)}`)}
+              >
+                <div className="wp-hash-covers">
+                  {item.keys.map((k, i) => (
+                    <div key={k} className="wp-hash-cover" style={{ zIndex: 3 - i }}>
+                      <img
+                        src={`https://picsum.photos/seed/${k}/96/144`}
+                        alt=""
+                        loading="lazy"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="wp-hash-name-new">{item.tag}</p>
+                <p className="wp-hash-count">{item.count} stories</p>
+                <button
+                  className={`wp-geek-btn-new${followed.has(item.gk) ? ' geeking' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); handleToggleGeek(item.gk); }}
+                >
+                  {followed.has(item.gk) ? 'Geeking' : 'Geek'}
+                </button>
+              </div>
+            ))}
+          </div>
+          <button className="wp-carousel-arrow-new right" onClick={() => scrollCarousel(mysteryRef, 'right')}>›</button>
+        </div>
+      </div>
+
+      {/* ───────────────────────────────────────────────────
+          13. STATS SECTION — UNCHANGED
       ─────────────────────────────────────────────────── */}
       <section className="bx-stats">
         <div className="bx-stat">
           <span className="bx-stat-icon">✦</span>
-          <span className="bx-stat-num">
-            <span>12M+</span>
-          </span>
+          <span className="bx-stat-num"><span>12M+</span></span>
           <span className="bx-stat-label">Stories Published</span>
         </div>
         <div className="bx-stat">
           <span className="bx-stat-icon">◉</span>
-          <span className="bx-stat-num">
-            <span>450K+</span>
-          </span>
+          <span className="bx-stat-num"><span>450K+</span></span>
           <span className="bx-stat-label">Active Readers</span>
         </div>
         <div className="bx-stat">
           <span className="bx-stat-icon">◆</span>
-          <span className="bx-stat-num">
-            <span>195</span>
-          </span>
+          <span className="bx-stat-num"><span>195</span></span>
           <span className="bx-stat-label">Countries</span>
         </div>
       </section>
 
       {/* ───────────────────────────────────────────────────
-          14. BROWSE GENRES GRID
+          14. BROWSE GENRES — UNCHANGED
       ─────────────────────────────────────────────────── */}
       <section className="bx-section">
         <div className="bx-sec-header">
           <h2 className="bx-sec-title">Browse Genres</h2>
         </div>
-
         <div className={`bx-carousel ${hasOverflow('genres') ? 'has-overflow' : 'no-overflow'}`}>
-          <button
-            className="bx-carousel-arrow left"
-            onClick={() => scrollCarousel(genresRef, 'left')}
-            aria-label="Scroll left"
-            disabled={isArrowDisabled('genres', 'left')}
-          >
-            ‹
-          </button>
+          <button className="bx-carousel-arrow left" onClick={() => scrollCarousel(genresRef, 'left')} disabled={isArrowDisabled('genres', 'left')}>‹</button>
           <div className="bx-genres-row" ref={genresRef}>
             {GENRES.map((genre) => (
               <div
@@ -1574,24 +1507,17 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <button
-            className="bx-carousel-arrow right"
-            onClick={() => scrollCarousel(genresRef, 'right')}
-            aria-label="Scroll right"
-            disabled={isArrowDisabled('genres', 'right')}
-          >
-            ›
-          </button>
+          <button className="bx-carousel-arrow right" onClick={() => scrollCarousel(genresRef, 'right')} disabled={isArrowDisabled('genres', 'right')}>›</button>
         </div>
       </section>
 
       {/* ───────────────────────────────────────────────────
-          15. CTA BANNER
+          15. CTA BANNER — UNCHANGED
       ─────────────────────────────────────────────────── */}
       <section className="bx-section bx-section-cta">
         <div className="bx-cta-banner">
-          <h2 style={{ color: "#ffffff" }}>Your story deserves to be heard</h2>
-          <p style={{ color: "#ffffff" }}>
+          <h2 style={{ color: '#ffffff' }}>Your story deserves to be heard</h2>
+          <p style={{ color: '#ffffff' }}>
             Join thousands of authors sharing their creative works with the world. Start writing today
             and connect with millions of readers.
           </p>
@@ -1599,22 +1525,14 @@ export default function Home() {
             <button
               className="bx-btn-primary"
               onClick={() => router.push(readToken() ? '/write' : '/auth/signin?next=%2Fwrite')}
-              style={{
-                background: 'var(--gold)',
-                color: '#0d0d12',
-                padding: '11px 28px',
-              }}
+              style={{ background: 'var(--gold)', color: '#0d0d12', padding: '11px 28px' }}
             >
               Start Writing
             </button>
             <button
               className="bx-btn-ghost"
               onClick={() => router.push('/discover')}
-              style={{
-                border: '1px solid rgba(201,169,110,0.3)',
-                color: '#0d0d12',
-                padding: '11px 28px',
-              }}
+              style={{ border: '1px solid rgba(201,169,110,0.3)', color: '#fff', padding: '11px 28px' }}
             >
               Explore Stories
             </button>
@@ -1622,9 +1540,42 @@ export default function Home() {
         </div>
       </section>
 
-      {toast && (
-        <div className="bx-toast show">{toast}</div>
-      )}
+      {/* ───────────────────────────────────────────────────
+          16. MOBILE BOTTOM NAV
+      ─────────────────────────────────────────────────── */}
+      <nav className="wp-bottom-nav-new">
+        <div className="wp-bottom-nav-inner">
+          <button className="wp-nav-btn-new active" onClick={() => router.push('/')}>
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+            <span>Home</span>
+          </button>
+          <button className="wp-nav-btn-new" onClick={() => router.push('/discover')}>
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+            </svg>
+            <span>Explore</span>
+          </button>
+          <button className="wp-nav-btn-new" onClick={() => router.push('/library')}>
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+            </svg>
+            <span>Library</span>
+          </button>
+          <button className="wp-nav-btn-new" onClick={() => router.push(isLoggedIn ? '/profile' : '/auth/signin')}>
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <span>Profile</span>
+          </button>
+        </div>
+      </nav>
+
+      {toast && <div className="bx-toast show">{toast}</div>}
     </main>
   );
 }

@@ -11,6 +11,14 @@ const nextConfig = {
         hostname: "lakmasachith-novel-backend.hf.space"
       },
       {
+        protocol: "https",
+        hostname: "*.hf.space"
+      },
+      {
+        protocol: "https",
+        hostname: "picsum.photos"
+      },
+      {
         protocol: "http",
         hostname: "localhost",
         port: "8000"

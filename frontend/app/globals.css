@@ -1,6 +1,287 @@
 ﻿/* ═══════════════════════════════════════════════════════
-   BIXBI – Design System
+   WINGSAGA – Design System
 ═══════════════════════════════════════════════════════ */
+
+/* ─── Wingsaga color tokens ─── */
+:root {
+  --wp-bg:      #121212;
+  --wp-card:    #1e1e1e;
+  --wp-surface: #2a2a2a;
+  --wp-border:  #333333;
+  --wp-nav:     #1a1a1a;
+  --wp-footer:  #0a0a0a;
+  --wp-orange:  #ff6a00;
+  --wp-orange-h:#ff8533;
+  --wp-muted:   #a0a0a0;
+  --wp-dim:     #666666;
+  --wp-premium: #e0a800;
+  --wp-prem-bg: #2a2200;
+}
+
+/* ─── Wingsaga book card (wp-style) ─── */
+.wp-book-card {
+  flex: 0 0 140px;
+  scroll-snap-align: start;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.25s ease;
+}
+@media (min-width: 640px) { .wp-book-card { flex: 0 0 160px; } }
+.wp-book-card:hover { transform: translateY(-4px); }
+.wp-book-card:hover .wp-book-title { color: var(--wp-orange); }
+
+.wp-book-cover {
+  width: 100%; aspect-ratio: 2/3; border-radius: 10px; overflow: hidden;
+  position: relative; margin-bottom: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  transition: transform 0.3s ease;
+}
+.wp-book-card:hover .wp-book-cover { transform: scale(1.03); }
+.wp-book-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.wp-book-fallback {
+  width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; text-align: center; padding: 8px;
+  color: #fff; line-height: 1.3; background: var(--wp-surface);
+}
+.wp-book-title {
+  font-size: 11px; color: var(--wp-muted); line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  transition: color 0.2s ease;
+}
+.wp-book-meta { font-size: 10px; color: var(--wp-dim); margin-top: 3px; }
+
+/* ─── Wingsaga badge pills ─── */
+.wp-badge-hot  { background: linear-gradient(135deg,#ff4444,#ff6a00); color:#fff; font-size:7px; font-weight:700; padding:2px 6px; border-radius:4px; text-transform:uppercase; letter-spacing:.5px; position:absolute; top:6px; left:6px; z-index:2; }
+.wp-badge-new  { background: linear-gradient(135deg,#00c853,#00e676); color:#fff; font-size:7px; font-weight:700; padding:2px 6px; border-radius:4px; text-transform:uppercase; letter-spacing:.5px; position:absolute; top:6px; left:6px; z-index:2; }
+.wp-badge-prem { background: linear-gradient(135deg,#e0a800,#f0c040); color:#000; font-size:7px; font-weight:700; padding:2px 6px; border-radius:4px; text-transform:uppercase; letter-spacing:.5px; position:absolute; top:6px; left:6px; z-index:2; display:flex; align-items:center; gap:3px; }
+.wp-badge-rank { background: linear-gradient(135deg,#ff4444,#ff6a00); color:#fff; font-size:7px; font-weight:700; padding:2px 6px; border-radius:4px; text-transform:uppercase; letter-spacing:.5px; position:absolute; top:6px; left:6px; z-index:2; }
+
+/* ─── Wingsaga tag pills ─── */
+.wp-tag-bar { display:flex; gap:4px; overflow-x:auto; padding-bottom:2px; scrollbar-width:none; margin-top:5px; }
+.wp-tag-bar::-webkit-scrollbar { display:none; }
+.wp-tag-pill { background:var(--wp-surface); color:var(--wp-muted); font-size:9px; padding:2px 8px; border-radius:10px; white-space:nowrap; border:1px solid var(--wp-border); flex-shrink:0; }
+
+/* ─── Wingsaga scroll row ─── */
+.wp-scroll-row {
+  display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 6px;
+  cursor: grab; user-select: none;
+}
+.wp-scroll-row::-webkit-scrollbar { display: none; }
+.wp-scroll-row.dragging { cursor: grabbing; }
+
+/* ─── Wingsaga section header ─── */
+.wp-sec-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px; margin-bottom: 10px; cursor: pointer;
+}
+.wp-sec-title {
+  font-size: 15px; font-weight: 600; color: #fff;
+  transition: color 0.2s ease;
+  display: flex; align-items: center; gap: 6px;
+}
+.wp-sec-header:hover .wp-sec-title { color: var(--wp-orange); }
+.wp-sec-link { font-size: 10px; color: var(--wp-dim); }
+
+/* ─── Wingsaga carousel wrapper ─── */
+.wp-carousel { position: relative; }
+.wp-carousel-arrow {
+  position: absolute; top: 0; bottom: 0; width: 32px; z-index: 10;
+  background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border: none; color: #fff; opacity: 0;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+.wp-carousel:hover .wp-carousel-arrow { opacity: 1; }
+.wp-carousel-arrow:hover { background: rgba(255,255,255,0.15) !important; }
+.wp-carousel-arrow.left { left: 0; border-radius: 0 8px 8px 0; }
+.wp-carousel-arrow.right { right: 0; border-radius: 8px 0 0 8px; }
+
+/* ─── Wingsaga continue reading card ─── */
+.wp-continue-card {
+  flex: 0 0 300px; scroll-snap-align: start;
+  display: flex; gap: 12px; padding: 10px;
+  background: var(--wp-card); border: 1px solid rgba(51,51,51,0.3);
+  border-radius: 12px; cursor: pointer;
+  transition: all 0.25s ease;
+}
+@media (min-width: 640px) { .wp-continue-card { flex: 0 0 340px; } }
+.wp-continue-card:hover { background: var(--wp-surface); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+.wp-continue-card:hover .wp-continue-title { color: var(--wp-orange); }
+.wp-continue-title { font-size: 13px; font-weight: 500; color: #fff; transition: color 0.2s ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wp-reading-bar { background: linear-gradient(90deg,var(--wp-orange),var(--wp-orange-h)); height: 3px; border-radius: 2px; }
+
+/* ─── Wingsaga reading list card ─── */
+.wp-list-card {
+  flex: 0 0 160px; scroll-snap-align: start;
+  background: var(--wp-card); border: 1px solid rgba(51,51,51,0.2);
+  border-radius: 12px; overflow: hidden; cursor: pointer;
+  transition: all 0.25s ease; display: flex; flex-direction: column;
+}
+.wp-list-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,0.5); }
+.wp-list-card:hover .wp-list-title { color: var(--wp-orange); }
+.wp-list-title { font-size: 12px; font-weight: 700; color: #fff; line-height: 1.3; transition: color 0.2s ease; }
+
+/* ─── Wingsaga category card ─── */
+.wp-cat-card {
+  flex: 0 0 100px; scroll-snap-align: start;
+  aspect-ratio: 3/4; border-radius: 12px; overflow: hidden;
+  cursor: pointer; position: relative;
+  transition: all 0.3s ease;
+}
+.wp-cat-card::before {
+  content: ''; position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(to top, rgba(0,0,0,.85) 0%, rgba(0,0,0,.2) 50%, rgba(0,0,0,.1) 100%);
+  transition: all 0.3s ease;
+}
+.wp-cat-card:hover::before { background: linear-gradient(to top, rgba(255,106,0,.7) 0%, rgba(255,106,0,.15) 50%, rgba(0,0,0,.1) 100%); }
+.wp-cat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(255,106,0,.2); }
+.wp-cat-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.wp-cat-label { position: absolute; bottom: 0; left: 0; right: 0; z-index: 2; padding: 8px 6px; text-align: center; }
+.wp-cat-name { font-size: 10px; font-weight: 600; color: #fff; display: block; line-height: 1.2; }
+.wp-cat-count { font-size: 7px; color: rgba(255,255,255,0.4); display: block; margin-top: 1px; }
+
+/* ─── Wingsaga hashtag card ─── */
+.wp-hash-card {
+  flex: 0 0 180px; scroll-snap-align: start;
+  background: var(--wp-card); border: 1px solid rgba(51,51,51,0.2);
+  border-radius: 12px; padding: 12px; cursor: pointer;
+  transition: all 0.25s ease;
+}
+.wp-hash-card:hover { background: var(--wp-surface); transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,.5); }
+.wp-hash-card:hover .wp-hash-name { color: var(--wp-orange); }
+.wp-hash-name { font-size: 14px; font-weight: 600; color: #fff; transition: color 0.2s ease; }
+
+/* ─── Wingsaga geek/follow button ─── */
+.wp-geek-btn {
+  width: 100%; padding: 6px; border-radius: 20px;
+  border: 1px solid var(--wp-border); background: transparent;
+  color: var(--wp-muted); font-size: 10px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s ease;
+  font-family: inherit;
+}
+.wp-geek-btn:hover { background: var(--wp-orange); border-color: var(--wp-orange); color: #fff; }
+.wp-geek-btn.geeking { background: transparent !important; border-color: var(--wp-orange) !important; color: var(--wp-orange) !important; }
+
+/* ─── Wingsaga premium card ─── */
+.wp-prem-card {
+  flex: 0 0 160px; scroll-snap-align: start;
+  background: var(--wp-prem-bg); border: 1px solid rgba(224,168,0,0.25);
+  border-radius: 12px; padding: 10px; cursor: pointer;
+  transition: all 0.25s ease;
+}
+.wp-prem-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(224,168,0,.15); }
+
+/* ─── Wingsaga ad banner ─── */
+.wp-ad-banner {
+  background: linear-gradient(135deg,#1a0a2e,#2d1b4e 50%,#1a0a2e);
+  border: 1px solid #3d2b5e; border-radius: 14px;
+  padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.wp-ad-banner2 {
+  background: linear-gradient(135deg,#0a1a2e,#1b2d4e 50%,#0a1a2e);
+  border: 1px solid #2b3d5e; border-radius: 14px;
+  padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+
+/* ─── Wingsaga hero slideshow ─── */
+.wp-hero {
+  position: relative; overflow: hidden; border-radius: 14px;
+  margin: 8px 16px 0;
+  aspect-ratio: 3.5/1; min-height: 160px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+@media (min-width: 640px) { .wp-hero { margin: 10px 24px 0; } }
+@media (min-width: 1024px) { .wp-hero { margin: 14px 48px 0; max-width: 1104px; margin-left: auto; margin-right: auto; } }
+
+.wp-slide { position: absolute; inset: 0; opacity: 0; transition: opacity 0.8s ease-in-out; }
+.wp-slide.active { opacity: 1; }
+.wp-slide.active img { animation: wpZoom 10s ease-out forwards; }
+@keyframes wpZoom { 0% { transform: scale(1); } 100% { transform: scale(1.15); } }
+.wp-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.wp-slide-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.3); border: none; cursor: pointer; padding: 0; transition: all 0.3s ease; }
+.wp-slide-dot.active { background: var(--wp-orange); width: 20px; border-radius: 4px; }
+
+.wp-hero-btn {
+  padding: 9px 20px; background: var(--wp-orange); color: #fff;
+  border: none; border-radius: 20px; font-size: 13px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: all 0.2s ease; box-shadow: 0 6px 20px rgba(255,106,0,.4);
+  font-family: inherit;
+}
+.wp-hero-btn:hover { background: var(--wp-orange-h); transform: scale(1.05); box-shadow: 0 10px 25px rgba(255,106,0,.4); }
+
+/* ─── Wingsaga section wrapper ─── */
+.wp-section { padding: 20px 0; position: relative; }
+.wp-section + .wp-section { border-top: 1px solid rgba(255,255,255,0.05); }
+
+/* ─── Wingsaga stats bar ─── */
+.wp-stats {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 28px 16px;
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 12px;
+  background: linear-gradient(125deg, rgba(8,21,28,0.92), rgba(22,16,36,0.9));
+}
+@media (min-width: 1024px) { .wp-stats { padding: 34px 48px; } }
+@media (max-width: 640px) {
+  .wp-stats { grid-template-columns: 1fr; padding: 16px 14px; }
+  .wp-stat { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .wp-stat:last-child { border-bottom: none; }
+}
+.wp-stat {
+  text-align: center; padding: 16px 10px;
+  border-right: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  background: linear-gradient(155deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+}
+.wp-stat:last-child { border-right: none; }
+.wp-stat-icon { display: inline-flex; font-size: 12px; color: #8be8dd; margin-bottom: 6px; }
+.wp-stat-num { font-size: clamp(28px,5vw,48px); font-weight: 500; color: #ffd38f; display: block; line-height: 1; margin-bottom: 6px; }
+.wp-stat-label { font-size: 12px; color: rgba(255,255,255,0.8); }
+
+/* ─── Wingsaga CTA banner ─── */
+.wp-cta-banner {
+  margin: 0 16px;
+  background: linear-gradient(135deg, #0f1728, #111f33 50%, #0b1524);
+  border: 1px solid rgba(84,129,203,0.28); border-radius: 18px;
+  padding: 36px 28px; text-align: center; position: relative; overflow: hidden;
+}
+@media (min-width: 1024px) { .wp-cta-banner { max-width: 1104px; margin: 0 auto; } }
+.wp-cta-banner h2 { font-size: clamp(22px,4vw,36px); font-weight: 300; color: #fff; margin-bottom: 10px; line-height: 1.2; }
+.wp-cta-banner p { color: rgba(255,255,255,0.85); font-size: 14px; margin-bottom: 24px; line-height: 1.6; }
+.wp-cta-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.wp-btn-primary { background: var(--wp-orange); color: #fff; border: none; padding: 11px 26px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+.wp-btn-primary:hover { background: var(--wp-orange-h); transform: translateY(-1px); }
+.wp-btn-ghost { background: none; border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 11px 26px; border-radius: 8px; font-size: 14px; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+.wp-btn-ghost:hover { border-color: var(--wp-orange); color: var(--wp-orange); }
+
+/* ─── Wingsaga toast ─── */
+.wp-toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(70px);
+  background: var(--wp-surface); border: 1px solid var(--wp-border); color: #fff;
+  font-size: 13px; padding: 10px 20px; border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 999; transition: transform 0.3s ease; white-space: nowrap;
+}
+.wp-toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ─── Wingsaga bottom nav (mobile) ─── */
+.wp-bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+  background: rgba(26,26,26,0.95); backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(51,51,51,0.5);
+  padding-bottom: env(safe-area-inset-bottom);
+  display: none;
+}
+@media (max-width: 768px) { .wp-bottom-nav { display: block; } }
+.wp-bottom-nav-inner { display: flex; align-items: center; justify-content: space-around; padding: 6px 0; }
+.wp-nav-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; background: none; border: none; cursor: pointer; color: var(--wp-dim); transition: color 0.2s; padding: 4px 8px; }
+.wp-nav-btn.active { color: var(--wp-orange); }
+.wp-nav-btn:hover { color: var(--wp-orange); }
+.wp-nav-btn span { font-size: 8px; font-weight: 500; }
+
+/* ─── Wingsaga main padding for bottom nav ─── */
+@media (max-width: 768px) { main.wp-main { padding-bottom: 72px; } }
 
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&family=Lora:ital,wght@0,400;0,500;1,400;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
@@ -4626,3 +4907,957 @@ html, body { max-width: 100%; overflow-x: hidden; }
   .bx-header, .bx-ch-nav-bar, .bx-hero, .bx-stats, .bx-footer { display: none; }
   .bx-reading-content { padding: 0; font-size: 12pt; max-width: 100%; }
 }
+
+
+/* ═══════════════════════════════════════════════════════
+   WINGSAGA NEW UI – Task 1.1
+   Dark theme tokens + body/selection/scrollbar overrides
+═══════════════════════════════════════════════════════ */
+
+:root {
+  --wp-bg:       #121212;
+  --wp-card:     #1e1e1e;
+  --wp-surface:  #2a2a2a;
+  --wp-border:   #333333;
+  --wp-nav:      #1a1a1a;
+  --wp-footer:   #0a0a0a;
+  --wp-orange:   #ff6a00;
+  --wp-orange-h: #ff8533;
+  --wp-muted:    #a0a0a0;
+  --wp-dim:      #666666;
+  --wp-premium:  #e0a800;
+  --wp-prem-bg:  #2a2200;
+}
+
+/* ─── Homepage dark background ─── */
+main.wp-home {
+  background: var(--wp-bg);
+  color: #ffffff;
+  font-family: 'DM Sans', 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Selection color ─── */
+main.wp-home ::selection {
+  background: var(--wp-orange);
+  color: #fff;
+}
+
+/* ─── Hide scrollbars on scroll rows ─── */
+.wp-scroll-row {
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.wp-scroll-row::-webkit-scrollbar { display: none; }
+
+/* ─── Mobile bottom nav padding ─── */
+@media (max-width: 768px) {
+  main.wp-home { padding-bottom: 72px; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   WINGSAGA NEW UI – Task 1.2
+   Hero slideshow styles
+═══════════════════════════════════════════════════════ */
+
+/* ─── Slideshow wrapper ─── */
+.wp-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  margin: 8px 16px 0;
+  aspect-ratio: 3.5 / 1;
+  min-height: 160px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+@media (min-width: 640px)  { .wp-hero { margin: 10px 24px 0; } }
+@media (min-width: 1024px) { .wp-hero { margin: 14px auto 0; max-width: 1200px; } }
+
+/* ─── Individual slide ─── */
+.wp-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.8s ease-in-out;
+}
+.wp-slide.active { opacity: 1; }
+
+/* ─── Zoom animation on active slide image ─── */
+@keyframes wpZoom {
+  0%   { transform: scale(1); }
+  100% { transform: scale(1.15); }
+}
+.wp-slide.active img {
+  animation: wpZoom 10s ease-out forwards;
+}
+.wp-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ─── Slide content overlay ─── */
+.wp-slide-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.55) 55%, transparent 100%);
+}
+
+.wp-slide-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+}
+@media (min-width: 768px) { .wp-slide-content { padding: 0 32px; } }
+
+.wp-slide-inner { max-width: 340px; }
+
+/* ─── Slide badge/tag ─── */
+.wp-slide-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #fff;
+  margin-bottom: 8px;
+}
+.wp-slide-tag-featured  { background: var(--wp-orange); }
+.wp-slide-tag-editors   { background: #7c3aed; }
+.wp-slide-tag-trending  { background: #dc2626; }
+
+/* ─── Slide title ─── */
+.wp-slide-title {
+  font-size: clamp(16px, 4vw, 24px);
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+/* ─── Slide stats row ─── */
+.wp-slide-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.wp-slide-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--wp-orange);
+  font-size: 12px;
+  font-weight: 700;
+}
+.wp-slide-divider {
+  width: 1px;
+  height: 12px;
+  background: rgba(255,255,255,0.3);
+}
+.wp-slide-views {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: rgba(255,255,255,0.8);
+  font-size: 11px;
+}
+
+/* ─── Slide description ─── */
+.wp-slide-desc {
+  color: rgba(255,255,255,0.6);
+  font-size: 11px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+@media (min-width: 640px) { .wp-slide-desc { font-size: 12px; } }
+
+/* ─── Slide CTA button ─── */
+.wp-slide-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  background: var(--wp-orange);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 6px 20px rgba(255,106,0,0.4);
+  transition: all 0.2s ease;
+}
+.wp-slide-btn:hover {
+  background: var(--wp-orange-h);
+  transform: scale(1.05);
+  box-shadow: 0 10px 25px rgba(255,106,0,0.4);
+}
+
+/* ─── Slide dots ─── */
+.wp-slide-dots {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+}
+.wp-slide-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.3s ease;
+}
+.wp-slide-dot.active {
+  background: var(--wp-orange);
+  width: 20px;
+  border-radius: 4px;
+}
+
+/* ─── Slide prev/next arrows ─── */
+.wp-slide-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #fff;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 16px;
+  line-height: 1;
+}
+.wp-slide-arrow:hover { background: rgba(0,0,0,0.65); }
+.wp-slide-arrow.prev { left: 8px; }
+.wp-slide-arrow.next { right: 8px; }
+@media (min-width: 768px) { .wp-slide-arrow { display: flex; } }
+
+/* ═══════════════════════════════════════════════════════
+   WINGSAGA NEW UI – Task 1.3
+   Book card, badges, tag pills
+═══════════════════════════════════════════════════════ */
+
+/* ─── Book card ─── */
+.wp-book-card-new {
+  flex: 0 0 140px;
+  scroll-snap-align: start;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.25s ease;
+}
+@media (min-width: 640px) { .wp-book-card-new { flex: 0 0 160px; } }
+.wp-book-card-new:hover { transform: translateY(-4px); }
+.wp-book-card-new:hover .wp-book-cover-new { transform: scale(1.03); }
+.wp-book-card-new:hover .wp-book-title-new { color: var(--wp-orange); }
+
+/* ─── Book cover ─── */
+.wp-book-cover-new {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  transition: transform 0.3s ease;
+  background: var(--wp-surface);
+}
+.wp-book-cover-new img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ─── Book cover fallback ─── */
+.wp-book-fallback-new {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  padding: 8px;
+  color: #fff;
+  line-height: 1.3;
+  background: var(--wp-surface);
+}
+
+/* ─── Book title ─── */
+.wp-book-title-new {
+  font-size: 11px;
+  color: var(--wp-muted);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 0.2s ease;
+}
+
+/* ─── Book meta (genre · reads) ─── */
+.wp-book-meta-new {
+  font-size: 10px;
+  color: var(--wp-dim);
+  margin-top: 3px;
+}
+
+/* ─── Reading progress bar (bottom of cover) ─── */
+.wp-reading-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--wp-orange), var(--wp-orange-h));
+  border-radius: 0 0 0 0;
+}
+
+/* ─── Badges ─── */
+.wp-badge-hot {
+  background: linear-gradient(135deg, #ff4444, #ff6a00);
+  color: #fff;
+  font-size: 7px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+}
+.wp-badge-new {
+  background: linear-gradient(135deg, #00c853, #00e676);
+  color: #fff;
+  font-size: 7px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+}
+.wp-badge-rank {
+  background: linear-gradient(135deg, #ff4444, #ff6a00);
+  color: #fff;
+  font-size: 7px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+}
+.wp-badge-rank-plain {
+  background: rgba(42,42,42,0.9);
+  color: #fff;
+  font-size: 7px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+}
+.wp-badge-prem {
+  background: linear-gradient(135deg, #e0a800, #f0c040);
+  color: #000;
+  font-size: 7px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ─── Tag pills ─── */
+.wp-tag-bar-new {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+  margin-top: 5px;
+}
+.wp-tag-bar-new::-webkit-scrollbar { display: none; }
+.wp-tag-pill-new {
+  background: var(--wp-surface);
+  color: var(--wp-muted);
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  border: 1px solid var(--wp-border);
+  flex-shrink: 0;
+}
+
+/* ─── Premium card ─── */
+.wp-prem-card-new {
+  flex: 0 0 160px;
+  scroll-snap-align: start;
+  background: var(--wp-prem-bg);
+  border: 1px solid rgba(224,168,0,0.25);
+  border-radius: 12px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.wp-prem-card-new:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(224,168,0,0.15);
+}
+.wp-prem-card-new .wp-book-title-new { font-weight: 500; }
+
+/* ═══════════════════════════════════════════════════════
+   WINGSAGA NEW UI – Task 1.4
+   Scroll wrap, carousel arrows, section header
+═══════════════════════════════════════════════════════ */
+
+/* ─── Scroll wrap (hover reveals arrows) ─── */
+.wp-scroll-wrap {
+  position: relative;
+}
+
+/* ─── Scroll row ─── */
+.wp-scroll-row-new {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 6px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+.wp-scroll-row-new::-webkit-scrollbar { display: none; }
+
+/* ─── Carousel arrow buttons ─── */
+.wp-carousel-arrow-new {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 32px;
+  z-index: 10;
+  background: rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+.wp-scroll-wrap:hover .wp-carousel-arrow-new {
+  opacity: 1;
+  pointer-events: auto;
+}
+.wp-carousel-arrow-new:hover {
+  background: rgba(255,255,255,0.15) !important;
+}
+.wp-carousel-arrow-new.left {
+  left: 0;
+  border-radius: 0 8px 8px 0;
+}
+.wp-carousel-arrow-new.right {
+  right: 0;
+  border-radius: 8px 0 0 8px;
+}
+
+/* ─── Section wrapper ─── */
+.wp-section-new {
+  padding: 20px 0;
+  position: relative;
+}
+.wp-section-new + .wp-section-new {
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+/* ─── Section header ─── */
+.wp-sec-header-new {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.wp-sec-header-new:hover .wp-sec-title-new {
+  color: var(--wp-orange);
+}
+
+/* ─── Section title ─── */
+.wp-sec-title-new {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.2s ease;
+}
+
+/* ─── Section chevron / see-all ─── */
+.wp-sec-chevron {
+  color: var(--wp-dim);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.wp-sec-see-all {
+  font-size: 10px;
+  color: var(--wp-dim);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.wp-sec-see-all:hover { color: var(--wp-orange); }
+
+/* ─── Ad banner ─── */
+.wp-ad-banner-new {
+  background: linear-gradient(135deg, #1a0a2e, #2d1b4e 50%, #1a0a2e);
+  border: 1px solid #3d2b5e;
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 16px;
+}
+@media (min-width: 640px) {
+  .wp-ad-banner-new {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+.wp-ad-label {
+  font-size: 9px;
+  color: var(--wp-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+.wp-ad-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.3;
+}
+.wp-ad-sub {
+  font-size: 12px;
+  color: var(--wp-muted);
+  margin-top: 2px;
+}
+.wp-ad-btn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 16px;
+  background: var(--wp-orange);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: inherit;
+  transition: background 0.2s;
+  animation: wpPulse 2s infinite;
+}
+.wp-ad-btn:hover { background: var(--wp-orange-h); }
+@keyframes wpPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(255,106,0,0.4); }
+  50%      { box-shadow: 0 0 12px 4px rgba(255,106,0,0.15); }
+}
+.wp-ad-cover {
+  flex-shrink: 0;
+  width: 70px;
+  height: 105px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+}
+.wp-ad-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ═══════════════════════════════════════════════════════
+   WINGSAGA NEW UI – Task 1.5
+   Continue card, cat card, hash card, reading list card,
+   geek button, bottom nav
+═══════════════════════════════════════════════════════ */
+
+/* ─── Continue Reading card (horizontal dark card) ─── */
+.wp-continue-card-new {
+  flex: 0 0 300px;
+  scroll-snap-align: start;
+  display: flex;
+  gap: 12px;
+  padding: 10px;
+  background: var(--wp-card);
+  border: 1px solid rgba(51,51,51,0.3);
+  border-radius: 12px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.25s ease;
+}
+@media (min-width: 640px) { .wp-continue-card-new { flex: 0 0 340px; } }
+.wp-continue-card-new:hover {
+  background: var(--wp-surface);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.wp-continue-card-new:hover .wp-continue-title-new {
+  color: var(--wp-orange);
+}
+
+.wp-continue-thumb {
+  flex-shrink: 0;
+  width: 56px;
+  aspect-ratio: 2 / 3;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+.wp-continue-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.wp-continue-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--wp-orange), var(--wp-orange-h));
+}
+
+.wp-continue-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2px 0;
+}
+.wp-continue-title-new {
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.2s ease;
+}
+.wp-continue-author-new {
+  font-size: 10px;
+  color: var(--wp-dim);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wp-continue-views-new {
+  font-size: 9px;
+  color: var(--wp-dim);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.wp-continue-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.wp-continue-chapter {
+  font-size: 9px;
+  color: var(--wp-orange);
+  font-weight: 500;
+}
+.wp-continue-time {
+  font-size: 9px;
+  color: var(--wp-dim);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ─── Category card (image with overlay) ─── */
+.wp-cat-card-new {
+  flex-shrink: 0;
+  width: 105px;
+  aspect-ratio: 3 / 4;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  scroll-snap-align: start;
+  transition: all 0.3s ease;
+}
+.wp-cat-card-new::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%);
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+.wp-cat-card-new:hover::before {
+  background: linear-gradient(to top, rgba(255,106,0,0.7) 0%, rgba(255,106,0,0.15) 50%, rgba(0,0,0,0.1) 100%);
+}
+.wp-cat-card-new:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(255,106,0,0.2);
+}
+.wp-cat-card-new img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.wp-cat-label-new {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 10px;
+}
+.wp-cat-name-new {
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  line-height: 1.2;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+.wp-cat-count-new {
+  font-size: 7px;
+  color: rgba(255,255,255,0.4);
+  margin-top: 2px;
+}
+
+/* ─── Reading list card (community list) ─── */
+.wp-list-card-new {
+  flex: 0 0 160px;
+  scroll-snap-align: start;
+  background: var(--wp-card);
+  border: 1px solid rgba(51,51,51,0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s ease;
+  position: relative;
+}
+.wp-list-card-new:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+}
+.wp-list-card-new:hover .wp-list-title-new { color: var(--wp-orange); }
+
+.wp-list-body { padding: 10px; flex: 1; display: flex; flex-direction: column; }
+.wp-list-cover-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.wp-list-thumb {
+  width: 50px;
+  aspect-ratio: 2 / 3;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.wp-list-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.wp-list-meta-col { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+.wp-list-title-new {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+  transition: color 0.2s ease;
+}
+.wp-list-user {
+  font-size: 9px;
+  color: var(--wp-dim);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.wp-list-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.wp-list-count { font-size: 9px; color: var(--wp-muted); }
+.wp-list-reads { font-size: 9px; color: var(--wp-orange); }
+
+/* ─── Hashtag card ─── */
+.wp-hash-card-new {
+  flex: 0 0 180px;
+  scroll-snap-align: start;
+  background: var(--wp-card);
+  border: 1px solid rgba(51,51,51,0.2);
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.25s ease;
+}
+.wp-hash-card-new:hover {
+  background: var(--wp-surface);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+}
+.wp-hash-card-new:hover .wp-hash-name-new { color: var(--wp-orange); }
+
+.wp-hash-covers {
+  display: flex;
+  gap: 0;
+  margin-bottom: 10px;
+}
+.wp-hash-cover {
+  width: 48px;
+  aspect-ratio: 2 / 3;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+  flex-shrink: 0;
+}
+.wp-hash-cover + .wp-hash-cover { margin-left: -12px; }
+.wp-hash-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.wp-hash-name-new {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  transition: color 0.2s ease;
+}
+.wp-hash-count {
+  font-size: 10px;
+  color: var(--wp-dim);
+  margin-top: 2px;
+}
+
+/* ─── Geek button (replaces Follow) ─── */
+.wp-geek-btn-new {
+  width: 100%;
+  padding: 6px;
+  border-radius: 20px;
+  border: 1px solid var(--wp-border);
+  background: transparent;
+  color: var(--wp-muted);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  margin-top: 10px;
+}
+.wp-geek-btn-new:hover {
+  background: var(--wp-orange);
+  border-color: var(--wp-orange);
+  color: #fff;
+}
+.wp-geek-btn-new.geeking {
+  background: transparent !important;
+  border-color: var(--wp-orange) !important;
+  color: var(--wp-orange) !important;
+}
+
+/* ─── Mobile bottom nav ─── */
+.wp-bottom-nav-new {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgba(26,26,26,0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(51,51,51,0.5);
+  padding-bottom: env(safe-area-inset-bottom);
+  display: none;
+}
+@media (max-width: 768px) { .wp-bottom-nav-new { display: block; } }
+
+.wp-bottom-nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 6px 0;
+}
+.wp-nav-btn-new {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--wp-dim);
+  transition: color 0.2s;
+  padding: 4px 8px;
+  font-family: inherit;
+}
+.wp-nav-btn-new.active { color: var(--wp-orange); }
+.wp-nav-btn-new:hover  { color: var(--wp-orange); }
+.wp-nav-btn-new svg    { width: 20px; height: 20px; }
+.wp-nav-btn-new span   { font-size: 8px; font-weight: 500; }

@@ -849,7 +849,7 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
               <div className="profile-about-bio">
                 <p>{me?.bio?.trim() || user?.bio?.trim() || "No bio yet. Add a few lines about yourself to make this profile your own."}</p>
               </div>
-              <dl className="profile-about-details">
+                            <dl className="profile-about-details profile-about-details--list">
                 {[
                   ["Name", name],
                   ["Email", me?.email || user?.email],
@@ -857,23 +857,35 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
                   ["Gender", me?.gender],
                   ["Birthday", birthdayToDisplay(me?.birth_date)],
                   ["Location", me?.country || user?.country],
+                  ["Published stories", String(publishedStoryCount)],
+                  ["Drafts", String(draftStoryCount)],
                   ["Member since", memberSince],
-                ].filter(([, value]) => value).map(([label, value]) => (
-                  <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
+                ].filter(([, value]) => value !== "" && value != null).map(([label, value]) => (
+                  <div className="profile-about-row" key={label}>
+                    <dt>{label}</dt>
+                    <dd>{value}</dd>
+                  </div>
                 ))}
               </dl>
-              {socialLinks.length ? (
-                <nav className="profile-social-links" aria-label="Social profiles">
-                  {socialLinks.map((link) => {
-                    const host = new URL(link.href).hostname.replace(/^www\./, "");
-                    return <a href={link.href} key={link.label} target="_blank" rel="noopener noreferrer">
-                      <span className="profile-social-icon-wrap"><SocialIcon platform={link.label} /></span>
-                      <span className="profile-social-copy"><strong>{link.label}</strong><small>{host}</small></span>
-                      <span className="profile-social-external" aria-hidden="true">↗</span>
-                    </a>;
-                  })}
-                </nav>
-              ) : <p className="profile-social-empty">Social links added to your profile will appear here.</p>}
+              <div className="profile-about-social-block">
+                <h3 className="profile-about-social-title">Social media</h3>
+                {socialLinks.length ? (
+                  <nav className="profile-social-links" aria-label="Social profiles">
+                    {socialLinks.map((link) => {
+                      const host = new URL(link.href).hostname.replace(/^www\./, "");
+                      return (
+                        <a href={link.href} key={link.label} target="_blank" rel="noopener noreferrer">
+                          <span className="profile-social-icon-wrap"><SocialIcon platform={link.label} /></span>
+                          <span className="profile-social-copy"><strong>{link.label}</strong><small>{host}</small></span>
+                          <span className="profile-social-external" aria-hidden="true">↗</span>
+                        </a>
+                      );
+                    })}
+                  </nav>
+                ) : (
+                  <p className="profile-social-empty">Social links added to your profile will appear here.</p>
+                )}
+              </div>
             </section>
           </div>
         ) : !setupRequired && tab === "Stories" ? (
@@ -891,7 +903,7 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
                 <Link className="btn btn-primary" to="/write">Start writing</Link>
               </div>
             ) : null}
-            {!loading && stories.length ? <div className="profile-story-grid">
+            {!loading && stories.length ? <div className="profile-story-grid profile-story-grid--home-pack">
               {stories.map((story) => {
                 const image = resolveAssetUrl(story.cover_path || story.coverPath || "");
                 const status = story.status_text || story.status || "Draft";

@@ -256,11 +256,11 @@ body.dark-mode .ws-tag {
 .ws-tag button.ws-tag-btn.ws-tag-btn-primary,
 .ws-tag .ws-tag-btn-primary,
 button.ws-tag-btn-primary {
-  background: #16856A !important;
-  background-color: #16856A !important;
+  background: #16785F !important;
+  background-color: #16785F !important;
   color: #ffffff !important;
   border-color: rgba(255, 255, 255, 0.18) !important;
-  box-shadow: 0 4px 14px rgba(22, 133, 106, 0.4);
+  box-shadow: 0 4px 14px rgba(22, 120, 95, 0.4);
 }
 .ws-tag button.ws-tag-btn.ws-tag-btn-primary:hover:not(:disabled),
 .ws-tag .ws-tag-btn-primary:hover:not(:disabled),
@@ -588,4 +588,26 @@ button.ws-tag-btn-ghost:hover {
     animation: none !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+
+/* THEME_GREEN_FOLLOW — match site brand green */
+.ws-tag button.ws-tag-btn.ws-tag-btn-primary,
+.ws-tag .ws-tag-btn-primary,
+button.ws-tag-btn-primary {
+  background: #16785F !important;
+  background-color: #16785F !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+}
+.ws-tag button.ws-tag-btn.ws-tag-btn-primary:hover:not(:disabled),
+.ws-tag .ws-tag-btn-primary:hover:not(:disabled) {
+  background: #1B9A7B !important;
+  background-color: #1B9A7B !important;
+}
+:root[data-theme="dark"] .ws-tag button.ws-tag-btn.ws-tag-btn-primary,
+:root[data-theme="dark"] .ws-tag .ws-tag-btn-primary,
+.dark .ws-tag button.ws-tag-btn.ws-tag-btn-primary {
+  background: #16856A !important;
+  background-color: #16856A !important;
 }

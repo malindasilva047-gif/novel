@@ -87,6 +87,11 @@ export default function TagPage({ user }) {
     }
   }, [location.pathname]);
 
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [tagName]);
+
   const showNotice = useCallback((message, type = "success") => showToast(message, type), []);
 
   const loadTag = useCallback(async (selectedFilter = filter) => {

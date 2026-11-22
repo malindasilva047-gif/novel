@@ -137,6 +137,28 @@ body.dark-mode .ws-tag {
   margin: 0;
   color: #ffffff !important;
 }
+
+/* Hard override for global h1 / theme text color */
+.ws-tag section.ws-tag-hero h1,
+.ws-tag .ws-tag-hero h1,
+.ws-tag-hero h1,
+.ws-tag h1 {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+.ws-tag section.ws-tag-hero .ws-tag-sub,
+.ws-tag .ws-tag-sub,
+.ws-tag-hero .ws-tag-sub {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1 !important;
+}
+.ws-tag section.ws-tag-hero .ws-tag-kicker,
+.ws-tag .ws-tag-kicker {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
 .ws-tag .ws-tag-hero .ws-tag-sub,
 .ws-tag-hero .ws-tag-sub {
   margin-top: 6px;

@@ -229,6 +229,23 @@ export default function TagPage({ user }) {
     return () => observer.disconnect();
   }, [hasMore, loadMore, loading, loadingMore]);
 
+  async function shareTag() {
+    const url = typeof window !== "undefined" ? window.location.href : "";
+    const title = `#${displayName} – Wingsaga`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        showNotice("Hashtag link copied.");
+      }
+    } catch (err) {
+      if (err?.name !== "AbortError") {
+        showNotice(err?.message || "Could not share this hashtag.", "danger");
+      }
+    }
+  }
+
   async function toggleFollow() {
     if (!user) {
       navigate("/login");
@@ -317,17 +334,17 @@ export default function TagPage({ user }) {
           <path d="M0 62C240 8 480 8 720 50S1200 100 1440 30" fill="none" stroke="#2f9a6e" strokeOpacity=".7" strokeWidth="3" />
         </svg>
         <div className="ws-tag-wrap">
-          <nav className="ws-tag-crumbs" aria-label="Breadcrumb">
-            <Link to="/">Home</Link>
+          <nav className="ws-tag-crumbs" aria-label="Breadcrumb" style={{ color: "#ffffff" }}>
+            <Link to="/" style={{ color: "#ffffff" }}>Home</Link>
             <span aria-hidden="true">›</span>
-            <Link to="/">Tag</Link>
+            <Link to="/" style={{ color: "#ffffff" }}>Tag</Link>
             <span aria-hidden="true">›</span>
-            <span aria-current="page">#{displayName}</span>
+            <span aria-current="page" style={{ color: "#ffffff" }}>#{displayName}</span>
           </nav>
           <div className="ws-tag-hero-body">
-            <div className="ws-tag-kicker">Stories that share a thread</div>
-            <h1>#{displayName}</h1>
-            <p className="ws-tag-sub">
+            <div className="ws-tag-kicker" style={{ color: "#ffffff" }}>Stories that share a thread</div>
+            <h1 style={{ color: "#ffffff" }}>#{displayName}</h1>
+            <p className="ws-tag-sub" style={{ color: "#ffffff" }}>
               {tag?.description || `Find stories connected by #${displayName}.`}
             </p>
           </div>
@@ -365,7 +382,7 @@ export default function TagPage({ user }) {
               >
                 {followBusy ? "Saving…" : following ? "Following" : user ? "Follow +" : "Sign in to follow"}
               </button>
-              <button className="ws-tag-btn ws-tag-btn-ghost" type="button" onClick={() => setShareOpen(true)}>
+              <button className="ws-tag-btn ws-tag-btn-ghost" type="button" onClick={shareTag}>
                 Share
               </button>
             </div>

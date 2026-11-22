@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Miscellaneous
 *.class
 *.log
@@ -97,3 +98,26 @@ app.*.map.json
 /android/app/release
 "postman_mcp.py" 
 
+=======
+# Node
+frontend/node_modules
+frontend/.next
+frontend/.vercel
+
+# Python
+backend/.venv
+backend/__pycache__
+backend/.pytest_cache
+
+# Environment
+**/.env
+**/.env.*
+
+# Local workspace
+.vscode
+uploads
+
+# OS
+.DS_Store
+Thumbs.db
+>>>>>>> 6cba7ed49e6d686b32ee0876dd19f3be6eacec3f

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import ShareDialog from "../components/ShareDialog";
-import BookCard from "../components/BookCard";
 import { showToast } from "../components/ToastViewport";
 import {
   followTagWeb,
@@ -11,49 +10,51 @@ import {
   resolveAssetUrl,
   unfollowTagWeb,
 } from "../api";
+import "./TagPage.css";
 
 const FILTERS = [
-  { key: "top", label: "Top", sort: "top" },
-  { key: "recent", label: "Recent", sort: "recent" },
-  { key: "trending", label: "Trending", sort: "trending" },
-  { key: "liked", label: "Most Liked", sort: "liked" },
+  { key: "top", label: "Top Stories", sort: "top" },
+  { key: "recent", label: "Recent Stories", sort: "recent" },
+  { key: "trending", label: "Trending Stories", sort: "trending" },
+  { key: "liked", label: "Most Liked Stories", sort: "liked" },
 ];
 
-const TAG_VIEW_STORAGE_KEY = "wingsaga:tag-hub-view";
-
-function getStoredTagView() {
-  try {
-    return localStorage.getItem(TAG_VIEW_STORAGE_KEY) === "list" ? "list" : "grid";
-  } catch {
-    return "grid";
-  }
-}
-
-function StoryCover({ src, loading = "lazy", fetchPriority }) {
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => setFailed(false), [src]);
-
-  if (!src || failed) {
-    return <span className="tag-hub-cover-fallback" aria-hidden="true">W</span>;
-  }
-
-  return (
-    <img
-      src={src}
-      alt=""
-      loading={loading}
-      fetchPriority={fetchPriority}
-      decoding="async"
-      onError={() => setFailed(true)}
-    />
-  );
-}
+const PAGE_SIZE = 12;
 
 function displayCount(value) {
   if (value == null || value === "") return "—";
   const count = Number(value);
-  return Number.isFinite(count) ? count.toLocaleString() : "—";
+  if (!Number.isFinite(count)) return "—";
+  if (count >= 1000) {
+    const k = (count / 1000).toFixed(1).replace(/\.0$/, "");
+    return `${k}K`;
+  }
+  return count.toLocaleString();
+}
+
+function coverGradient(id) {
+  const n = Number(id) || 1;
+  const h = (n * 47) % 360;
+  return `linear-gradient(160deg, hsl(${h} 45% 28%), hsl(${(h + 50) % 360} 50% 14%))`;
+}
+
+function StoryCover({ src, id }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [src]);
+  if (!src || failed) {
+    return (
+      <div className="ws-tag-cover-fallback" style={{ background: coverGradient(id) }} aria-hidden="true" />
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 export default function TagPage({ user }) {
@@ -63,7 +64,6 @@ export default function TagPage({ user }) {
   const [books, setBooks] = useState([]);
   const [relatedTags, setRelatedTags] = useState([]);
   const [filter, setFilter] = useState("top");
-  const [view, setView] = useState(getStoredTagView);
   const [following, setFollowing] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [followers, setFollowers] = useState(null);
@@ -89,15 +89,6 @@ export default function TagPage({ user }) {
 
   const showNotice = useCallback((message, type = "success") => showToast(message, type), []);
 
-  function selectView(nextView) {
-    setView(nextView);
-    try {
-      localStorage.setItem(TAG_VIEW_STORAGE_KEY, nextView);
-    } catch {
-      showNotice("View changed, but your preference could not be saved.", "warning");
-    }
-  }
-
   const loadTag = useCallback(async (selectedFilter = filter) => {
     const requestId = ++loadRequestId.current;
     if (!tagName) {
@@ -111,10 +102,10 @@ export default function TagPage({ user }) {
     setHasMore(false);
     setLoading(true);
     setError("");
-    const selectedSort = FILTERS.find((item) => item.key === selectedFilter)?.sort || "trending";
+    const selectedSort = FILTERS.find((item) => item.key === selectedFilter)?.sort || "top";
     const [tagResult, bookResult] = await Promise.allSettled([
       getTagsForHub(),
-      getTagBooksForHub(tagName, selectedSort, { limit: 20, offset: 0 }),
+      getTagBooksForHub(tagName, selectedSort, { limit: PAGE_SIZE, offset: 0 }),
     ]);
     if (requestId !== loadRequestId.current) return;
 
@@ -126,30 +117,33 @@ export default function TagPage({ user }) {
     );
     const tagMeta = bookPayload?.tag_meta || {};
     const resolvedTag = { ...matched, ...tagMeta };
-    setTag(resolvedTag.name ? resolvedTag : {
-      name: tagName,
-      description: "",
-      cover_path: "",
-    });
+    setTag(
+      resolvedTag.name
+        ? resolvedTag
+        : { name: tagName, description: "", cover_path: "" },
+    );
     const relatedFromBooks = Array.isArray(bookPayload?.related_tags)
       ? bookPayload.related_tags
       : [];
-    setRelatedTags(relatedFromBooks.length
-      ? relatedFromBooks.map((item) => {
-        const name = String(item.name || item.tag || "");
-        const listedTag = allTags.find((candidate) =>
-          (item.id != null && String(candidate.id) === String(item.id))
-          || String(candidate.name || candidate.tag || "").toLowerCase() === name.toLowerCase(),
-        );
-        return {
-          ...listedTag,
-          ...item,
-          book_count: listedTag?.book_count ?? item.book_count ?? item.shared_stories,
-        };
-      })
-      : allTags
-        .filter((item) => String(item.name || item.tag || "").toLowerCase() !== tagName.toLowerCase())
-        .slice(0, 10));
+    setRelatedTags(
+      relatedFromBooks.length
+        ? relatedFromBooks.map((item) => {
+            const name = String(item.name || item.tag || "");
+            const listedTag = allTags.find(
+              (candidate) =>
+                (item.id != null && String(candidate.id) === String(item.id))
+                || String(candidate.name || candidate.tag || "").toLowerCase() === name.toLowerCase(),
+            );
+            return {
+              ...listedTag,
+              ...item,
+              book_count: listedTag?.book_count ?? item.book_count ?? item.shared_stories,
+            };
+          })
+        : allTags
+            .filter((item) => String(item.name || item.tag || "").toLowerCase() !== tagName.toLowerCase())
+            .slice(0, 10),
+    );
     if (bookResult.status === "fulfilled") {
       setBooks(Array.isArray(bookPayload?.items) ? bookPayload.items : []);
       setHasMore(Boolean(bookPayload?.has_more));
@@ -176,9 +170,11 @@ export default function TagPage({ user }) {
     } else {
       setFollowing(false);
     }
-    setError(tagResult.status === "rejected"
-      ? "Story details loaded, but hashtag suggestions are temporarily unavailable."
-      : "");
+    setError(
+      tagResult.status === "rejected"
+        ? "Story details loaded, but hashtag suggestions are temporarily unavailable."
+        : "",
+    );
     setLoading(false);
   }, [filter, tagName, user]);
 
@@ -188,10 +184,10 @@ export default function TagPage({ user }) {
     loadingMoreRef.current = true;
     setLoadingMore(true);
     try {
-      const selectedSort = FILTERS.find((item) => item.key === filter)?.sort || "trending";
+      const selectedSort = FILTERS.find((item) => item.key === filter)?.sort || "top";
       const response = await getTagBooksForHub(tagName, selectedSort, {
-        limit: 20,
-        offset: pageRef.current * 20,
+        limit: PAGE_SIZE,
+        offset: pageRef.current * PAGE_SIZE,
       });
       if (requestId !== loadRequestId.current) return;
       const nextItems = Array.isArray(response?.items) ? response.items : [];
@@ -223,9 +219,12 @@ export default function TagPage({ user }) {
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel || !hasMore || loading || loadingMore) return undefined;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) void loadMore();
-    }, { rootMargin: "480px 0px" });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) void loadMore();
+      },
+      { rootMargin: "600px 0px" },
+    );
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [hasMore, loadMore, loading, loadingMore]);
@@ -251,27 +250,37 @@ export default function TagPage({ user }) {
     }
   }
 
-  function shareTag() { setShareOpen(true); }
-
   const displayName = tag?.name || tagName;
   const storyCount = tag?.book_count ?? (loading || error ? null : books.length);
-  const storyCountLabel = storyCount == null || !Number.isFinite(Number(storyCount))
-    ? "Stories"
-    : Number(storyCount) === 1 ? "Story" : "Stories";
+  const storyCountLabel =
+    storyCount == null || !Number.isFinite(Number(storyCount))
+      ? "Stories"
+      : Number(storyCount) === 1
+        ? "Story"
+        : "Stories";
   const followerCountNumber = followers == null ? null : Number(followers);
   const followerCountLabel = followerCountNumber === 1 ? "Follower" : "Followers";
-  const visibleBooks = books;
-  const coverCandidates = [...new Set([
-    tag?.cover_path,
-    ...books.map((book) => book.cover_path || book.cover_url),
-  ].filter(Boolean).map(resolveAssetUrl))];
+  const listTitle = FILTERS.find((item) => item.key === filter)?.label || "Top Stories";
+
+  const coverCandidates = [
+    ...new Set(
+      [tag?.cover_path, ...books.map((book) => book.cover_path || book.cover_url)]
+        .filter(Boolean)
+        .map(resolveAssetUrl),
+    ),
+  ];
   const coverUrl = coverCandidates.find((url) => !failedCoverUrls.has(url)) || "";
+
+  useEffect(() => {
+    document.title = `#${displayName} – Wingsaga`;
+  }, [displayName]);
+
   return (
-    <div className="tag-hub">
-      <section className={`tag-hub-hero${coverUrl ? " has-cover" : ""}`}>
-        {coverUrl && (
+    <div className="ws-tag">
+      <section className={`ws-tag-hero${coverUrl ? " has-cover" : ""}`} id="hero">
+        {coverUrl ? (
           <img
-            className="tag-hub-hero-cover"
+            className="ws-tag-hero-img"
             src={coverUrl}
             alt=""
             loading="eager"
@@ -279,188 +288,238 @@ export default function TagPage({ user }) {
             decoding="async"
             onError={() => setFailedCoverUrls((current) => new Set(current).add(coverUrl))}
           />
+        ) : (
+          <svg className="ws-tag-art" viewBox="0 0 1440 430" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <defs>
+              <linearGradient id="ws-sk" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#0b2a1f" />
+                <stop offset="1" stopColor="#2c5a43" />
+              </linearGradient>
+              <radialGradient id="ws-mg">
+                <stop offset="0" stopColor="#e9efd0" />
+                <stop offset="1" stopColor="#e9efd0" stopOpacity="0" />
+              </radialGradient>
+              <pattern id="ws-tr" width="46" height="90" patternUnits="userSpaceOnUse">
+                <path d="M23 4 41 50H5ZM23 30 45 82H1Z" fill="#06190f" />
+              </pattern>
+            </defs>
+            <rect width="1440" height="430" fill="url(#ws-sk)" />
+            <circle cx="1280" cy="110" r="150" fill="url(#ws-mg)" opacity=".35" />
+            <circle cx="1280" cy="110" r="52" fill="#dfe6c4" />
+            <path d="M0 300 180 190 330 270 520 150 700 280 880 200 1080 290 1260 210 1440 290V430H0Z" fill="#1d4a37" opacity=".7" />
+            <path d="M900 330V210h22v-30l11-26 11 26v30h26v-20l10-24 10 24v70h30V160l12-34 12 34v100h24v-40h30v110Z" fill="#0e2b20" />
+            <path d="M0 340 120 300 260 335 420 290 600 345 800 320 1000 350 1200 315 1440 345V430H0Z" fill="#0f3326" />
+            <rect y="345" width="1440" height="85" fill="url(#ws-tr)" />
+          </svg>
         )}
-        <div className="tag-hub-hero-glow" aria-hidden="true" />
-        <div className="tag-hub-hero-content">
-          <nav className="tag-hub-breadcrumb" aria-label="Breadcrumb">
-            <Link to="/">Home</Link><span aria-hidden="true">›</span>
-            <Link to="/">Browse</Link><span aria-hidden="true">›</span>
+        <svg className="ws-tag-wave" viewBox="0 0 1440 90" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 62C240 8 480 8 720 50S1200 100 1440 30V90H0Z" fill="var(--ws-bg, #FFFFFF)" />
+          <path d="M0 62C240 8 480 8 720 50S1200 100 1440 30" fill="none" stroke="#2f9a6e" strokeOpacity=".7" strokeWidth="3" />
+        </svg>
+        <div className="ws-tag-wrap">
+          <nav className="ws-tag-crumbs" aria-label="Breadcrumb">
+            <Link to="/">Home</Link>
+            <span aria-hidden="true">›</span>
+            <Link to="/">Tag</Link>
+            <span aria-hidden="true">›</span>
             <span aria-current="page">#{displayName}</span>
           </nav>
-          <span className="tag-hub-eyebrow"><span className="tag-hub-live-dot" /> STORIES THAT SHARE A THREAD</span>
-          <div className="tag-hub-title-row">
-            <div className="tag-hub-intro">
-              <h1><span>#</span>{displayName}</h1>
-              <p>{tag?.description || `Find stories connected by #${displayName}.`}</p>
-              <div className="tag-hub-stats">
-                <div role="group" aria-label={`${displayCount(storyCount)} ${storyCountLabel.toLowerCase()}`}>
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5zM4 5.5v16M8 7h8M8 11h8" /></svg>
-                  <strong>{displayCount(storyCount)}</strong><span>{storyCountLabel}</span>
+          <div className="ws-tag-hero-body">
+            <div className="ws-tag-kicker">Stories that share a thread</div>
+            <h1>#{displayName}</h1>
+            <p className="ws-tag-sub">
+              {tag?.description || `Find stories connected by #${displayName}.`}
+            </p>
+          </div>
+          <div className="ws-tag-hero-foot">
+            <div className="ws-tag-stats">
+              <div className="ws-tag-stat">
+                <svg className="ws-tag-i" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 5a2 2 0 0 1 2-2h5v17H6a2 2 0 0 0-2 2zM20 5a2 2 0 0 0-2-2h-5v17h5a2 2 0 0 1 2 2z" />
+                </svg>
+                <div>
+                  <b>{displayCount(storyCount)}</b>
+                  <span>{storyCountLabel}</span>
                 </div>
-                {followers != null && (
-                  <div role="group" aria-label={`${displayCount(followers)} ${followerCountLabel.toLowerCase()}`}>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 20v-1.6a3.4 3.4 0 0 0-3.4-3.4H6.4A3.4 3.4 0 0 0 3 18.4V20m6.5-9a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm6-6.7a3.5 3.5 0 0 1 0 6.8m2 3.9a3.4 3.4 0 0 1 3.5 3.4V20" /></svg>
-                    <strong>{displayCount(followers)}</strong><span>{followerCountLabel}</span>
-                  </div>
-                )}
               </div>
+              {followers != null && (
+                <div className="ws-tag-stat">
+                  <svg className="ws-tag-i" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="9" cy="8" r="4" />
+                    <path d="M2 21c0-4 3-6 7-6s7 2 7 6M16 4a4 4 0 0 1 0 8M18 15c2.5.7 4 2.5 4 6" />
+                  </svg>
+                  <div>
+                    <b>{displayCount(followers)}</b>
+                    <span>{followerCountLabel}</span>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="tag-hub-actions">
+            <div className="ws-tag-actions">
               <button
-                className={`tag-hub-follow${following ? " is-following" : ""}`}
+                className={`ws-tag-btn ws-tag-btn-primary${following ? " on" : ""}`}
                 type="button"
                 onClick={toggleFollow}
                 disabled={followBusy || loading}
                 aria-pressed={following}
               >
-                {followBusy ? "Saving…" : following ? "Following" : user ? "Follow hashtag" : "Sign in to follow"}
+                {followBusy ? "Saving…" : following ? "Following" : user ? "Follow +" : "Sign in to follow"}
               </button>
-              <button className="tag-hub-icon-button tag-hub-share-button" type="button" onClick={shareTag} aria-label="Share hashtag" title="Share hashtag">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path strokeLinecap="round" strokeLinejoin="round" d="m8.7 10.6 6.6-4.2M8.7 13.4l6.6 4.2"/></svg><span>Share</span>
+              <button className="ws-tag-btn ws-tag-btn-ghost" type="button" onClick={() => setShareOpen(true)}>
+                Share
               </button>
-
             </div>
           </div>
         </div>
       </section>
 
-      <main className="tag-hub-main">
-        <nav className="tag-hub-tabs" aria-label="Sort hashtag stories">
-          {FILTERS.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              aria-pressed={filter === item.key}
-              className={filter === item.key ? "active" : ""}
-              onClick={() => setFilter(item.key)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
-
-        {error && (
-          <div className={`tag-hub-message${books.length ? "" : " error"}`} role={books.length ? "status" : "alert"}>
-            <p>{error}</p>
-            <button type="button" onClick={() => loadTag(filter)}>Try again</button>
-          </div>
-        )}
-
-        <section className="tag-hub-discovery" aria-busy={loading}>
-          <div className="tag-hub-section-heading">
-            <div>
-              <h2>Top Stories</h2>
-              <span>Stories tagged #{displayName}</span>
-            </div>
-            <div className="tag-hub-discovery-controls">
-              <span className="tag-hub-sort-note">Sort by {FILTERS.find((item) => item.key === filter)?.label || "Top"}</span>
-              <div className="tag-hub-view-switch" role="group" aria-label="Story display">
-                <button
-                  type="button"
-                  className={view === "grid" ? "active" : ""}
-                  aria-label="Grid view"
-                  aria-pressed={view === "grid"}
-                  onClick={() => selectView("grid")}
-                >
-                  <span aria-hidden="true">▦</span> Grid
-                </button>
-                <button
-                  type="button"
-                  className={view === "list" ? "active" : ""}
-                  aria-label="List view"
-                  aria-pressed={view === "list"}
-                  onClick={() => selectView("list")}
-                >
-                  <span aria-hidden="true">☰</span> List
-                </button>
-              </div>
-            </div>
+      <main className="ws-tag-main">
+        <div className="ws-tag-wrap">
+          <div className="ws-tag-tabbar" role="tablist" aria-label="Sort stories">
+            {FILTERS.map((item) => (
+              <button
+                key={item.key}
+                className={`ws-tag-tab${filter === item.key ? " is-active" : ""}`}
+                role="tab"
+                type="button"
+                aria-selected={filter === item.key}
+                onClick={() => setFilter(item.key)}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
 
-          {loading ? (
-            <div className="tag-hub-story-list tag-hub-story-list--loading" role="status" aria-label="Loading stories">
-              {Array.from({ length: 5 }, (_, index) => (
-                <div className="tag-hub-story-skeleton" key={index}>
-                  <span />
-                  <span />
-                  <span><i /><i /><i /></span>
+          <div className="ws-tag-heading">
+            <h2>{listTitle}</h2>
+            <i />
+          </div>
+
+          {error && (
+            <div className={`ws-tag-state${books.length ? "" : " is-error"}`} role={books.length ? "status" : "alert"}>
+              <p>{error}</p>
+              <button type="button" onClick={() => loadTag(filter)}>Try again</button>
+            </div>
+          )}
+
+          <div className="ws-tag-grid" aria-live="polite" aria-busy={loading}>
+            {loading &&
+              Array.from({ length: 6 }, (_, index) => (
+                <div className="ws-tag-story sk" key={`sk-${index}`}>
+                  <div className="ws-tag-cover" />
+                  <div className="ws-tag-info">
+                    <div className="l" />
+                    <div className="l s" />
+                    <div className="l s" />
+                  </div>
                 </div>
               ))}
-            </div>
-          ) : null}
-          {!loading && visibleBooks.length ? (
-            <div className={`tag-hub-story-list is-${view}`}>
-              {visibleBooks.map((book, index) => {
-                if (view === "grid") {
-                  return (
-                    <div className="tag-hub-story-card" key={book.id}>
-                      <BookCard book={book} variant="shelf" inkittStyle />
-                    </div>
-                  );
-                }
+
+            {!loading &&
+              books.map((book) => {
                 const bookCover = book.cover_path || book.cover_url || "";
                 const bookCoverUrl = bookCover ? resolveAssetUrl(bookCover) : "";
-                const genre = book.genre || book.primary_genre || displayName;
-                const status = book.status_text || (book.is_completed ? "Completed" : "Ongoing");
-                const reads = Number(book.view_count || book.read_count || 0);
-                const rating = Number(book.rating || 0);
+                const reads = Number(book.view_count || book.read_count || book.reads || 0);
+                const parts = Number(book.chapter_count || book.parts || book.chapters || 0);
+                const tags = Array.isArray(book.tags)
+                  ? book.tags.map((t) => (typeof t === "string" ? t : t?.name || t?.tag)).filter(Boolean)
+                  : [];
                 return (
-                  <Link className="tag-hub-story-row" key={book.id} to={`/stories/${book.id}`}>
-                    <span className="tag-hub-story-rank" aria-hidden="true">{index + 1}</span>
-                    <span className="tag-hub-story-cover">
-                      <StoryCover src={bookCoverUrl} />
-                    </span>
-                    <span className="tag-hub-story-copy">
-                      <strong>{book.title || "Untitled story"}</strong>
-                      <small>by {book.author || "Unknown author"}</small>
-                      {book.description ? <span className="tag-hub-story-description">{book.description}</span> : null}
-                      <span className="tag-hub-story-meta">
-                        {genre ? <span className="tag-hub-story-chip">{genre}</span> : null}
-                        {status ? <span className="tag-hub-story-chip">{status}</span> : null}
-                        <span className="tag-hub-story-counts">{reads.toLocaleString()} reads · ★ {rating > 0 ? rating.toFixed(1) : "—"}</span>
-                      </span>
-                    </span>
-                  </Link>
+                  <article className="ws-tag-story" key={book.id}>
+                    <div className="ws-tag-cover" style={!bookCoverUrl ? { background: coverGradient(book.id) } : undefined}>
+                      <StoryCover src={bookCoverUrl} id={book.id} />
+                    </div>
+                    <div className="ws-tag-info">
+                      <div className="ws-tag-top">
+                        <h3>
+                          <Link to={`/stories/${book.id}`}>{book.title || "Untitled story"}</Link>
+                        </h3>
+                      </div>
+                      <div className="ws-tag-by">
+                        <svg className="ws-tag-i" viewBox="0 0 24 24" aria-hidden="true">
+                          <circle cx="12" cy="8" r="4" />
+                          <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
+                        </svg>
+                        {book.author || "Unknown author"}
+                      </div>
+                      <div className="ws-tag-meta">
+                        <span>
+                          <svg className="ws-tag-i" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                          {displayCount(reads)}
+                        </span>
+                        {parts > 0 && (
+                          <span>
+                            <svg className="ws-tag-i" viewBox="0 0 24 24" aria-hidden="true">
+                              <path d="M4 5a2 2 0 0 1 2-2h5v17H6a2 2 0 0 0-2 2zM20 5a2 2 0 0 0-2-2h-5v17h5a2 2 0 0 1 2 2z" />
+                            </svg>
+                            {parts} {parts === 1 ? "chapter" : "chapters"}
+                          </span>
+                        )}
+                      </div>
+                      {book.description ? <p className="ws-tag-desc">{book.description}</p> : null}
+                      {tags.length > 0 && (
+                        <div className="ws-tag-foot">
+                          <span className="ws-tag-hts">
+                            {tags.slice(0, 3).map((t) => (
+                              <Link
+                                key={t}
+                                className="ws-tag-ht"
+                                to={`/tags/${encodeURIComponent(String(t).replace(/^#/, ""))}`}
+                              >
+                                #{String(t).replace(/^#/, "")}
+                              </Link>
+                            ))}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </article>
                 );
               })}
-            </div>
-          ) : null}
-          {!loading && !error && visibleBooks.length === 0 ? (
-            <div className="tag-hub-empty">
-              <span aria-hidden="true">#</span>
-              <h3>No published stories yet</h3>
-              <p>When published stories are tagged #{displayName}, they’ll appear here.</p>
+          </div>
+
+          {!loading && !error && books.length === 0 && (
+            <div className="ws-tag-state">
+              <p>When published stories are tagged #{displayName}, they&apos;ll appear here.</p>
               <Link to="/">Browse stories</Link>
             </div>
-          ) : null}
-          {loadingMore && <div className="tag-hub-message" role="status">Loading more stories…</div>}
-          {hasMore && !loading && <div ref={sentinelRef} className="tag-hub-load-sentinel" aria-hidden="true" />}
-          {!hasMore && visibleBooks.length > 0 && !loading && (
-            <p className="tag-hub-end-message" role="status">You’re all caught up.</p>
           )}
-        </section>
+
+          {loadingMore && <div className="ws-tag-state" role="status">Loading more stories…</div>}
+          {hasMore && !loading && <div ref={sentinelRef} id="sentinel" aria-hidden="true" />}
+          {!hasMore && books.length > 0 && !loading && (
+            <div className="ws-tag-state" role="status">
+              You&apos;ve reached the end of #{displayName}.
+            </div>
+          )}
+
+          {relatedTags.length > 0 && (
+            <section className="ws-tag-related">
+              <h3>Related Hashtags</h3>
+              <div className="ws-tag-tags">
+                {relatedTags.map((item) => {
+                  const name = item.name || item.tag;
+                  return (
+                    <Link
+                      key={item.id || name}
+                      className="ws-tag-tag"
+                      to={`/tags/${encodeURIComponent(name)}`}
+                    >
+                      <b>#{name}</b>
+                      <span>{displayCount(item.book_count)} stories</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+        </div>
       </main>
+
       {shareOpen ? <ShareDialog title={`#${displayName}`} onClose={() => setShareOpen(false)} /> : null}
-      {relatedTags.length > 0 && (
-        <section className="tag-hub-related" aria-labelledby="tag-hub-related-title">
-          <h2 id="tag-hub-related-title">Related Hashtags</h2>
-          <nav className="tag-hub-related-strip" aria-label="Related hashtags">
-            {relatedTags.map((item) => {
-              const name = item.name || item.tag;
-              return (
-                <Link
-                  key={item.id || name}
-                  className={String(name).toLowerCase() === String(displayName).toLowerCase() ? "is-current" : ""}
-                  to={`/tags/${encodeURIComponent(name)}`}
-                >
-                  <strong>#{name}</strong>
-                  <small>{displayCount(item.book_count)} stories</small>
-                </Link>
-              );
-            })}
-          </nav>
-        </section>
-      )}
     </div>
   );
 }

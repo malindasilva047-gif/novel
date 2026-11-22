@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Sun's Heir – Chapter 67 | Bixbi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Lora:ital,wght@0,400;0,500;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════
+   CSS VARIABLES
+══════════════════════════════════════════ */
+:root {
+  --gold: #c9a96e;
+  --gold-light: #e8c98a;
+  --gold-soft: rgba(201,169,110,0.15);
+  --crimson: #8B1A1A;
+  --crimson-bright: #c0392b;
+  --rose: #e8748a;
+  --teal: #2dd4c0;
+  --tr: 0.25s ease;
+  --font-read: 'Lora', Georgia, serif;
+  --font-display: 'Cormorant Garamond', serif;
+  --font-ui: 'DM Sans', sans-serif;
+}
+
+[data-theme="light"] {
+  --bg: #faf8f4;
+  --bg2: #f2ede4;
+  --surface: #ffffff;
+  --surface2: #f7f3ee;
+  --border: rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.12);
+  --text: #1a1410;
+  --text2: #3d3228;
+  --muted: rgba(0,0,0,0.45);
+  --hbg: rgba(250,248,244,0.94);
+  --shadow: rgba(0,0,0,0.1);
+  --shadow-deep: rgba(0,0,0,0.18);
+  --reading-bg: #ffffff;
+  --reading-text: #1e1812;
+  --reading-muted: #6b5f54;
+  --ink-line: rgba(0,0,0,0.06);
+}
+
+[data-theme="dark"] {
+  --bg: #0e0b08;
+  --bg2: #14110d;
+  --surface: #1c1712;
+  --surface2: #231e18;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.11);
+  --text: rgba(255,255,255,0.9);
+  --text2: rgba(255,255,255,0.7);
+  --muted: rgba(255,255,255,0.4);
+  --hbg: rgba(14,11,8,0.94);
+  --shadow: rgba(0,0,0,0.5);
+  --shadow-deep: rgba(0,0,0,0.7);
+  --reading-bg: #1c1712;
+  --reading-text: rgba(255,255,255,0.87);
+  --reading-muted: rgba(255,255,255,0.5);
+  --ink-line: rgba(255,255,255,0.05);
+}
+
+[data-theme="sepia"] {
+  --bg: #f4ead8;
+  --bg2: #ede0c8;
+  --surface: #fdf5e6;
+  --surface2: #f7ebcf;
+  --border: rgba(120,80,20,0.12);
+  --border2: rgba(120,80,20,0.18);
+  --text: #3b2a0e;
+  --text2: #5a3e1a;
+  --muted: rgba(80,50,10,0.5);
+  --hbg: rgba(244,234,216,0.96);
+  --shadow: rgba(80,40,0,0.12);
+  --shadow-deep: rgba(80,40,0,0.2);
+  --reading-bg: #fdf5e6;
+  --reading-text: #3b2a0e;
+  --reading-muted: #7a5a2a;
+  --ink-line: rgba(80,50,10,0.07);
+}
+
+* { margin:0; padding:0; box-sizing:border-box }
+html { scroll-behavior:smooth }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  overflow-x: hidden;
+  transition: background var(--tr), color var(--tr);
+}
+
+/* ══════════════════════════════════════════
+   PROGRESS BAR
+══════════════════════════════════════════ */
+#progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, var(--crimson), var(--gold), var(--crimson-bright));
+  z-index: 1000;
+  transition: width 0.1s linear;
+  box-shadow: 0 0 10px rgba(192,57,43,0.5);
+}
+
+/* ══════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════ */
+header {
+  position: sticky;
+  top: 0;
+  z-index: 400;
+  background: var(--hbg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  height: 54px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 10px;
+  transition: background var(--tr);
+}
+@media(min-width:640px){ header { padding: 0 24px; } }
+
+.logo {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.logo span { color: var(--gold); }
+
+.hdr-breadcrumb {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  min-width: 0;
+}
+.hdr-breadcrumb a {
+  color: var(--muted);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.2s;
+}
+.hdr-breadcrumb a:hover { color: var(--gold); }
+.hdr-breadcrumb .sep { flex-shrink: 0; opacity: 0.4; }
+.hdr-breadcrumb .current {
+  color: var(--text2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+@media(max-width:480px){ .hdr-breadcrumb { display: none; } }
+
+.hdr-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+@media(min-width:480px){ .hdr-right { gap: 6px; } }
+
+.hico {
+  background: none;
+  border: none;
+  color: var(--muted);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+.hico:hover { color: var(--text); background: var(--surface2); }
+.hico svg { width: 17px; height: 17px; }
+
+/* Reading settings panel */
+.settings-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 20px;
+  width: 280px;
+  box-shadow: 0 12px 40px var(--shadow-deep);
+  z-index: 500;
+  transition: background var(--tr);
+}
+@media(min-width:640px){ .settings-panel { right: 24px; } }
+.settings-panel.open { display: block; animation: fadeDown 0.18s ease; }
+@keyframes fadeDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+
+.sp-title {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 14px;
+  font-family: var(--font-ui);
+}
+
+/* Theme selector */
+.theme-pills {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.tpill {
+  flex: 1;
+  padding: 8px 6px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: var(--font-ui);
+  font-weight: 500;
+  text-align: center;
+  transition: all 0.2s;
+}
+.tpill.light { background: #faf8f4; color: #1a1410; border-color: rgba(0,0,0,0.1); }
+.tpill.dark { background: #1c1712; color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.1); }
+.tpill.sepia { background: #fdf5e6; color: #3b2a0e; border-color: rgba(120,80,20,0.15); }
+.tpill.active { border-color: var(--gold) !important; box-shadow: 0 0 0 1px var(--gold); }
+
+/* Font size */
+.font-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.sp-lbl { font-size: 12.5px; color: var(--text); flex: 1; }
+.font-btns { display: flex; gap: 6px; }
+.fbtn {
+  width: 32px;
+  height: 32px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  color: var(--text);
+  transition: all 0.2s;
+}
+.fbtn:hover { border-color: var(--gold); color: var(--gold); }
+
+/* Font family */
+.font-family-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.ffbtn {
+  flex: 1;
+  padding: 8px 4px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  font-size: 11.5px;
+  color: var(--muted);
+  text-align: center;
+  transition: all 0.2s;
+}
+.ffbtn.active { border-color: var(--gold); color: var(--gold); background: var(--gold-soft); }
+
+/* Line height */
+.lh-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lh-slider {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border2);
+  outline: none;
+}
+.lh-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--gold);
+  cursor: pointer;
+}
+
+/* ══════════════════════════════════════════
+   HERO
+══════════════════════════════════════════ */
+.hero {
+  position: relative;
+  height: 360px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+@media(min-width:640px){ .hero { height: 440px; } }
+@media(min-width:1024px){ .hero { height: 500px; } }
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 30% 60%, rgba(139,26,26,0.55) 0%, transparent 60%),
+    radial-gradient(ellipse at 75% 30%, rgba(30,10,5,0.8) 0%, transparent 55%),
+    linear-gradient(160deg, #0e0402 0%, #1a0505 40%, #110808 70%, #0a0604 100%);
+}
+
+/* Animated particles */
+.hero-particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201,169,110,0.6), transparent);
+  animation: floatParticle linear infinite;
+}
+.p1 { width:3px; height:3px; left:15%; bottom:-10px; animation-duration:8s; animation-delay:0s; }
+.p2 { width:2px; height:2px; left:35%; bottom:-10px; animation-duration:11s; animation-delay:2s; }
+.p3 { width:4px; height:4px; left:55%; bottom:-10px; animation-duration:9s; animation-delay:1s; }
+.p4 { width:2px; height:2px; left:70%; bottom:-10px; animation-duration:13s; animation-delay:3s; }
+.p5 { width:3px; height:3px; left:85%; bottom:-10px; animation-duration:10s; animation-delay:0.5s; }
+.p6 { width:2px; height:2px; left:25%; bottom:-10px; animation-duration:12s; animation-delay:4s; }
+@keyframes floatParticle {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-380px) scale(0.3); opacity: 0; }
+}
+
+/* Cover image centered */
+.hero-cover-wrap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%);
+  z-index: 2;
+  filter: drop-shadow(0 20px 60px rgba(0,0,0,0.8));
+}
+.hero-cover {
+  width: 120px;
+  height: 180px;
+  border-radius: 8px;
+  background: linear-gradient(160deg, #2a1a0a, #4a2a0a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  color: rgba(201,169,110,0.9);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.4;
+  padding: 12px;
+  border: 1px solid rgba(201,169,110,0.2);
+  position: relative;
+  overflow: hidden;
+}
+@media(min-width:640px){ .hero-cover { width: 150px; height: 225px; font-size: 15px; } }
+.hero-cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(201,169,110,0.12) 0%, transparent 60%);
+}
+/* Gold glow ring */
+.hero-cover::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 10px;
+  background: conic-gradient(from 0deg, transparent 0%, rgba(201,169,110,0.3) 25%, transparent 50%, rgba(201,169,110,0.2) 75%, transparent 100%);
+  animation: glowRotate 6s linear infinite;
+  filter: blur(4px);
+  z-index: -1;
+}
+@keyframes glowRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Ambient glow behind cover */
+.hero-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%);
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(139,26,26,0.35) 0%, transparent 70%);
+  filter: blur(30px);
+  z-index: 1;
+  animation: glowPulse 4s ease-in-out infinite;
+}
+@keyframes glowPulse { 0%,100% { opacity:0.7; transform:translate(-50%,-60%) scale(1); } 50% { opacity:1; transform:translate(-50%,-60%) scale(1.1); } }
+
+/* Bottom gradient for text */
+.hero-bottom-grad {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 160px;
+  background: linear-gradient(to top, var(--bg) 0%, transparent 100%);
+  z-index: 3;
+}
+@media(min-width:640px){ .hero-bottom-grad { height: 200px; } }
+
+.hero-info {
+  position: relative;
+  z-index: 4;
+  padding: 0 16px 20px;
+  width: 100%;
+  text-align: center;
+}
+@media(min-width:640px){ .hero-info { padding: 0 24px 28px; } }
+
+.hero-chapter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(139,26,26,0.75);
+  border: 1px solid rgba(201,169,110,0.3);
+  backdrop-filter: blur(8px);
+  color: var(--gold-light);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.hero-story-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
+  color: #fff;
+  line-height: 1.15;
+  margin-bottom: 4px;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.8);
+}
+@media(min-width:640px){ .hero-story-title { font-size: 34px; } }
+.hero-chapter-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-style: italic;
+  color: var(--gold-light);
+  opacity: 0.9;
+  text-shadow: 0 1px 10px rgba(0,0,0,0.6);
+}
+@media(min-width:640px){ .hero-chapter-title { font-size: 17px; } }
+
+/* ══════════════════════════════════════════
+   STORY META BAR
+══════════════════════════════════════════ */
+.meta-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  transition: background var(--tr);
+}
+@media(min-width:640px){ .meta-bar { padding: 14px 24px; gap: 16px; } }
+
+.author-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.author-av {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1a1a0a, #2e2a08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold);
+  border: 2px solid var(--border2);
+  flex-shrink: 0;
+}
+.author-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.author-handle { font-size: 11px; color: var(--muted); }
+
+.meta-divider { width: 1px; height: 30px; background: var(--border2); flex-shrink: 0; }
+@media(max-width:480px){ .meta-divider { display: none; } }
+
+.meta-stats {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.mstat {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.mstat svg { width: 13px; height: 13px; }
+
+.meta-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.act-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 13px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border2);
+  background: none;
+  color: var(--text);
+  font-size: 12.5px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.act-btn svg { width: 13px; height: 13px; }
+.act-btn:hover { border-color: rgba(139,26,26,0.4); color: var(--crimson-bright); }
+.act-btn.liked { background: rgba(232,116,138,0.12); border-color: var(--rose); color: var(--rose); }
+.act-btn.geeked { background: rgba(201,169,110,0.12); border-color: var(--gold); color: var(--gold); }
+.act-btn.bookmarked { background: rgba(45,212,192,0.1); border-color: var(--teal); color: var(--teal); }
+
+@media(max-width:520px){
+  .act-btn .btn-label { display: none; }
+  .act-btn { padding: 7px 10px; }
+}
+
+/* ══════════════════════════════════════════
+   MAIN LAYOUT
+══════════════════════════════════════════ */
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+@media(min-width:640px){ .main-layout { padding: 28px 24px; } }
+@media(min-width:1024px){
+  .main-layout {
+    grid-template-columns: 1fr 300px;
+    gap: 32px;
+    padding: 36px 40px;
+    align-items: start;
+  }
+}
+
+/* ══════════════════════════════════════════
+   READING CONTAINER
+══════════════════════════════════════════ */
+.reading-wrap { min-width: 0; }
+
+.reading-container {
+  background: var(--reading-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px 24px;
+  box-shadow: 0 4px 24px var(--shadow);
+  transition: background var(--tr), border-color var(--tr);
+  position: relative;
+  overflow: hidden;
+}
+@media(min-width:640px){ .reading-container { padding: 44px 48px; border-radius: 20px; } }
+@media(min-width:1024px){ .reading-container { padding: 52px 60px; } }
+
+/* Decorative top line */
+.reading-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--crimson), var(--gold), var(--crimson), transparent);
+  opacity: 0.6;
+}
+
+.chapter-header {
+  text-align: center;
+  margin-bottom: 36px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--ink-line);
+  position: relative;
+}
+.chapter-header::after {
+  content: '✦';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--reading-bg);
+  padding: 0 12px;
+  color: var(--gold);
+  font-size: 12px;
+  transition: background var(--tr);
+}
+
+.ch-number {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--crimson-bright);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  display: block;
+}
+.ch-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--reading-text);
+  line-height: 1.2;
+}
+@media(min-width:640px){ .ch-title { font-size: 34px; } }
+.ch-meta {
+  font-size: 12px;
+  color: var(--reading-muted);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+/* Reading body text */
+.reading-body {
+  font-family: var(--font-display);
+  font-size: var(--font-size, 19px);
+  line-height: var(--line-height, 1.95);
+  color: var(--reading-text);
+  transition: color var(--tr);
+}
+@media(max-width:640px){ .reading-body { font-size: var(--font-size, 17px); line-height: var(--line-height, 1.88); } }
+
+.reading-body p {
+  margin-bottom: 1.4em;
+  text-align: justify;
+  text-justify: inter-character;
+}
+@media(max-width:480px){ .reading-body p { text-align: left; } }
+
+/* Drop cap */
+.reading-body p.dropcap::first-letter {
+  font-family: var(--font-display);
+  font-size: 4.2em;
+  font-weight: 600;
+  float: left;
+  line-height: 0.72;
+  margin-right: 6px;
+  margin-top: 8px;
+  color: var(--crimson-bright);
+}
+
+/* Dialogue styling */
+.reading-body p.dialogue {
+  padding-left: 20px;
+  border-left: 2px solid rgba(139,26,26,0.25);
+  font-style: italic;
+  color: var(--reading-muted);
+}
+
+/* Scene break */
+.scene-break {
+  text-align: center;
+  margin: 36px 0;
+  color: var(--gold);
+  letter-spacing: 16px;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+/* ══════════════════════════════════════════
+   INLINE AD
+══════════════════════════════════════════ */
+.inline-ad {
+  margin: 32px 0;
+  padding: 16px 20px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: background var(--tr);
+}
+.inline-ad::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--gold-soft), rgba(201,169,110,0.3), var(--gold-soft));
+}
+.ad-label {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  opacity: 0.6;
+}
+.ad-img {
+  width: 60px;
+  height: 80px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #1a1a0a, #3a2a0a);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+.ad-text .ad-tagline { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; }
+.ad-text .ad-title { font-family: var(--font-display); font-size: 16px; color: var(--text); font-weight: 500; margin-bottom: 6px; }
+.ad-text .ad-sub { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.ad-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, var(--crimson), #6b0f0f);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 20px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: opacity 0.2s;
+}
+.ad-cta:hover { opacity: 0.85; }
+
+/* ══════════════════════════════════════════
+   CHAPTER END
+══════════════════════════════════════════ */
+.chapter-end {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--ink-line);
+  text-align: center;
+}
+.chapter-end-ornament {
+  font-size: 18px;
+  color: var(--gold);
+  letter-spacing: 20px;
+  opacity: 0.6;
+  margin-bottom: 20px;
+}
+.chapter-end-msg {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-style: italic;
+  color: var(--reading-muted);
+  margin-bottom: 28px;
+  line-height: 1.6;
+}
+
+.nav-btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: all 0.22s;
+  text-decoration: none;
+  border: none;
+}
+.nav-btn-prev {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1.5px solid var(--border2);
+}
+.nav-btn-prev:hover { border-color: var(--gold); color: var(--gold); }
+.nav-btn-next {
+  background: linear-gradient(135deg, var(--crimson) 0%, #6b0f0f 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(139,26,26,0.4);
+}
+.nav-btn-next:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(139,26,26,0.5); }
+.nav-btn svg { width: 15px; height: 15px; }
+
+/* Chapter end ad */
+.end-ad {
+  margin: 28px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(139,26,26,0.06), rgba(201,169,110,0.06));
+  border: 1px solid rgba(139,26,26,0.15);
+  border-radius: 14px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.end-ad .ad-label { position: static; display: inline-block; margin-bottom: 8px; }
+.end-ad-title { font-family: var(--font-display); font-size: 20px; color: var(--text); margin-bottom: 6px; }
+.end-ad-sub { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+
+/* ══════════════════════════════════════════
+   COMMENTS
+══════════════════════════════════════════ */
+.comments-section {
+  margin-top: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: background var(--tr);
+}
+@media(min-width:640px){ .comments-section { border-radius: 20px; } }
+
+.comments-head {
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+@media(min-width:640px){ .comments-head { padding: 20px 24px 16px; } }
+.comments-title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 400;
+  color: var(--text);
+}
+.comments-count { font-size: 12px; color: var(--muted); }
+
+/* Comment input */
+.comment-input-row {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+@media(min-width:640px){ .comment-input-row { padding: 16px 24px; gap: 12px; } }
+.comment-av {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg,#1a1a0a,#2e2a08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--gold);
+  flex-shrink: 0;
+}
+.comment-input-wrap { flex: 1; }
+.comment-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-family: var(--font-ui);
+  outline: none;
+  resize: none;
+  min-height: 42px;
+  max-height: 120px;
+  transition: border-color 0.2s, background var(--tr);
+  overflow-y: hidden;
+}
+.comment-input:focus { border-color: rgba(139,26,26,0.4); min-height: 80px; }
+.comment-input::placeholder { color: var(--muted); }
+.comment-submit {
+  background: linear-gradient(135deg, var(--crimson), #6b0f0f);
+  color: #fff;
+  border: none;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  margin-top: 8px;
+  transition: opacity 0.2s;
+  display: none;
+}
+.comment-submit:hover { opacity: 0.85; }
+.comment-input:focus ~ .comment-submit { display: inline-block; }
+
+/* Comment list */
+.comment-list { padding: 8px 0; }
+.comment-item {
+  display: flex;
+  gap: 10px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+@media(min-width:640px){ .comment-item { padding: 14px 24px; gap: 12px; } }
+.comment-item:last-child { border-bottom: none; }
+.comment-item:hover { background: rgba(128,128,128,0.03); }
+.comment-item-av {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+}
+.comment-body { flex: 1; min-width: 0; }
+.comment-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; flex-wrap: wrap; }
+.comment-author { font-size: 13px; font-weight: 500; color: var(--text); }
+.comment-time { font-size: 11px; color: var(--muted); }
+.comment-badge {
+  font-size: 10px;
+  background: var(--gold-soft);
+  color: var(--gold);
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+.comment-text { font-size: 13.5px; color: var(--text2); line-height: 1.6; }
+.comment-actions { display: flex; gap: 14px; margin-top: 8px; }
+.cact {
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s;
+  padding: 0;
+}
+.cact:hover { color: var(--crimson-bright); }
+.cact svg { width: 12px; height: 12px; }
+.cact.liked { color: var(--rose); }
+
+.show-more-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border);
+  color: var(--gold);
+  font-size: 13px;
+  font-family: var(--font-ui);
+  padding: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.show-more-btn:hover { background: var(--surface2); }
+
+/* ══════════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════════ */
+.sidebar {
+  display: none;
+}
+@media(min-width:1024px){
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: sticky;
+    top: 78px;
+  }
+}
+
+.sidebar-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: background var(--tr);
+}
+.sc-head {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Story recommendations */
+.rec-list { padding: 8px 0; }
+.rec-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-decoration: none;
+}
+.rec-item:hover { background: var(--surface2); }
+.rec-cov {
+  width: 42px;
+  min-width: 42px;
+  height: 60px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: rgba(201,169,110,0.8);
+  text-align: center;
+  line-height: 1.3;
+  padding: 4px;
+}
+.rec-info { flex: 1; min-width: 0; }
+.rec-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rec-author { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.rec-stats { display: flex; gap: 8px; font-size: 11px; color: var(--muted); }
+
+/* Sidebar ad */
+.sidebar-ad {
+  background: var(--surface);
+  border: 1px solid rgba(139,26,26,0.18);
+  border-radius: 16px;
+  padding: 18px;
+  text-align: center;
+  background: linear-gradient(160deg, rgba(139,26,26,0.05), rgba(201,169,110,0.05));
+  transition: background var(--tr);
+}
+.sa-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; opacity: 0.6; }
+.sa-img { font-size: 40px; margin-bottom: 10px; }
+.sa-title { font-family: var(--font-display); font-size: 16px; color: var(--text); margin-bottom: 5px; }
+.sa-sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; line-height: 1.55; }
+.sa-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--crimson), #6b0f0f);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: opacity 0.2s;
+}
+.sa-cta:hover { opacity: 0.85; }
+
+/* Author card in sidebar */
+.author-sidebar {
+  padding: 16px 18px;
+}
+.as-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.as-av {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1a1a0a, #2e2a08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--gold);
+  border: 2px solid var(--border2);
+  flex-shrink: 0;
+}
+.as-name { font-size: 14px; font-weight: 500; color: var(--text); }
+.as-handle { font-size: 11px; color: var(--muted); }
+.as-bio { font-size: 12.5px; color: var(--muted); line-height: 1.6; margin-bottom: 12px; }
+.as-geek {
+  width: 100%;
+  background: linear-gradient(135deg, #1a1a0a 0%, #2e2a08 100%);
+  color: var(--gold-light);
+  border: 1.5px solid rgba(201,169,110,0.3);
+  padding: 9px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  transition: all 0.2s;
+}
+.as-geek:hover { border-color: var(--gold); box-shadow: 0 0 16px rgba(201,169,110,0.15); }
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(70px);
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-size: 13px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px var(--shadow-deep);
+  z-index: 999;
+  transition: transform 0.3s ease;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ══════════════════════════════════════════
+   READING TOOLBAR (MOBILE BOTTOM)
+══════════════════════════════════════════ */
+.reading-toolbar {
+  display: flex;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--hbg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+  padding: 8px 16px;
+  gap: 0;
+  z-index: 300;
+  transition: background var(--tr);
+  justify-content: space-around;
+}
+@media(min-width:1024px){ .reading-toolbar { display: none; } }
+
+.tb-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 10px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  flex: 1;
+}
+.tb-btn:hover, .tb-btn.active { color: var(--crimson-bright); }
+.tb-btn svg { width: 20px; height: 20px; }
+.tb-btn.liked { color: var(--rose); }
+.tb-btn.bookmarked { color: var(--teal); }
+
+/* Bottom padding for toolbar on mobile */
+@media(max-width:1023px){ body { padding-bottom: 62px; } }
+
+/* ══════════════════════════════════════════
+   SCROLL TO TOP
+══════════════════════════════════════════ */
+.scroll-top {
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--muted);
+  box-shadow: 0 4px 14px var(--shadow);
+  transition: all 0.2s;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 200;
+}
+@media(min-width:1024px){ .scroll-top { bottom: 24px; right: 24px; } }
+.scroll-top.visible { opacity: 1; pointer-events: all; }
+.scroll-top:hover { color: var(--gold); border-color: var(--gold); transform: translateY(-2px); }
+.scroll-top svg { width: 16px; height: 16px; }
+
+/* ══════════════════════════════════════════
+   SELECTION COLOR
+══════════════════════════════════════════ */
+::selection { background: rgba(139,26,26,0.2); color: var(--reading-text); }
+</style>
+</head>
+<body>
+
+<!-- PROGRESS BAR -->
+<div id="progress-bar"></div>
+
+<!-- HEADER -->
+<header>
+  <a href="#" class="logo">Bi<span>x</span>bi</a>
+  <div class="hdr-breadcrumb">
+    <a href="#">The Sun's Heir</a>
+    <span class="sep">›</span>
+    <span class="current">Chapter 67: The Final Ember</span>
+  </div>
+  <div class="hdr-right">
+    <!-- Settings toggle -->
+    <button class="hico" onclick="toggleSettings()" id="settingsBtn" title="Reading Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M1 12h2M21 12h2M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M12 1v2M12 21v2"/></svg>
+    </button>
+    <!-- Bookmark -->
+    <button class="hico" onclick="toggleBookmark()" id="headerBookmarkBtn" title="Bookmark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+    </button>
+    <!-- Share -->
+    <button class="hico" onclick="showToast('Link copied! 🔗')" title="Share">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- SETTINGS PANEL -->
+<div class="settings-panel" id="settingsPanel">
+  <div class="sp-title">Reading Settings</div>
+
+  <div class="sp-title" style="margin-bottom:8px;">Theme</div>
+  <div class="theme-pills" style="margin-bottom:18px;">
+    <button class="tpill light active" onclick="setTheme('light',this)">☀️ Light</button>
+    <button class="tpill dark" onclick="setTheme('dark',this)">🌙 Dark</button>
+    <button class="tpill sepia" onclick="setTheme('sepia',this)">📜 Sepia</button>
+  </div>
+
+  <div class="sp-title" style="margin-bottom:8px;">Font Size</div>
+  <div class="font-row" style="margin-bottom:16px;">
+    <div class="sp-lbl" id="fontSizeLabel">19px</div>
+    <div class="font-btns">
+      <button class="fbtn" onclick="changeFontSize(-1)" style="font-size:11px;">A</button>
+      <button class="fbtn" onclick="changeFontSize(1)" style="font-size:16px;">A</button>
+    </div>
+  </div>
+
+  <div class="sp-title" style="margin-bottom:8px;">Font Family</div>
+  <div class="font-family-row" style="margin-bottom:16px;">
+    <button class="ffbtn active" style="font-family:'Lora',serif;" onclick="setFont('lora',this)">Lora</button>
+    <button class="ffbtn" style="font-family:'Cormorant Garamond',serif;" onclick="setFont('cormorant',this)">Garamond</button>
+    <button class="ffbtn" style="font-family:'DM Sans',sans-serif;" onclick="setFont('sans',this)">Sans</button>
+  </div>
+
+  <div class="sp-title" style="margin-bottom:8px;">Line Height</div>
+  <div class="lh-row">
+    <span style="font-size:11px;color:var(--muted);">Tight</span>
+    <input type="range" class="lh-slider" min="140" max="240" value="195" oninput="setLineHeight(this.value)">
+    <span style="font-size:11px;color:var(--muted);">Loose</span>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-particles">
+    <div class="particle p1"></div><div class="particle p2"></div>
+    <div class="particle p3"></div><div class="particle p4"></div>
+    <div class="particle p5"></div><div class="particle p6"></div>
+  </div>
+  <div class="hero-glow"></div>
+  <div class="hero-cover-wrap">
+    <div class="hero-cover">The Sun's<br>Heir</div>
+  </div>
+  <div class="hero-bottom-grad"></div>
+  <div class="hero-info">
+    <div class="hero-chapter-badge">✦ Chapter 67 of 67</div>
+    <div class="hero-story-title">The Sun's Heir</div>
+    <div class="hero-chapter-title">The Final Ember</div>
+  </div>
+</div>
+
+<!-- META BAR -->
+<div class="meta-bar">
+  <a href="#" class="author-pill">
+    <div class="author-av">LC</div>
+    <div>
+      <div class="author-name">Lyra Cole</div>
+      <div class="author-handle">@lyracole</div>
+    </div>
+  </a>
+  <div class="meta-divider"></div>
+  <div class="meta-stats">
+    <div class="mstat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      2.1M
+    </div>
+    <div class="mstat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+      48K
+    </div>
+    <div class="mstat">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      3.4K
+    </div>
+    <div class="mstat" style="display:none;" id="rtDisplay">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span id="rtText">12 min read</span>
+    </div>
+  </div>
+  <div class="meta-actions">
+    <button class="act-btn" id="likeBtn" onclick="toggleLike()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+      <span class="btn-label" id="likeCount">48K</span>
+    </button>
+    <button class="act-btn" id="geekBtn" onclick="toggleGeek()">
+      <span>🤓</span>
+      <span class="btn-label">Geek</span>
+    </button>
+    <button class="act-btn" id="bookmarkBtn" onclick="toggleBookmark()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+      <span class="btn-label">Save</span>
+    </button>
+    <button class="act-btn" onclick="showToast('Link copied! 🔗')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      <span class="btn-label">Share</span>
+    </button>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+
+  <!-- READING AREA -->
+  <div class="reading-wrap">
+    <div class="reading-container" id="readingContainer">
+
+      <!-- Chapter header -->
+      <div class="chapter-header">
+        <span class="ch-number">Chapter 67</span>
+        <h1 class="ch-title">The Final Ember</h1>
+        <div class="ch-meta">
+          <span>Updated 2 days ago</span>
+          <span>·</span>
+          <span>~2,800 words</span>
+          <span>·</span>
+          <span>12 min read</span>
+        </div>
+      </div>
+
+      <!-- Reading body -->
+      <div class="reading-body" id="readingBody">
+
+        <p class="dropcap">The sun had not risen in three days. Kael stood at the edge of the broken Solarium, his boots grinding against shattered glass that had once captured the light of a thousand mornings, and he looked at her. She was not the girl he had found half-buried in the river two seasons past. She was not the frightened thing who had woken screaming in the dark with her palms on fire.</p>
+
+        <p>She was Solenne. Daughter of the Radiant God. And right now, she was the only thing standing between the dying world and absolute night.</p>
+
+        <p>"You don't have to do this," he said. His voice came out quieter than he intended. The wind pulled at it, scattered it across the ruins like ash.</p>
+
+        <p class="dialogue">"Yes, I do." She didn't look at him. Her eyes were fixed on the place where the horizon should have been — where darkness had swallowed the sky whole, where the Old Veil pressed against the world like a hand against glass. "You know I do."</p>
+
+        <p>He crossed the distance between them in three steps. His fingers caught her wrist — not to stop her, not to beg her. Just to hold her. To have something real to hold onto while the world unmade itself around them.</p>
+
+        <p>"Tell me there's another way." It wasn't a demand. It was barely a question. It was the sound of a man who already knew the answer refusing to accept it.</p>
+
+        <div class="scene-break">✦ ✦ ✦</div>
+
+        <p>She turned to face him then, and he almost wished she hadn't. Her eyes had changed in the last hour. The amber he knew — warm, cautious, a little wary of everything including herself — had given way to something older. Something that had no business living behind human eyes.</p>
+
+        <p>Gold. Burning gold, the same as the light that had not come at dawn.</p>
+
+        <p class="dialogue">"There was never another way, Kael. There was only the way I chose not to see."</p>
+
+        <p>He thought of the night she had laughed so hard at his terrible attempt at camp cooking that she'd knocked the pot clean off the fire. He thought of the morning he'd woken to find her sitting outside their tent, speaking in soft tones to a crow who seemed, impossibly, to be listening. He thought of the first time she had reached for his hand first. Not the second time. The first.</p>
+
+        <!-- INLINE AD after 3 paragraphs of second section -->
+        <div class="inline-ad">
+          <div class="ad-label">Sponsored</div>
+          <div class="ad-img">📚</div>
+          <div class="ad-text">
+            <div class="ad-tagline">You might also love</div>
+            <div class="ad-title">Blood and Silk</div>
+            <div class="ad-sub">A political marriage, a hidden assassin, and a love that could destroy empires. By Sera Voss — 3.8M reads</div>
+            <button class="ad-cta">Read Now →</button>
+          </div>
+        </div>
+
+        <p>It felt, suddenly, like every moment had been leading here — not to this ruin, not to this impossible choice, but to this: him holding her wrist in the dark while she prepared to burn herself out like a star.</p>
+
+        <p class="dialogue">"I'm not afraid," she said.</p>
+
+        <p class="dialogue">"I know." He lifted her hand to his mouth and pressed his lips against her knuckles. "I am."</p>
+
+        <p>Something moved across her expression. He catalogued it the way he'd catalogued every expression in every dangerous place they'd survived together: grief, recognition, love — yes, love, he could see it now, clearly, the way you can only see things when it's almost too late — and beneath all of it, that ancient golden resolve.</p>
+
+        <p class="dialogue">"When it's done," she said quietly, "the light will come back. The crops will grow. The children who can't sleep will sleep."</p>
+
+        <p class="dialogue">"And what about me?" The words left him before he could call them back. "What do I do with the fact that there's no light worth having if it isn't—"</p>
+
+        <p>She kissed him.</p>
+
+        <p>Not gently. Not like a farewell, though he supposed that's what it was. She kissed him like she was furious and grateful and terrified all at once, like she was trying to press every unsaid thing into the space of a single breath, and he held her face in his hands and kissed her back the same way, because what else was there to do?</p>
+
+        <div class="scene-break">✦ ✦ ✦</div>
+
+        <p>When she pulled back, her cheeks were wet. So were his. He hadn't noticed. She raised one palm toward the smothered sky, and the first crack of gold appeared — faint, thin as a thread, like a seam torn in a dark curtain.</p>
+
+        <p class="dialogue">"Stay back," she whispered. Not to him. To the dark.</p>
+
+        <p>The light poured out of her like something that had been waiting a very long time to be released. It was blinding and terrible and the most beautiful thing Kael had ever seen. He shielded his eyes with one arm but did not turn away.</p>
+
+        <p>He would not turn away from this. He would not turn away from her.</p>
+
+        <p>The darkness screamed — an ancient, shapeless sound, like the groan of stone giving way underground — and then the light split the sky open from horizon to horizon, and the sun returned, and Solenne—</p>
+
+        <p>Solenne fell.</p>
+
+        <p>He caught her before she reached the ground.</p>
+
+        <p>She was still breathing. Barely. Her pulse under his fingers was thin as a candle flame in wind, but it was there. He gathered her against his chest, felt the slow rise and fall of her lungs, tilted his face up into the sun she had brought back, and closed his eyes.</p>
+
+        <p class="dialogue">"Stubborn," he said quietly. His voice cracked on the word. He didn't bother to hide it. "Absolutely insufferable."</p>
+
+        <p>Against his chest, barely a whisper: <em>"You're welcome."</em></p>
+
+        <p>He laughed. It came out broken and wet and entirely uncontrolled, the laugh of someone who has been frightened down to the bone and found themselves, impossibly, still standing. Still holding something precious. Still here.</p>
+
+        <p>The dawn light fell across the ruins of the Solarium. Somewhere in the city below, a bell began to ring.</p>
+
+      </div><!-- /reading-body -->
+
+      <!-- Chapter end -->
+      <div class="chapter-end">
+        <div class="chapter-end-ornament">✦  ✦  ✦</div>
+        <div class="chapter-end-msg">
+          End of Chapter 67<br>
+          <em style="font-size:0.85em; opacity:0.7;">Thank you for reading The Sun's Heir ✨</em>
+        </div>
+
+        <!-- End chapter ad -->
+        <div class="end-ad">
+          <div class="ad-label">Sponsored · Premium</div>
+          <div class="end-ad-title">Unlock Bixbi Premium</div>
+          <div class="end-ad-sub">Ad-free reading, offline chapters, early access, and exclusive author content. Join 280K premium readers.</div>
+          <button class="ad-cta" style="margin:0 auto;">✨ Try 7 Days Free</button>
+        </div>
+
+        <div class="nav-btns">
+          <button class="nav-btn nav-btn-prev" onclick="showToast('← Chapter 66 loading…')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            Previous
+          </button>
+          <button class="nav-btn nav-btn-next" onclick="showToast('This is the final chapter! 🎉')">
+            Final Chapter
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /reading-container -->
+
+    <!-- COMMENTS -->
+    <div class="comments-section" id="commentsSection">
+      <div class="comments-head">
+        <div class="comments-title">Comments</div>
+        <div class="comments-count">3,412 comments</div>
+      </div>
+      <div class="comment-input-row">
+        <div class="comment-av">LC</div>
+        <div class="comment-input-wrap">
+          <textarea class="comment-input" placeholder="Share your thoughts on this chapter…" rows="1" oninput="autoResize(this)" onfocus="showSubmit(this)"></textarea>
+          <button class="comment-submit" onclick="postComment()">Post Comment</button>
+        </div>
+      </div>
+      <div class="comment-list" id="commentList">
+        <!-- Comments injected by JS -->
+      </div>
+      <button class="show-more-btn" onclick="loadMoreComments()">Load more comments ↓</button>
+    </div>
+
+  </div><!-- /reading-wrap -->
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <!-- Author card -->
+    <div class="sidebar-card">
+      <div class="sc-head">About the Author</div>
+      <div class="author-sidebar">
+        <div class="as-row">
+          <div class="as-av">LC</div>
+          <div>
+            <div class="as-name">Lyra Cole</div>
+            <div class="as-handle">@lyracole · 142K followers</div>
+          </div>
+        </div>
+        <div class="as-bio">Fantasy & paranormal romance writer from Sri Lanka. Obsessed with morally grey characters and worlds you can get lost in ✨</div>
+        <button class="as-geek" onclick="showToast('Now geeking Lyra Cole 🤓')">🤓 Geek This Author</button>
+      </div>
+    </div>
+
+    <!-- Sidebar ad -->
+    <div class="sidebar-ad">
+      <div class="sa-label">Advertisement</div>
+      <div class="sa-img">✨</div>
+      <div class="sa-title">Bixbi Premium</div>
+      <div class="sa-sub">Read without ads. Download chapters. Support your favorite authors directly.</div>
+      <button class="sa-cta">Get Premium — Free Trial</button>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="sidebar-card">
+      <div class="sc-head">✦ You Might Like</div>
+      <div class="rec-list">
+        <a class="rec-item" href="#" onclick="showToast('Opening Blood and Silk…');return false;">
+          <div class="rec-cov" style="background:linear-gradient(160deg,#1a0505,#3d1010);">Blood and Silk</div>
+          <div class="rec-info">
+            <div class="rec-title">Blood and Silk</div>
+            <div class="rec-author">Sera Voss</div>
+            <div class="rec-stats"><span>3.8M reads</span><span>⭐ 4.9</span></div>
+          </div>
+        </a>
+        <a class="rec-item" href="#" onclick="showToast('Opening Tide of Shadows…');return false;">
+          <div class="rec-cov" style="background:linear-gradient(160deg,#050a1a,#0e1f3d);">Tide of Shadows</div>
+          <div class="rec-info">
+            <div class="rec-title">Tide of Shadows</div>
+            <div class="rec-author">Mira Quinn</div>
+            <div class="rec-stats"><span>1.2M reads</span><span>⭐ 4.7</span></div>
+          </div>
+        </a>
+        <a class="rec-item" href="#" onclick="showToast('Opening The Ashen Crown…');return false;">
+          <div class="rec-cov" style="background:linear-gradient(160deg,#0a0a1a,#1a1030);">The Ashen Crown</div>
+          <div class="rec-info">
+            <div class="rec-title">The Ashen Crown</div>
+            <div class="rec-author">Zoe Stark</div>
+            <div class="rec-stats"><span>780K reads</span><span>⭐ 4.8</span></div>
+          </div>
+        </a>
+        <a class="rec-item" href="#" onclick="showToast('Opening Ice and Iron…');return false;">
+          <div class="rec-cov" style="background:linear-gradient(160deg,#081420,#122840);">Ice and Iron</div>
+          <div class="rec-info">
+            <div class="rec-title">Ice and Iron</div>
+            <div class="rec-author">Lyra Cole</div>
+            <div class="rec-stats"><span>890K reads</span><span>⭐ 4.9</span></div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Second sidebar ad -->
+    <div class="sidebar-ad" style="background:linear-gradient(160deg,rgba(45,212,192,0.06),rgba(45,212,192,0.02));">
+      <div class="sa-label">Advertisement</div>
+      <div class="sa-img">📖</div>
+      <div class="sa-title">Reading Challenge</div>
+      <div class="sa-sub">Join 50K readers in this month's fantasy reading challenge. Earn badges. Win prizes.</div>
+      <button class="sa-cta" style="background:linear-gradient(135deg,#1a8a7a,#0e6b5e);">Join Challenge →</button>
+    </div>
+
+  </aside>
+</div>
+
+<!-- MOBILE BOTTOM TOOLBAR -->
+<div class="reading-toolbar">
+  <button class="tb-btn" id="tbLike" onclick="toggleLike()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+    Like
+  </button>
+  <button class="tb-btn" onclick="toggleGeek()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><circle cx="6" cy="12" r="1"/><circle cx="18" cy="12" r="1"/></svg>
+    Geek
+  </button>
+  <button class="tb-btn" id="tbBookmark" onclick="toggleBookmark()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+    Save
+  </button>
+  <button class="tb-btn" onclick="document.getElementById('commentsSection').scrollIntoView({behavior:'smooth'})">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    Comments
+  </button>
+  <button class="tb-btn" onclick="toggleSettings()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M1 12h2M21 12h2M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M12 1v2M12 21v2"/></svg>
+    Settings
+  </button>
+</div>
+
+<!-- SCROLL TO TOP -->
+<button class="scroll-top" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════ COMMENTS DATA ══════════════ */
+const COMMENTS = [
+  { id:1, av:'MR', color:'linear-gradient(135deg,#1a0510,#3d0a22)', name:'Moana Riku', handle:'@moanareads', time:'2 hours ago', text:'I\'ve been following this story for two years and I genuinely started crying. The "you\'re welcome" destroyed me. Lyra you absolute genius.', likes:342, liked:false, badge:'Top Fan' },
+  { id:2, av:'ST', color:'linear-gradient(135deg,#051a10,#0a3d22)', name:'Sian Tao', handle:'@sianreads', time:'3 hours ago', text:'The "you\'re welcome" at the end is the most Solenne thing ever written. I\'m done. I\'m deceased. Thank you for this story.', likes:218, liked:false, badge:null },
+  { id:3, av:'AV', color:'linear-gradient(135deg,#0a0a1a,#1a1040)', name:'Asha Vel', handle:'@ashavel', time:'5 hours ago', text:'Kael catching her before she hit the ground. The way this whole chapter was constructed. Lyra please know you have ruined me for every other fantasy romance.', likes:189, liked:false, badge:null },
+  { id:4, av:'PM', color:'linear-gradient(135deg,#1a0505,#3a0f0f)', name:'Priya Mehra', handle:'@priyam', time:'8 hours ago', text:'The first letter, the first time she reached for his hand... and he remembered it here. Two years of buildup paid off in one sentence. This is what storytelling looks like.', likes:156, liked:false, badge:'Gold Reader' },
+  { id:5, av:'ZK', color:'linear-gradient(135deg,#051510,#0a3328)', name:'Zara Kim', handle:'@zarakim', time:'Yesterday', text:'I reread the first chapter after finishing this and now I\'m crying for completely different reasons. The journey. THE JOURNEY.', likes:134, liked:false, badge:null },
+];
+
+let comments = [...COMMENTS];
+
+function renderComments() {
+  const list = document.getElementById('commentList');
+  list.innerHTML = comments.map(c => `
+    <div class="comment-item" id="comment-${c.id}">
+      <div class="comment-item-av" style="background:${c.color}">${c.av}</div>
+      <div class="comment-body">
+        <div class="comment-meta">
+          <span class="comment-author">${c.name}</span>
+          ${c.badge ? `<span class="comment-badge">${c.badge}</span>` : ''}
+          <span class="comment-time">${c.time}</span>
+        </div>
+        <div class="comment-text">${c.text}</div>
+        <div class="comment-actions">
+          <button class="cact ${c.liked?'liked':''}" onclick="likeComment(${c.id})">
+            <svg viewBox="0 0 24 24" fill="${c.liked?'currentColor':'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+            ${c.likes}
+          </button>
+          <button class="cact" onclick="showToast('Reply feature coming soon!')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            Reply
+          </button>
+          <button class="cact" onclick="showToast('Reported')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l18 18M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            Report
+          </button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function likeComment(id) {
+  const c = comments.find(x => x.id === id);
+  if (!c) return;
+  c.liked = !c.liked;
+  c.likes += c.liked ? 1 : -1;
+  renderComments();
+}
+
+function postComment() {
+  const ta = document.querySelector('.comment-input');
+  const text = ta.value.trim();
+  if (!text) return;
+  const newC = {
+    id: Date.now(),
+    av: 'LC', color: 'linear-gradient(135deg,#1a1a0a,#2e2a08)',
+    name: 'Lyra Cole', handle: '@lyracole', time: 'Just now',
+    text, likes: 0, liked: false, badge: 'Author'
+  };
+  comments.unshift(newC);
+  renderComments();
+  ta.value = '';
+  ta.style.height = 'auto';
+  showToast('Comment posted ✓');
+}
+
+function loadMoreComments() {
+  showToast('Loading more comments…');
+}
+
+/* ══════════════ READING SETTINGS ══════════════ */
+let fontSize = 19;
+let currentTheme = 'light';
+const fontFamilies = {
+  lora: "'Lora', Georgia, serif",
+  cormorant: "'Cormorant Garamond', Georgia, serif",
+  sans: "'DM Sans', sans-serif"
+};
+
+function setTheme(theme, btn) {
+  document.documentElement.setAttribute('data-theme', theme);
+  currentTheme = theme;
+  document.querySelectorAll('.tpill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  showToast(theme === 'light' ? '☀️ Light mode' : theme === 'dark' ? '🌙 Dark mode' : '📜 Sepia mode');
+}
+
+function changeFontSize(delta) {
+  fontSize = Math.max(14, Math.min(26, fontSize + delta));
+  document.getElementById('readingBody').style.setProperty('--font-size', fontSize + 'px');
+  document.getElementById('readingBody').style.fontSize = fontSize + 'px';
+  document.getElementById('fontSizeLabel').textContent = fontSize + 'px';
+}
+
+function setFont(family, btn) {
+  document.getElementById('readingBody').style.fontFamily = fontFamilies[family];
+  document.querySelectorAll('.ffbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function setLineHeight(val) {
+  document.getElementById('readingBody').style.lineHeight = (val / 100).toFixed(2);
+}
+
+function toggleSettings() {
+  document.getElementById('settingsPanel').classList.toggle('open');
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#settingsPanel') && !e.target.closest('#settingsBtn')) {
+    document.getElementById('settingsPanel').classList.remove('open');
+  }
+});
+
+/* ══════════════ ACTION BUTTONS ══════════════ */
+let liked = false, geeked = false, bookmarked = false;
+
+function toggleLike() {
+  liked = !liked;
+  const btn = document.getElementById('likeBtn');
+  const tb = document.getElementById('tbLike');
+  btn.classList.toggle('liked', liked);
+  tb.classList.toggle('liked', liked);
+  document.getElementById('likeCount').textContent = liked ? '48.1K' : '48K';
+  showToast(liked ? 'Liked ❤️' : 'Like removed');
+}
+
+function toggleGeek() {
+  geeked = !geeked;
+  document.getElementById('geekBtn').classList.toggle('geeked', geeked);
+  showToast(geeked ? 'Geeking this chapter 🤓' : 'Ungeek-ed');
+}
+
+function toggleBookmark() {
+  bookmarked = !bookmarked;
+  document.getElementById('bookmarkBtn').classList.toggle('bookmarked', bookmarked);
+  document.getElementById('tbBookmark').classList.toggle('bookmarked', bookmarked);
+  // Update header bookmark icon color
+  const hbBtn = document.getElementById('headerBookmarkBtn');
+  hbBtn.style.color = bookmarked ? 'var(--teal)' : '';
+  showToast(bookmarked ? 'Chapter saved 🔖' : 'Bookmark removed');
+}
+
+/* ══════════════ PROGRESS BAR ══════════════ */
+function updateProgress() {
+  const scrollTop = window.scrollY || document.documentElement.scrollTop;
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+  const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+  document.getElementById('progress-bar').style.width = progress + '%';
+
+  // Show/hide scroll to top
+  const sBtn = document.getElementById('scrollTopBtn');
+  sBtn.classList.toggle('visible', scrollTop > 400);
+
+  // Show reading time estimate
+  const rtDisplay = document.getElementById('rtDisplay');
+  const wordsPerMin = 200;
+  const totalWords = 2800;
+  const readProgress = progress / 100;
+  const wordsRead = Math.floor(totalWords * readProgress);
+  const remaining = Math.max(0, Math.ceil((totalWords - wordsRead) / wordsPerMin));
+  document.getElementById('rtText').textContent = remaining > 0 ? `${remaining} min left` : 'Done!';
+  rtDisplay.style.display = 'flex';
+}
+
+window.addEventListener('scroll', updateProgress, { passive: true });
+
+/* ══════════════ AUTO-RESIZE TEXTAREA ══════════════ */
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+function showSubmit(el) {
+  const btn = el.nextElementSibling;
+  if (btn) btn.style.display = 'inline-block';
+}
+
+/* ══════════════ TOAST ══════════════ */
+let tt;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(tt);
+  tt = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ══════════════ INIT ══════════════ */
+renderComments();
+updateProgress();
+</script>
+</body>
+</html>

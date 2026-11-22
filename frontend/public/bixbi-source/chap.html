@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NovelHub – Writer Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js"></script>
+<style>
+:root{
+  --bg:#f5f0e8;--surface:#fff;--surface2:#faf7f2;--border:#e5dcd0;--border2:#d0c4b0;
+  --text:#1c1810;--muted:#7a7060;--muted2:#a89880;
+  --accent:#c8522a;--accent-d:#a83f1c;--accent-l:#f5ede8;--accent-m:#e8a88e;
+  --amber:#d97706;--amber-l:#fef3c7;
+  --green:#2d6a4f;--green-l:#e8f4ed;
+  --blue:#2563eb;--blue-l:#eff6ff;
+  --r:10px;--r-sm:6px;
+  --sh:0 2px 12px rgba(0,0,0,0.08),0 1px 3px rgba(0,0,0,0.05);
+  --sh-lg:0 8px 36px rgba(0,0,0,0.12),0 2px 8px rgba(0,0,0,0.06);
+  --tr:0.18s ease;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+  background-image:radial-gradient(ellipse at 15% 0%,rgba(200,82,42,.06) 0%,transparent 55%),
+  radial-gradient(ellipse at 85% 100%,rgba(200,82,42,.04) 0%,transparent 55%);}
+
+/* ══════ PAGE SYSTEM ══════ */
+.page{display:none;min-height:100vh;}
+.page.active{display:block;}
+
+/* ══════ HEADER ══════ */
+header{
+position:sticky;top:0;z-index:200;
+background:rgba(255,255,255,.97);backdrop-filter:blur(14px);
+border-bottom:1px solid var(–border);
+box-shadow:0 1px 0 var(–border),0 2px 8px rgba(0,0,0,.05);
+}
+.hd{max-width:1160px;margin:0 auto;padding:0 22px;height:58px;
+display:flex;align-items:center;gap:0;}
+
+/* Brand */
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:0;margin-right:24px;}
+.bixbi{width:36px;height:36px;flex-shrink:0;filter:drop-shadow(0 2px 5px rgba(200,82,42,.22));}
+.bixbi svg{width:100%;height:100%;}
+.bn{font-family:‘Lora’,serif;font-size:1.22rem;font-weight:700;letter-spacing:-.03em;color:var(–text);line-height:1;}
+.bn em{color:var(–accent);font-style:normal;}
+
+/* Nav */
+.hnav{display:flex;align-items:center;gap:2px;flex:1;}
+.nl{padding:6px 12px;border-radius:6px;font-size:.83rem;font-weight:500;color:var(–muted);
+text-decoration:none;transition:all var(–tr);white-space:nowrap;cursor:pointer;background:none;border:none;font-family:‘DM Sans’,sans-serif;}
+.nl:hover{background:var(–accent-l);color:var(–accent);}
+.nl.active{background:var(–accent-l);color:var(–accent);font-weight:600;}
+.hsep{flex:1;}
+
+/* Right */
+.hright{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.wbtn{display:flex;align-items:center;gap:6px;background:var(–accent);color:#fff;border:none;
+border-radius:7px;padding:8px 15px;font-family:‘DM Sans’,sans-serif;font-size:.82rem;font-weight:600;
+cursor:pointer;transition:all var(–tr);box-shadow:0 2px 8px rgba(200,82,42,.3);}
+.wbtn:hover{background:var(–accent-d);box-shadow:0 4px 14px rgba(200,82,42,.4);transform:translateY(-1px);}
+
+/* Avatar clickable → profile */
+.av{width:34px;height:34px;border-radius:50%;
+background:linear-gradient(135deg,var(–accent),var(–amber));
+display:flex;align-items:center;justify-content:center;
+font-size:.8rem;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0;
+box-shadow:0 2px 6px rgba(200,82,42,.25);transition:transform var(–tr);
+border:2px solid transparent;}
+.av:hover{transform:scale(1.08);border-color:var(–accent);}
+
+/* ══════ SHARED CARD ══════ */
+.card{background:var(–surface);border:1px solid var(–border);border-radius:14px;box-shadow:var(–sh-lg);}
+
+/* ══════ BTN SYSTEM ══════ */
+.btn{font-family:‘DM Sans’,sans-serif;font-size:.84rem;font-weight:600;padding:10px 20px;
+border-radius:7px;cursor:pointer;border:1.5px solid transparent;
+transition:all var(–tr);display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+.btn-ghost{background:transparent;border-color:var(–border);color:var(–muted);}
+.btn-ghost:hover{background:var(–bg);color:var(–text);border-color:var(–border2);}
+.btn-save{background:var(–surface2);border-color:var(–border2);color:var(–text);}
+.btn-save:hover{background:var(–border);}
+.btn-primary{background:var(–accent);color:#fff;border-color:var(–accent);box-shadow:0 2px 10px rgba(200,82,42,.3);}
+.btn-primary:hover{background:var(–accent-d);box-shadow:0 4px 16px rgba(200,82,42,.4);transform:translateY(-1px);}
+.btn-green{background:var(–green);color:#fff;border-color:var(–green);box-shadow:0 2px 10px rgba(45,106,79,.3);}
+.btn-green:hover{background:#235c3d;transform:translateY(-1px);}
+.btn-sm{padding:6px 13px;font-size:.78rem;}
+
+/* ══════ FORM ELEMENTS ══════ */
+input[type=text],textarea,select{
+width:100%;font-family:‘DM Sans’,sans-serif;font-size:.87rem;padding:10px 13px;
+border:1.5px solid var(–border);border-radius:7px;background:var(–surface2);
+color:var(–text);outline:none;transition:border-color var(–tr),box-shadow var(–tr),background var(–tr);appearance:none;}
+input[type=text]:focus,textarea:focus,select:focus{
+border-color:var(–accent);background:var(–surface);box-shadow:0 0 0 3px rgba(200,82,42,.1);}
+input[type=text]::placeholder,textarea::placeholder{color:var(–muted2);}
+textarea{resize:vertical;line-height:1.65;}
+select{background-image:url(“data:image/svg+xml,%3Csvg xmlns=‘http://www.w3.org/2000/svg’ width=‘12’ height=‘8’ viewBox=‘0 0 12 8’%3E%3Cpath d=‘M1 1l5 5 5-5’ stroke=’%23a89880’ stroke-width=‘1.5’ fill=‘none’ stroke-linecap=‘round’/%3E%3C/svg%3E”);background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;}
+.field{margin-bottom:18px;}
+.field label{display:flex;align-items:center;justify-content:space-between;font-size:.8rem;font-weight:600;color:var(–text);margin-bottom:6px;}
+.field label .req{color:var(–accent);}
+.field label .hint{font-size:.71rem;font-weight:400;color:var(–muted2);}
+.field-sub{font-size:.72rem;color:var(–muted2);margin-top:5px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+
+/* Tags */
+.tw{border:1.5px solid var(–border);border-radius:7px;background:var(–surface2);
+padding:6px 8px;min-height:44px;display:flex;flex-wrap:wrap;gap:5px;cursor:text;
+transition:border-color var(–tr),box-shadow var(–tr);}
+.tw:focus-within{border-color:var(–accent);background:var(–surface);box-shadow:0 0 0 3px rgba(200,82,42,.1);}
+.tchip{display:flex;align-items:center;gap:5px;background:var(–accent-l);color:var(–accent);
+border:1px solid rgba(200,82,42,.2);border-radius:20px;padding:3px 9px;
+font-size:.75rem;font-weight:500;animation:popIn .15s ease;}
+.tchip button{border:none;background:none;cursor:pointer;color:var(–accent-m);font-size:.9rem;line-height:1;padding:0;}
+.tw input{border:none!important;background:transparent!important;box-shadow:none!important;
+padding:2px 4px!important;font-size:.82rem;min-width:90px;flex:1;outline:none;color:var(–text);}
+
+/* Char chips */
+.cchip{display:flex;align-items:center;gap:5px;background:var(–surface2);border:1px solid var(–border);
+border-radius:20px;padding:4px 10px;font-size:.77rem;font-weight:500;color:var(–text);animation:popIn .15s ease;}
+.cchip button{border:none;background:none;cursor:pointer;color:var(–muted2);font-size:.85rem;line-height:1;padding:0;}
+.cchip button:hover{color:var(–accent);}
+
+@keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* Toggle */
+.tl-track{width:44px;height:24px;background:var(–border2);border-radius:12px;
+position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.tl-track.on{background:var(–accent);}
+.tl-track::after{content:’’;width:18px;height:18px;border-radius:50%;background:#fff;
+box-shadow:0 1px 4px rgba(0,0,0,.2);position:absolute;top:3px;left:3px;transition:transform .2s;}
+.tl-track.on::after{transform:translateX(20px);}
+
+/* Section head */
+.sh{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.sh h2{font-family:‘Lora’,serif;font-size:1.05rem;font-weight:600;color:var(–text);}
+.sh-line{flex:1;height:1px;background:var(–border);}
+.sh-icon{width:30px;height:30px;border-radius:8px;background:var(–accent-l);
+display:flex;align-items:center;justify-content:center;font-size:.9rem;}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;z-index:9999;background:var(–text);color:#fff;
+padding:11px 18px;border-radius:9px;font-size:.83rem;font-weight:500;
+display:flex;align-items:center;gap:8px;box-shadow:var(–sh-lg);
+transform:translateY(10px);opacity:0;transition:all .25s;pointer-events:none;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.green{background:var(–green);}
+.toast.orange{background:var(–amber);}
+
+/* ══════════════════════════════
+PAGE 1 — STORY DETAILS
+══════════════════════════════ */
+#p-details .wrap{max-width:1100px;margin:0 auto;padding:0 22px 60px;}
+#p-details .hero{padding:22px 0 26px;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;}
+#p-details .hero h1{font-family:‘Lora’,serif;font-size:1.75rem;font-weight:700;letter-spacing:-.03em;}
+#p-details .hero h1 span{color:var(–accent);}
+#p-details .hero p{color:var(–muted);font-size:.87rem;margin-top:4px;}
+.badge{display:flex;align-items:center;gap:7px;background:var(–amber-l);color:var(–amber);
+border:1px solid #fde68a;border-radius:20px;padding:5px 13px;font-size:.75rem;font-weight:600;white-space:nowrap;flex-shrink:0;}
+
+.df{display:flex;overflow:hidden;border-radius:14px;}
+
+/* Left: cover */
+.dp-left{width:250px;flex-shrink:0;background:var(–surface2);border-right:1px solid var(–border);
+padding:28px 20px;display:flex;flex-direction:column;align-items:center;gap:14px;}
+.cl{font-size:.67rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(–muted2);align-self:flex-start;}
+.dz{width:100%;aspect-ratio:2/3;border:2px dashed var(–border2);border-radius:10px;
+background:var(–bg);display:flex;flex-direction:column;align-items:center;justify-content:center;
+gap:10px;cursor:pointer;text-align:center;padding:18px;position:relative;overflow:hidden;transition:all var(–tr);}
+.dz:hover,.dz.ov{border-color:var(–accent);background:var(–accent-l);}
+.dz-ic{width:50px;height:50px;background:var(–border);border-radius:10px;
+display:flex;align-items:center;justify-content:center;transition:all var(–tr);}
+.dz:hover .dz-ic{background:var(–accent-m);}
+.dz-ic svg{width:24px;height:24px;color:var(–muted);}
+.dz:hover .dz-ic svg{color:var(–accent-d);}
+.dz-t{font-size:.8rem;font-weight:600;color:var(–muted);}
+.dz-s{font-size:.7rem;color:var(–muted2);line-height:1.5;}
+.cp{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;border-radius:8px;}
+.ca{display:none;gap:8px;width:100%;}
+.ci{font-size:.7rem;color:var(–muted2);text-align:center;line-height:1.7;}
+.ci strong{color:var(–muted);font-weight:600;}
+.tips{width:100%;background:var(–accent-l);border:1px solid rgba(200,82,42,.15);border-radius:8px;padding:12px;}
+.tips .th{font-size:.68rem;font-weight:700;color:var(–accent);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;}
+.tips li{font-size:.71rem;color:var(–muted);line-height:1.6;list-style:none;padding-left:10px;position:relative;}
+.tips li::before{content:‘✦’;color:var(–accent-m);position:absolute;left:0;font-size:.58rem;top:3px;}
+
+/* Right: form */
+.dp-right{flex:1;padding:30px 34px;}
+.fa{display:flex;align-items:center;justify-content:space-between;gap:12px;
+padding-top:22px;border-top:1px solid var(–border);margin-top:22px;}
+.fa-l{font-size:.77rem;color:var(–muted2);}
+.fa-l strong{color:var(–green);}
+.fa-btns{display:flex;gap:10px;flex-wrap:wrap;}
+
+/* Toggle row */
+.tr-row{display:flex;align-items:center;justify-content:space-between;
+padding:12px 14px;background:var(–surface2);border:1px solid var(–border);border-radius:8px;}
+.tri .tl2{font-size:.84rem;font-weight:600;}
+.tri .ts{font-size:.72rem;color:var(–muted);margin-top:2px;}
+.tsw{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.tsl{font-size:.74rem;font-weight:600;color:var(–muted2);letter-spacing:.05em;text-transform:uppercase;min-width:22px;}
+
+/* char row */
+.char-row{display:flex;gap:8px;}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+
+/* ══════════════════════════════
+PAGE 2 — CHAPTER WRITER
+══════════════════════════════ */
+#p-writer{background:#1a1714;}
+#p-writer header{background:rgba(26,23,20,.97);border-bottom:1px solid #2e2824;}
+#p-writer .hd .nl{color:#9a8e82;}
+#p-writer .hd .nl:hover,.hd .nl.active-w{background:rgba(200,82,42,.15);color:#e8a88e;}
+#p-writer .hd .bn{color:#f0ece6;}
+#p-writer .av{box-shadow:0 2px 6px rgba(0,0,0,.4);}
+
+.writer-layout{display:flex;height:calc(100vh - 58px);}
+
+/* Sidebar */
+.w-sidebar{width:270px;flex-shrink:0;background:#111009;border-right:1px solid #2e2824;
+display:flex;flex-direction:column;overflow:hidden;}
+.ws-top{padding:16px 16px 12px;border-bottom:1px solid #2e2824;flex-shrink:0;}
+.ws-story{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.ws-cover{width:36px;height:52px;border-radius:4px;background:linear-gradient(135deg,#c8522a,#a83f1c);
+flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.1rem;overflow:hidden;}
+.ws-cover img{width:100%;height:100%;object-fit:cover;}
+.ws-info{flex:1;min-width:0;}
+.ws-title{font-family:‘Lora’,serif;font-size:.83rem;font-weight:600;color:#f0ece6;
+white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ws-status{font-size:.68rem;color:#6b5f54;margin-top:2px;}
+.ws-label{font-size:.65rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+color:#5a4f45;padding:0 4px 8px;}
+.ws-scroll{flex:1;overflow-y:auto;padding:8px 0;}
+.ws-scroll::-webkit-scrollbar{width:4px;}
+.ws-scroll::-webkit-scrollbar-thumb{background:#2e2824;border-radius:2px;}
+
+/* Chapter items */
+.ch-item{display:flex;align-items:center;gap:8px;padding:8px 14px;
+cursor:pointer;transition:background var(–tr);border-left:3px solid transparent;}
+.ch-item:hover{background:#1e1b17;}
+.ch-item.active{background:#1e1b17;border-left-color:var(–accent);}
+.ch-drag{color:#3a3530;font-size:.9rem;cursor:grab;flex-shrink:0;}
+.ch-num{font-size:.68rem;font-weight:700;color:#5a4f45;min-width:18px;}
+.ch-item.active .ch-num{color:var(–accent);}
+.ch-ttext{flex:1;font-size:.8rem;font-weight:400;color:#9a8e82;
+white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ch-item.active .ch-ttext{color:#e0d8ce;font-weight:500;}
+.ch-st{font-size:.6rem;padding:2px 6px;border-radius:10px;background:#2e2824;color:#5a4f45;flex-shrink:0;}
+.ch-st.pub{background:rgba(45,106,79,.25);color:#6fcf97;}
+
+.add-ch{display:flex;align-items:center;gap:8px;width:calc(100% - 20px);margin:6px 10px;
+padding:8px 12px;border:1px dashed #2e2824;border-radius:6px;
+background:transparent;cursor:pointer;font-family:‘DM Sans’,sans-serif;
+font-size:.79rem;color:#5a4f45;transition:all var(–tr);}
+.add-ch:hover{border-color:var(–accent);color:var(–accent);background:rgba(200,82,42,.08);}
+
+/* Main editor area */
+.w-main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#1a1714;}
+
+/* Editor top bar */
+.w-topbar{padding:10px 24px;border-bottom:1px solid #2e2824;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.ch-title-input{font-family:‘Lora’,serif;font-size:1.1rem;font-weight:600;
+background:transparent;border:none;color:#f0ece6;outline:none;flex:1;
+border-bottom:2px solid #2e2824;padding:4px 0;transition:border-color var(–tr);}
+.ch-title-input:focus{border-bottom-color:var(–accent);}
+.ch-title-input::placeholder{color:#3a3530;font-style:italic;}
+
+/* Quill toolbar dark */
+.w-editor-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.ql-toolbar.ql-snow{
+background:#111009!important;border:none!important;border-bottom:1px solid #2e2824!important;
+padding:8px 20px!important;position:sticky;top:0;z-index:10;flex-shrink:0;}
+.ql-toolbar.ql-snow .ql-stroke{stroke:#6b5f54!important;}
+.ql-toolbar.ql-snow .ql-fill{fill:#6b5f54!important;}
+.ql-toolbar.ql-snow button:hover .ql-stroke,.ql-toolbar.ql-snow button.ql-active .ql-stroke{stroke:#e8a88e!important;}
+.ql-toolbar.ql-snow button:hover .ql-fill,.ql-toolbar.ql-snow button.ql-active .ql-fill{fill:#e8a88e!important;}
+.ql-toolbar.ql-snow .ql-picker-label{color:#6b5f54!important;}
+.ql-toolbar.ql-snow .ql-picker-label:hover{color:#e8a88e!important;}
+.ql-container.ql-snow{border:none!important;flex:1;overflow-y:auto;background:#1a1714;}
+.ql-editor{
+font-family:‘Lora’,serif!important;font-size:1.1rem!important;
+line-height:1.9!important;color:#d0c8bc!important;
+max-width:720px;margin:0 auto;padding:32px 24px 80px!important;
+min-height:100%;}
+.ql-editor::before{color:#3a3530!important;font-style:italic!important;}
+.ql-editor p{margin-bottom:.6em;}
+.ql-editor h1,.ql-editor h2,.ql-editor h3{font-family:‘Lora’,serif!important;color:#f0ece6!important;}
+.ql-editor blockquote{border-left:3px solid var(–accent)!important;color:#9a8e82!important;font-style:italic!important;}
+#editor-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* Bottom stats bar */
+.w-bottom{padding:8px 24px;background:#111009;border-top:1px solid #2e2824;
+display:flex;align-items:center;gap:20px;flex-shrink:0;flex-wrap:wrap;}
+.w-stat{font-size:.75rem;color:#5a4f45;}
+.w-stat strong{color:#9a8e82;font-weight:600;}
+.w-bottom-btns{display:flex;gap:8px;margin-left:auto;}
+.btn-dark{background:#1e1b17;border:1px solid #2e2824;color:#9a8e82;font-family:‘DM Sans’,sans-serif;
+font-size:.78rem;font-weight:500;padding:7px 14px;border-radius:6px;cursor:pointer;
+transition:all var(–tr);display:inline-flex;align-items:center;gap:5px;}
+.btn-dark:hover{border-color:#5a4f45;color:#d0c8bc;}
+.btn-publish{background:var(–accent);border:none;color:#fff;font-family:‘DM Sans’,sans-serif;
+font-size:.78rem;font-weight:600;padding:7px 16px;border-radius:6px;cursor:pointer;
+transition:all var(–tr);display:inline-flex;align-items:center;gap:5px;
+box-shadow:0 2px 8px rgba(200,82,42,.35);}
+.btn-publish:hover{background:var(–accent-d);}
+
+/* Autosave */
+.autosave{display:flex;align-items:center;gap:6px;font-size:.72rem;color:#5a4f45;}
+.asdot{width:6px;height:6px;border-radius:50%;background:#3a3530;transition:background .3s;}
+.asdot.saving{background:#d97706;animation:pulse 1s infinite;}
+.asdot.saved{background:#2d6a4f;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ══════════════════════════════
+PAGE 3 — PROFILE / MY STORIES
+══════════════════════════════ */
+#p-profile .pwrap{max-width:1080px;margin:0 auto;padding:0 22px 80px;}
+
+/* Profile hero */
+.prof-hero{
+background:linear-gradient(135deg,#1c1810 0%,#2d2015 50%,#1a1410 100%);
+border-radius:14px;padding:36px 36px 28px;margin-top:24px;
+display:flex;gap:28px;align-items:flex-end;
+box-shadow:var(–sh-lg);overflow:hidden;position:relative;animation:fadeUp .4s ease both;}
+.prof-hero::before{content:’’;position:absolute;top:-40px;right:-40px;
+width:200px;height:200px;border-radius:50%;
+background:radial-gradient(circle,rgba(200,82,42,.15) 0%,transparent 70%);}
+.prof-av{width:88px;height:88px;border-radius:50%;flex-shrink:0;
+background:linear-gradient(135deg,var(–accent),var(–amber));
+display:flex;align-items:center;justify-content:center;
+font-family:‘Lora’,serif;font-size:2rem;font-weight:700;color:#fff;
+border:3px solid rgba(255,255,255,.15);box-shadow:0 4px 20px rgba(200,82,42,.4);}
+.prof-info{flex:1;}
+.prof-name{font-family:‘Lora’,serif;font-size:1.6rem;font-weight:700;color:#f0ece6;letter-spacing:-.02em;}
+.prof-handle{font-size:.82rem;color:#9a8e82;margin-top:3px;}
+.prof-bio{font-size:.85rem;color:#7a6e62;margin-top:8px;line-height:1.6;}
+.prof-stats{display:flex;gap:24px;margin-top:16px;}
+.pstat{text-align:center;}
+.pstat .pn{font-family:‘Lora’,serif;font-size:1.3rem;font-weight:700;color:#f0ece6;}
+.pstat .pl{font-size:.7rem;color:#5a4f45;text-transform:uppercase;letter-spacing:.06em;margin-top:1px;}
+.prof-actions{display:flex;gap:10px;align-self:flex-start;margin-left:auto;}
+.btn-outline-w{background:transparent;border:1.5px solid #3a3530;color:#9a8e82;
+font-family:‘DM Sans’,sans-serif;font-size:.8rem;font-weight:500;padding:8px 14px;
+border-radius:7px;cursor:pointer;transition:all var(–tr);display:inline-flex;align-items:center;gap:5px;}
+.btn-outline-w:hover{border-color:#c8522a;color:#e8a88e;}
+
+/* Tabs */
+.prof-tabs{display:flex;gap:0;border-bottom:1px solid var(–border);margin-top:28px;}
+.ptab{padding:10px 20px;font-size:.85rem;font-weight:500;color:var(–muted);cursor:pointer;
+border-bottom:2px solid transparent;transition:all var(–tr);background:none;border-top:none;
+border-left:none;border-right:none;font-family:‘DM Sans’,sans-serif;}
+.ptab:hover{color:var(–text);}
+.ptab.active{color:var(–accent);border-bottom-color:var(–accent);font-weight:600;}
+
+/* Stories grid */
+.stories-header{display:flex;align-items:center;justify-content:space-between;margin:24px 0 18px;}
+.stories-header h3{font-family:‘Lora’,serif;font-size:1.15rem;font-weight:600;}
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;}
+
+/* Story card */
+.sc{background:var(–surface);border:1px solid var(–border);border-radius:12px;
+overflow:hidden;transition:all var(–tr);cursor:pointer;animation:fadeUp .4s ease both;}
+.sc:hover{box-shadow:var(–sh-lg);transform:translateY(-3px);}
+.sc-cover{width:100%;aspect-ratio:2/3;background:linear-gradient(135deg,#e8d8c8,#d4c0a8);
+position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:2.5rem;}
+.sc-cover img{width:100%;height:100%;object-fit:cover;}
+.sc-status{position:absolute;top:8px;right:8px;font-size:.63rem;font-weight:700;
+padding:3px 8px;border-radius:10px;letter-spacing:.04em;text-transform:uppercase;}
+.sc-status.draft{background:rgba(0,0,0,.6);color:#d0c8bc;}
+.sc-status.published{background:rgba(45,106,79,.8);color:#6fcf97;}
+.sc-body{padding:14px;}
+.sc-title{font-family:‘Lora’,serif;font-size:.93rem;font-weight:600;
+white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;}
+.sc-genre{font-size:.7rem;color:var(–muted2);margin-bottom:8px;}
+.sc-meta{display:flex;gap:12px;font-size:.72rem;color:var(–muted2);}
+.sc-meta span{display:flex;align-items:center;gap:4px;}
+.sc-actions{display:flex;gap:6px;padding:0 14px 14px;}
+.sc-btn{flex:1;text-align:center;padding:7px;border-radius:6px;font-size:.75rem;font-weight:500;
+border:1px solid var(–border);background:var(–surface2);color:var(–muted);cursor:pointer;transition:all var(–tr);}
+.sc-btn:hover{border-color:var(–accent);color:var(–accent);background:var(–accent-l);}
+.sc-btn.primary{background:var(–accent);color:#fff;border-color:var(–accent);}
+.sc-btn.primary:hover{background:var(–accent-d);}
+
+/* Empty state */
+.empty{text-align:center;padding:60px 20px;color:var(–muted);}
+.empty-icon{font-size:3.5rem;margin-bottom:16px;opacity:.4;}
+.empty h3{font-family:‘Lora’,serif;font-size:1.1rem;margin-bottom:8px;color:var(–text);}
+.empty p{font-size:.85rem;color:var(–muted2);line-height:1.7;}
+
+/* ══════ RESPONSIVE ══════ */
+@media(max-width:860px){
+.hnav{display:none;}
+.df{flex-direction:column;}
+.dp-left{width:100%;border-right:none;border-bottom:1px solid var(–border);
+flex-direction:row;flex-wrap:wrap;padding:20px;}
+.dz{width:130px;height:195px;flex-shrink:0;}
+.tips,.ci{flex:1;min-width:180px;}
+.dp-right{padding:22px 18px;}
+.grid2{grid-template-columns:1fr;}
+.w-sidebar{display:none;}
+.writer-layout{flex-direction:column;}
+.prof-hero{flex-direction:column;align-items:flex-start;}
+.prof-actions{margin-left:0;}
+.sg{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));}
+}
+@media(max-width:520px){
+.hd{padding:0 14px;}
+.wbtn{padding:7px 11px;font-size:.75rem;}
+.fa{flex-direction:column;}
+.fa-btns{width:100%;}
+.fa-btns .btn{flex:1;justify-content:center;}
+.w-bottom-btns .btn-dark:not(:last-child){display:none;}
+.prof-hero{padding:24px 20px;}
+}
+</style>
+
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     SHARED HEADER
+════════════════════════════════════════ -->
+
+<header id="mainHeader">
+  <div class="hd">
+    <a class="brand" href="#" onclick="showPage('p-details')">
+      <div class="bixbi">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="50" cy="53" rx="34" ry="35" fill="#1a1714"/>
+          <ellipse cx="18" cy="41" rx="9.5" ry="13" fill="#1a1714"/>
+          <ellipse cx="82" cy="41" rx="9.5" ry="13" fill="#1a1714"/>
+          <ellipse cx="18" cy="41" rx="5.5" ry="8.5" fill="#c8522a"/>
+          <ellipse cx="82" cy="41" rx="5.5" ry="8.5" fill="#c8522a"/>
+          <ellipse cx="50" cy="56" rx="28" ry="29" fill="#2d2520"/>
+          <ellipse cx="37" cy="47" rx="7.5" ry="7.5" fill="#fff"/>
+          <ellipse cx="63" cy="47" rx="7.5" ry="7.5" fill="#fff"/>
+          <ellipse cx="38.5" cy="47" rx="4.8" ry="4.8" fill="#c8522a"/>
+          <ellipse cx="64.5" cy="47" rx="4.8" ry="4.8" fill="#c8522a"/>
+          <circle cx="39.5" cy="46.5" r="2.2" fill="#1a1714"/>
+          <circle cx="65.5" cy="46.5" r="2.2" fill="#1a1714"/>
+          <circle cx="38.5" cy="45" r="1.1" fill="#fff" opacity=".9"/>
+          <circle cx="64.5" cy="45" r="1.1" fill="#fff" opacity=".9"/>
+          <ellipse cx="50" cy="59" rx="5.5" ry="3.8" fill="#c8522a"/>
+          <ellipse cx="50" cy="63" rx="13" ry="8" fill="#3d3028" opacity=".45"/>
+          <path d="M 43 64 Q 50 70 57 64" stroke="#1a1714" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+          <line x1="20" y1="60" x2="38" y2="62" stroke="#5a4a3a" stroke-width="1" opacity=".5"/>
+          <line x1="20" y1="64" x2="38" y2="64" stroke="#5a4a3a" stroke-width="1" opacity=".5"/>
+          <line x1="80" y1="60" x2="62" y2="62" stroke="#5a4a3a" stroke-width="1" opacity=".5"/>
+          <line x1="80" y1="64" x2="62" y2="64" stroke="#5a4a3a" stroke-width="1" opacity=".5"/>
+        </svg>
+      </div>
+      <span class="bn">Novel<em>Hub</em></span>
+    </a>
+
+```
+<nav class="hnav">
+  <button class="nl active" onclick="showPage('p-details')">My Stories</button>
+  <button class="nl">Reading List</button>
+  <button class="nl">Explore</button>
+  <button class="nl">Community</button>
+</nav>
+<div class="hsep"></div>
+<div class="hright">
+  <button class="wbtn" onclick="showPage('p-writer')">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10z"/></svg>
+    Write
+  </button>
+  <!-- Avatar → Profile -->
+  <div class="av" onclick="showPage('p-profile')" title="My Profile">SW</div>
+</div>
+```
+
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════
+     PAGE 1 — STORY DETAILS
+════════════════════════════════════════ -->
+
+<div id="p-details" class="page active">
+  <div class="wrap">
+
+```
+<div class="hero">
+  <div>
+    <h1>Story <span>Details</span></h1>
+    <p>Fill in your story info. Readers discover stories through these details.</p>
+  </div>
+  <div class="badge">✍️ Draft — Not published yet</div>
+</div>
+
+<div class="card df">
+  <!-- Cover -->
+  <div class="dp-left">
+    <div class="cl">Story Cover</div>
+    <div class="dz" id="dz" onclick="document.getElementById('ci').click()"
+      ondragover="dzEv(event,'over')" ondragleave="dzEv(event,'leave')" ondrop="dzEv(event,'drop')">
+      <img class="cp" id="cprev" src="" alt="">
+      <div class="dz-ic" id="dzIc">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 20.25h18M21 7.5H3M12 3v4.5"/>
+        </svg>
+      </div>
+      <div class="dz-t" id="dzT">Add a cover</div>
+      <div class="dz-s" id="dzS">Drag & drop or click</div>
+    </div>
+    <input type="file" id="ci" accept="image/*" style="display:none" onchange="loadCover(event)">
+    <div class="ca" id="ca">
+      <button class="btn btn-save btn-sm" style="flex:1;justify-content:center" onclick="document.getElementById('ci').click()">🔄 Change</button>
+      <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center;color:#c0392b" onclick="removeCover()">✕ Remove</button>
+    </div>
+    <div class="ci">
+      <strong>600×900px</strong> recommended<br>JPG, PNG, WEBP · Max 2MB
+    </div>
+    <div class="tips">
+      <div class="th">Cover Tips</div>
+      <ul>
+        <li>Eye-catching images get more clicks</li>
+        <li>Use portrait orientation</li>
+        <li>High contrast works best</li>
+        <li>Minimal text on cover</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="dp-right">
+    <div class="sh"><div class="sh-icon">📖</div><h2>Story Information</h2><div class="sh-line"></div></div>
+
+    <div class="field">
+      <label>Title <span class="req">*</span><span class="hint" id="th">0/100</span></label>
+      <input type="text" id="st" maxlength="100" placeholder="Give your story an unforgettable title…" oninput="cc(this,'th',100)">
+    </div>
+
+    <div class="field">
+      <label>Description <span class="req">*</span><span class="hint" id="dh">0/500</span></label>
+      <textarea id="sd" rows="5" maxlength="500" placeholder="Tell readers what your story is about. Make it irresistible…" oninput="cc(this,'dh',500)"></textarea>
+    </div>
+
+    <div class="field">
+      <label>Main Characters</label>
+      <div class="char-row">
+        <input type="text" id="charIn" placeholder="Character name…" onkeydown="if(event.key==='Enter'){event.preventDefault();addChar()}">
+        <button type="button" class="btn btn-save btn-sm" onclick="addChar()" style="flex-shrink:0">+ Add</button>
+      </div>
+      <div class="chips" id="charChips"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="field" style="margin-bottom:0">
+        <label>Category <span class="req">*</span></label>
+        <select id="scat">
+          <option value="">Select category</option>
+          <option>Romance</option><option>Fantasy</option><option>Sci-Fi</option>
+          <option>Mystery</option><option>Horror</option><option>Drama</option>
+          <option>Action</option><option>Adventure</option><option>Comedy</option>
+          <option>Thriller</option><option>Historical Fiction</option>
+          <option>Sinhala Fiction</option><option>Tamil Fiction</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Tags<span class="hint" id="tagH">0/10</span></label>
+        <div class="tw" id="tw" onclick="document.getElementById('tagIn').focus()">
+          <input type="text" id="tagIn" placeholder="Type & Enter…" onkeydown="handleTag(event)" maxlength="20">
+        </div>
+      </div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:20px 0">
+
+    <div class="sh" style="margin-top:0"><div class="sh-icon">⚙️</div><h2>Settings</h2><div class="sh-line"></div></div>
+
+    <div class="grid2">
+      <div class="field">
+        <label>Target Audience</label>
+        <select>
+          <option>Everyone</option><option>Young Adults (13+)</option>
+          <option>Adults (18+)</option><option>Children</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Language</label>
+        <select id="slang">
+          <option value="en">English</option><option value="si">Sinhala</option>
+          <option value="ta">Tamil</option><option value="ja">Japanese</option>
+          <option value="es">Spanish</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Copyright</label>
+      <select>
+        <option>All Rights Reserved</option>
+        <option>Creative Commons (CC BY)</option>
+        <option>Public Domain</option>
+      </select>
+      <div class="field-sub">You retain full ownership of your work.</div>
+    </div>
+
+    <div class="field">
+      <div class="tr-row">
+        <div class="tri"><div class="tl2">🔞 Mature Content</div><div class="ts">Adult themes / 18+ readers</div></div>
+        <div class="tsw">
+          <span class="tsl" id="mLabel">OFF</span>
+          <div class="tl-track" id="mTrack" onclick="toggleMature()"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fa">
+      <div class="fa-l">Saves as <strong>Draft</strong> · Publish after adding chapters</div>
+      <div class="fa-btns">
+        <button class="btn btn-ghost" onclick="saveDraftGoProfile()">💾 Save Draft</button>
+        <button class="btn btn-primary" onclick="saveGoWriter()">Continue to Chapter Editor →</button>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE 2 — CHAPTER WRITER
+════════════════════════════════════════ -->
+
+<div id="p-writer" class="page">
+  <div class="writer-layout">
+
+```
+<!-- Sidebar -->
+<div class="w-sidebar">
+  <div class="ws-top">
+    <div class="ws-story">
+      <div class="ws-cover" id="wsCover">📚</div>
+      <div class="ws-info">
+        <div class="ws-title" id="wsTitle">My Story</div>
+        <div class="ws-status">Draft · 0 chapters</div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center;font-size:.75rem" onclick="showPage('p-details')">← Story Details</button>
+  </div>
+  <div style="padding:12px 14px 4px"><div class="ws-label">Chapters</div></div>
+  <div class="ws-scroll" id="chList"></div>
+  <div style="padding:6px 0 12px">
+    <button class="add-ch" onclick="addChapter()">+ Add Chapter</button>
+  </div>
+</div>
+
+<!-- Editor -->
+<div class="w-main">
+  <div class="w-topbar">
+    <input type="text" class="ch-title-input" id="chTitle" placeholder="Chapter title…" oninput="updateChMeta()">
+    <div class="autosave"><div class="asdot" id="asDot"></div><span id="asText">Not saved</span></div>
+    <button class="btn-dark" onclick="openPreview()">👁 Preview</button>
+  </div>
+
+  <div id="editor-wrap">
+    <div id="toolbar-writer">
+      <span class="ql-formats">
+        <select class="ql-header"><option selected></option><option value="1">H1</option><option value="2">H2</option><option value="3">H3</option></select>
+      </span>
+      <span class="ql-formats">
+        <button class="ql-bold"></button><button class="ql-italic"></button><button class="ql-underline"></button>
+      </span>
+      <span class="ql-formats">
+        <select class="ql-align"></select>
+      </span>
+      <span class="ql-formats">
+        <button class="ql-list" value="ordered"></button><button class="ql-list" value="bullet"></button>
+      </span>
+      <span class="ql-formats">
+        <button class="ql-blockquote"></button><button class="ql-link"></button><button class="ql-image"></button>
+      </span>
+      <span class="ql-formats"><button class="ql-clean"></button></span>
+    </div>
+    <div id="quill-editor"></div>
+  </div>
+
+  <div class="w-bottom">
+    <div class="w-stat">Words: <strong id="wc">0</strong></div>
+    <div class="w-stat">Read time: <strong id="rt">~1 min</strong></div>
+    <div class="w-stat" id="lastSaved"></div>
+    <div class="w-bottom-btns">
+      <button class="btn-dark" onclick="saveDraftFromWriter()">💾 Save Draft</button>
+      <button class="btn-dark" onclick="showPage('p-profile')">👤 My Stories</button>
+      <button class="btn-publish" onclick="publishChapter()">🚀 Publish Chapter</button>
+    </div>
+  </div>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     PAGE 3 — PROFILE / MY STORIES
+════════════════════════════════════════ -->
+
+<div id="p-profile" class="page">
+  <div class="pwrap">
+
+```
+<!-- Profile Hero -->
+<div class="prof-hero">
+  <div class="prof-av">SW</div>
+  <div class="prof-info">
+    <div class="prof-name">Supun Wijerathna</div>
+    <div class="prof-handle">@supun_writes · NovelHub Writer</div>
+    <div class="prof-bio">Storyteller from Sri Lanka 🇱🇰 · Writing fantasy & Sinhala fiction · ESL Group</div>
+    <div class="prof-stats">
+      <div class="pstat"><div class="pn" id="pStories">0</div><div class="pl">Stories</div></div>
+      <div class="pstat"><div class="pn" id="pChapters">0</div><div class="pl">Chapters</div></div>
+      <div class="pstat"><div class="pn">0</div><div class="pl">Followers</div></div>
+      <div class="pstat"><div class="pn">0</div><div class="pl">Reads</div></div>
+    </div>
+  </div>
+  <div class="prof-actions">
+    <button class="btn-outline-w" onclick="showPage('p-details')">✏️ Edit Profile</button>
+    <button class="btn-primary btn-sm" onclick="showPage('p-details')">+ New Story</button>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="prof-tabs">
+  <button class="ptab active">My Stories</button>
+  <button class="ptab">Reading List</button>
+  <button class="ptab">Following</button>
+</div>
+
+<!-- Stories -->
+<div class="stories-header">
+  <h3>My Stories</h3>
+  <button class="btn btn-primary btn-sm" onclick="showPage('p-details')">+ Create Story</button>
+</div>
+
+<div class="sg" id="storiesGrid">
+  <!-- stories injected by JS -->
+</div>
+
+<div class="empty" id="emptyState" style="display:none">
+  <div class="empty-icon">📚</div>
+  <h3>No stories yet</h3>
+  <p>Start your first story and share it with the world.<br>Every great author began with a single chapter.</p>
+  <button class="btn btn-primary" style="margin-top:18px" onclick="showPage('p-details')">✨ Create My First Story</button>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- TOAST -->
+
+<div class="toast" id="toastEl"></div>
+
+<!-- Preview Modal -->
+
+<div id="previewModal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+  <div style="background:#1a1714;border-radius:14px;width:90%;max-width:680px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+    <div style="padding:18px 28px;border-bottom:1px solid #2e2824;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#1a1714;z-index:1;">
+      <div style="font-family:'Lora',serif;font-size:1rem;color:#f0ece6;" id="pvTitle">Chapter Preview</div>
+      <button onclick="closePreview()" style="background:none;border:1px solid #2e2824;color:#9a8e82;border-radius:6px;padding:5px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.78rem;">✕ Close</button>
+    </div>
+    <div style="padding:32px 48px;font-family:'Lora',serif;font-size:1.05rem;line-height:1.9;color:#d0c8bc;" id="pvBody"></div>
+  </div>
+</div>
+
+<script>
+// ══════ STATE ══════
+let stories = [];
+let currentStoryId = null;
+let chapters = [{id:1,title:'Chapter 1',content:'',status:'draft',wc:0}];
+let currentChId = 1;
+let nextChId = 2;
+let tags = [];
+let chars = [];
+let mature = false;
+let quillEditor = null;
+let asTimer = null;
+
+// ══════ PAGE NAVIGATION ══════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // Theme header
+  const hdr = document.getElementById('mainHeader');
+  if (id === 'p-writer') {
+    hdr.style.background = 'rgba(26,23,20,.97)';
+    hdr.style.borderBottomColor = '#2e2824';
+    document.querySelectorAll('.nl').forEach(n=>{n.style.color='#9a8e82';});
+  } else {
+    hdr.style.background = 'rgba(255,255,255,.97)';
+    hdr.style.borderBottomColor = '#e5dcd0';
+    document.querySelectorAll('.nl').forEach(n=>{n.style.color='';});
+  }
+  if (id === 'p-profile') renderProfile();
+  if (id === 'p-writer')  { renderChList(); syncWriterSidebar(); }
+  window.scrollTo(0,0);
+}
+
+// ══════ COVER UPLOAD ══════
+function dzEv(e,t){
+  e.preventDefault();
+  const dz=document.getElementById('dz');
+  if(t==='over') dz.classList.add('ov');
+  if(t==='leave') dz.classList.remove('ov');
+  if(t==='drop'){dz.classList.remove('ov');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))applyCover(f);}
+}
+function loadCover(e){const f=e.target.files[0];if(f)applyCover(f);}
+function applyCover(file){
+  if(file.size>2*1024*1024){toast('⚠️ Image must be under 2MB');return;}
+  const r=new FileReader();
+  r.onload=ev=>{
+    document.getElementById('cprev').src=ev.target.result;
+    document.getElementById('cprev').style.display='block';
+    ['dzIc','dzT','dzS'].forEach(id=>document.getElementById(id).style.display='none');
+    document.getElementById('ca').style.display='flex';
+    // Also update writer sidebar cover
+    const wsc=document.getElementById('wsCover');
+    wsc.innerHTML=`<img src="${ev.target.result}" alt="">`;
+  };
+  r.readAsDataURL(file);
+}
+function removeCover(){
+  document.getElementById('cprev').style.display='none';
+  ['dzIc','dzT','dzS'].forEach(id=>document.getElementById(id).style.display='');
+  document.getElementById('ca').style.display='none';
+  document.getElementById('ci').value='';
+  document.getElementById('wsCover').innerHTML='📚';
+}
+
+// ══════ CHAR COUNTER ══════
+function cc(el,hintId,max){document.getElementById(hintId).textContent=`${el.value.length}/${max}`;}
+
+// ══════ CHARACTERS ══════
+function addChar(){
+  const v=document.getElementById('charIn').value.trim();
+  if(v&&!chars.includes(v)&&chars.length<10){chars.push(v);renderChars();document.getElementById('charIn').value='';}
+}
+function removeChar(n){chars=chars.filter(c=>c!==n);renderChars();}
+function renderChars(){
+  document.getElementById('charChips').innerHTML=chars.map(c=>
+    `<div class="cchip">${esc(c)}<button onclick="removeChar('${esc(c)}')">×</button></div>`
+  ).join('');
+}
+
+// ══════ TAGS ══════
+function handleTag(e){
+  if((e.key==='Enter'||e.key===',')&&tags.length<10){
+    e.preventDefault();
+    const v=e.target.value.trim().replace(',','');
+    if(v&&!tags.includes(v)){tags.push(v);renderTags();}
+    e.target.value='';
+  } else if(e.key==='Backspace'&&!e.target.value&&tags.length){tags.pop();renderTags();}
+}
+function removeTag(t){tags=tags.filter(x=>x!==t);renderTags();}
+function renderTags(){
+  const w=document.getElementById('tw'),inp=document.getElementById('tagIn');
+  w.innerHTML='';
+  tags.forEach(t=>{
+    const s=document.createElement('div');s.className='tchip';
+    s.innerHTML=`${esc(t)}<button onclick="removeTag('${esc(t)}')">×</button>`;
+    w.appendChild(s);
+  });
+  w.appendChild(inp);
+  inp.placeholder=tags.length>=10?'Max 10':'Type & Enter…';
+  inp.disabled=tags.length>=10;
+  document.getElementById('tagH').textContent=`${tags.length}/10`;
+}
+
+// ══════ MATURE TOGGLE ══════
+function toggleMature(){
+  mature=!mature;
+  document.getElementById('mTrack').classList.toggle('on',mature);
+  document.getElementById('mLabel').textContent=mature?'ON':'OFF';
+}
+
+// ══════ COLLECT STORY DATA ══════
+function collectStory(){
+  return {
+    id: currentStoryId || Date.now(),
+    title: document.getElementById('st').value.trim(),
+    description: document.getElementById('sd').value.trim(),
+    category: document.getElementById('scat').value,
+    language: document.getElementById('slang').value,
+    characters: chars, tags, mature,
+    cover: document.getElementById('cprev').src || '',
+    status: 'draft',
+    chapters: [],
+    savedAt: new Date().toISOString()
+  };
+}
+
+// ══════ VALIDATE STORY ══════
+function validateStory(){
+  const t=document.getElementById('st').value.trim();
+  const d=document.getElementById('sd').value.trim();
+  const c=document.getElementById('scat').value;
+  if(!t||t.length<3){toast('⚠️ Please enter a story title (min 3 chars)','orange');return false;}
+  if(!d){toast('⚠️ Please add a description','orange');return false;}
+  if(!c){toast('⚠️ Please select a category','orange');return false;}
+  return true;
+}
+
+// ══════ SAVE DRAFT → PROFILE ══════
+function saveDraftGoProfile(){
+  const data=collectStory();
+  data.status='draft';
+  saveStoryToList(data);
+  toast('💾 Saved to My Stories!','');
+  setTimeout(()=>showPage('p-profile'),800);
+}
+
+// ══════ SAVE → WRITER ══════
+function saveGoWriter(){
+  if(!validateStory()) return;
+  const data=collectStory();
+  currentStoryId=data.id;
+  saveStoryToList(data);
+  syncWriterSidebar();
+  toast('✅ Story saved! Opening editor…','');
+  setTimeout(()=>showPage('p-writer'),600);
+}
+
+function saveStoryToList(data){
+  const idx=stories.findIndex(s=>s.id===data.id);
+  if(idx>-1) stories[idx]={...stories[idx],...data};
+  else stories.unshift(data);
+  try{localStorage.setItem('nh_stories',JSON.stringify(stories));}catch(e){}
+}
+
+function syncWriterSidebar(){
+  const story=stories.find(s=>s.id===currentStoryId);
+  if(!story) return;
+  document.getElementById('wsTitle').textContent=story.title||'Untitled';
+  if(story.cover){
+    document.getElementById('wsCover').innerHTML=`<img src="${story.cover}" alt="">`;
+  }
+}
+
+// ══════ CHAPTER MANAGEMENT ══════
+function renderChList(){
+  const list=document.getElementById('chList');
+  list.innerHTML='';
+  chapters.forEach((ch,i)=>{
+    const d=document.createElement('div');
+    d.className=`ch-item${ch.id===currentChId?' active':''}`;
+    d.innerHTML=`
+      <span class="ch-drag">⠿</span>
+      <span class="ch-num">${i+1}</span>
+      <span class="ch-ttext">${ch.title||'Untitled'}</span>
+      <span class="ch-st${ch.status==='published'?' pub':''}">${ch.status}</span>`;
+    d.addEventListener('click',()=>switchChapter(ch.id));
+    list.appendChild(d);
+  });
+}
+
+function switchChapter(id){
+  saveCurrentChContent();
+  currentChId=id;
+  const ch=chapters.find(c=>c.id===id);
+  if(!ch) return;
+  document.getElementById('chTitle').value=ch.title||'';
+  if(quillEditor) quillEditor.root.innerHTML=ch.content||'';
+  updateWordCount();
+  renderChList();
+}
+
+function addChapter(){
+  saveCurrentChContent();
+  const ch={id:nextChId++,title:`Chapter ${chapters.length+1}`,content:'',status:'draft',wc:0};
+  chapters.push(ch);
+  switchChapter(ch.id);
+  toast('📝 New chapter added');
+}
+
+function saveCurrentChContent(){
+  const ch=chapters.find(c=>c.id===currentChId);
+  if(ch&&quillEditor){
+    ch.content=quillEditor.root.innerHTML;
+    ch.title=document.getElementById('chTitle').value||'Untitled';
+    ch.wc=countWords(quillEditor.getText());
+  }
+}
+
+function updateChMeta(){
+  const ch=chapters.find(c=>c.id===currentChId);
+  if(ch) ch.title=document.getElementById('chTitle').value||'Untitled';
+  renderChList();
+  scheduleAS();
+}
+
+// ══════ QUILL INIT ══════
+function initQuill(){
+  if(quillEditor) return;
+  quillEditor=new Quill('#quill-editor',{
+    theme:'snow',
+    modules:{toolbar:'#toolbar-writer'},
+    placeholder:'Start writing your chapter here… Let the words flow.'
+  });
+  quillEditor.on('text-change',()=>{updateWordCount();scheduleAS();saveCurrentChContent();});
+}
+
+function updateWordCount(){
+  if(!quillEditor) return;
+  const wc=countWords(quillEditor.getText());
+  const rt=Math.max(1,Math.ceil(wc/200));
+  document.getElementById('wc').textContent=wc.toLocaleString();
+  document.getElementById('rt').textContent=`~${rt} min`;
+}
+
+function countWords(txt){return txt.trim()?txt.trim().split(/\s+/).filter(w=>w).length:0;}
+
+// ══════ AUTOSAVE ══════
+function scheduleAS(){
+  clearTimeout(asTimer);
+  setAS('saving','Saving…');
+  asTimer=setTimeout(doAS,6000);
+}
+function doAS(){
+  saveCurrentChContent();
+  try{localStorage.setItem('nh_chapters_'+currentStoryId,JSON.stringify(chapters));}catch(e){}
+  const now=new Date();
+  setAS('saved','Saved');
+  document.getElementById('lastSaved').textContent=`Saved ${now.toLocaleTimeString()}`;
+}
+function setAS(state,txt){
+  document.getElementById('asDot').className=`asdot ${state}`;
+  document.getElementById('asText').textContent=txt;
+}
+
+function saveDraftFromWriter(){
+  saveCurrentChContent();
+  doAS();
+  // Update story chapters count
+  const story=stories.find(s=>s.id===currentStoryId);
+  if(story){story.chapters=chapters;saveStoryToList(story);}
+  toast('💾 Draft saved!','');
+}
+
+function publishChapter(){
+  saveCurrentChContent();
+  const ch=chapters.find(c=>c.id===currentChId);
+  if(ch){ch.status='published';}
+  doAS();
+  renderChList();
+  toast('🚀 Chapter published!','green');
+}
+
+// ══════ PREVIEW ══════
+function openPreview(){
+  saveCurrentChContent();
+  const ch=chapters.find(c=>c.id===currentChId);
+  const idx=chapters.findIndex(c=>c.id===currentChId);
+  document.getElementById('pvTitle').textContent=`Chapter ${idx+1}: ${ch.title||'Untitled'}`;
+  document.getElementById('pvBody').innerHTML=ch.content||'<em style="color:#5a4f45">No content yet.</em>';
+  const m=document.getElementById('previewModal');
+  m.style.display='flex';
+}
+function closePreview(){document.getElementById('previewModal').style.display='none';}
+
+// ══════ PROFILE ══════
+function renderProfile(){
+  // Load from localStorage
+  try{const raw=localStorage.getItem('nh_stories');if(raw)stories=JSON.parse(raw);}catch(e){}
+  document.getElementById('pStories').textContent=stories.length;
+  const totalCh=stories.reduce((a,s)=>(s.chapters?a+s.chapters.length:a),0);
+  document.getElementById('pChapters').textContent=totalCh;
+  renderStoriesGrid();
+}
+
+function renderStoriesGrid(){
+  const grid=document.getElementById('storiesGrid');
+  const empty=document.getElementById('emptyState');
+  if(stories.length===0){grid.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  grid.innerHTML=stories.map((s,i)=>{
+    const chs=(s.chapters||[]).length;
+    const cover=s.cover?`<img src="${s.cover}" alt="">`:`<span>${genEmoji(s.category)}</span>`;
+    return `
+    <div class="sc" style="animation-delay:${i*.05}s">
+      <div class="sc-cover">${cover}<span class="sc-status ${s.status}">${s.status}</span></div>
+      <div class="sc-body">
+        <div class="sc-title">${esc(s.title||'Untitled')}</div>
+        <div class="sc-genre">${s.category||'No category'} · ${langLabel(s.language)}</div>
+        <div class="sc-meta">
+          <span>📖 ${chs} ch</span>
+          <span>🏷️ ${(s.tags||[]).length} tags</span>
+        </div>
+      </div>
+      <div class="sc-actions">
+        <button class="sc-btn" onclick="editStory(${s.id})">✏️ Edit</button>
+        <button class="sc-btn primary" onclick="openStoryWriter(${s.id})">📝 Write</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function genEmoji(cat){
+  const m={Romance:'💕',Fantasy:'🧙',Sci:'🚀',Mystery:'🔍',Horror:'👻',Drama:'🎭',Action:'⚔️',Comedy:'😄',Thriller:'🌑',Sinhala:'🇱🇰',Tamil:'📜'};
+  for(const k in m){if((cat||'').includes(k))return m[k];}return '📚';
+}
+function langLabel(l){return{en:'English',si:'Sinhala',ta:'Tamil',ja:'Japanese',es:'Spanish'}[l]||l||'English';}
+
+function editStory(id){
+  const s=stories.find(x=>x.id===id);
+  if(!s) return;
+  currentStoryId=id;
+  document.getElementById('st').value=s.title||'';
+  document.getElementById('sd').value=s.description||'';
+  document.getElementById('scat').value=s.category||'';
+  document.getElementById('slang').value=s.language||'en';
+  cc(document.getElementById('st'),'th',100);
+  cc(document.getElementById('sd'),'dh',500);
+  chars=s.characters||[];renderChars();
+  tags=s.tags||[];renderTags();
+  if(s.mature&&!mature)toggleMature();
+  if(s.cover){
+    document.getElementById('cprev').src=s.cover;
+    document.getElementById('cprev').style.display='block';
+    ['dzIc','dzT','dzS'].forEach(id2=>document.getElementById(id2).style.display='none');
+    document.getElementById('ca').style.display='flex';
+  }
+  showPage('p-details');
+}
+
+function openStoryWriter(id){
+  currentStoryId=id;
+  const s=stories.find(x=>x.id===id);
+  if(s&&s.chapters&&s.chapters.length>0){chapters=s.chapters;currentChId=chapters[0].id;}
+  showPage('p-writer');
+}
+
+// ══════ TOAST ══════
+let tTimer;
+function toast(msg,type=''){
+  clearTimeout(tTimer);
+  const el=document.getElementById('toastEl');
+  el.textContent=msg;el.className=`toast ${type} show`;
+  tTimer=setTimeout(()=>el.classList.remove('show'),3200);
+}
+
+// ══════ UTIL ══════
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// ══════ INIT ══════
+window.addEventListener('load',()=>{
+  // Load saved stories
+  try{const raw=localStorage.getItem('nh_stories');if(raw)stories=JSON.parse(raw);}catch(e){}
+
+  // Init Quill when writer page is visited
+  const writerObs=new MutationObserver(()=>{
+    if(document.getElementById('p-writer').classList.contains('active')&&!quillEditor){
+      initQuill();renderChList();
+    }
+  });
+  writerObs.observe(document.getElementById('p-writer'),{attributes:true,attributeFilter:['class']});
+
+  // Ctrl+S shortcut
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key==='s'){
+      e.preventDefault();
+      const wp=document.getElementById('p-writer');
+      if(wp.classList.contains('active'))saveDraftFromWriter();
+      else saveDraftGoProfile();
+    }
+  });
+
+  // Close preview on bg click
+  document.getElementById('previewModal').addEventListener('click',function(e){if(e.target===this)closePreview();});
+});
+</script>
+
+</body>
+</html>

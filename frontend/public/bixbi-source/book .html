@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NovelHub — Chapter Writer</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════ */
+:root {
+  --ink:     #0d0c0a;
+  --ink2:    #141210;
+  --ink3:    #1c1916;
+  --paper:   #e8e0d0;
+  --paper2:  #f0e8d8;
+  --wire:    #2a2520;
+  --wire2:   #332d27;
+  --wire3:   #3d3630;
+  --muted:   #6b6058;
+  --muted2:  #8a7d70;
+  --muted3:  #a8998a;
+  --text:    #c8b89a;
+  --text2:   #ddd0bc;
+  --bright:  #f0e8da;
+  --accent:  #c8522a;
+  --accent2: #e07040;
+  --accent-l:rgba(200,82,42,.12);
+  --gold:    #d4a843;
+  --gold-l:  rgba(212,168,67,.1);
+
+–sidebar: 300px;
+–header:  54px;
+–r: 8px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; }
+
+body {
+font-family: ‘DM Sans’, sans-serif;
+background: var(–ink);
+color: var(–text);
+height: 100vh;
+overflow: hidden;
+display: flex;
+flex-direction: column;
+}
+
+/* ═══════════════════════════════════════
+TOP BAR
+═══════════════════════════════════════ */
+.topbar {
+height: var(–header);
+background: var(–ink2);
+border-bottom: 1px solid var(–wire);
+display: flex;
+align-items: center;
+padding: 0 16px;
+gap: 12px;
+flex-shrink: 0;
+z-index: 100;
+position: relative;
+}
+
+/* Brand */
+.brand {
+display: flex; align-items: center; gap: 8px;
+text-decoration: none; flex-shrink: 0;
+}
+.bixbi { width: 30px; height: 30px; flex-shrink: 0; }
+.bixbi svg { width: 100%; height: 100%; }
+.bn {
+font-family: ‘Lora’, serif;
+font-size: 1.08rem; font-weight: 700;
+color: var(–bright); letter-spacing: -.02em;
+}
+.bn em { color: var(–accent); font-style: normal; }
+
+.tb-sep { width: 1px; height: 24px; background: var(–wire2); flex-shrink: 0; margin: 0 4px; }
+
+/* Story + chapter meta */
+.tb-meta { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.tb-story {
+font-size: .72rem; color: var(–muted2);
+white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tb-chapter {
+font-family: ‘Lora’, serif;
+font-size: .9rem; font-weight: 600; color: var(–text2);
+white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Autosave pill */
+.as-pill {
+display: flex; align-items: center; gap: 6px;
+background: var(–wire); border-radius: 20px;
+padding: 4px 10px; flex-shrink: 0;
+font-size: .72rem; color: var(–muted2);
+transition: all .3s;
+}
+.as-dot {
+width: 6px; height: 6px; border-radius: 50%;
+background: var(–wire3); transition: background .3s;
+}
+.as-dot.saving { background: var(–gold); animation: blink 1s infinite; }
+.as-dot.saved  { background: #4caf82; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+/* Top buttons */
+.tb-btns { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+.tb-btn {
+display: flex; align-items: center; gap: 5px;
+background: var(–wire); border: 1px solid var(–wire2);
+color: var(–muted2); border-radius: 6px;
+padding: 6px 12px; font-family: ‘DM Sans’, sans-serif;
+font-size: .76rem; font-weight: 500; cursor: pointer;
+transition: all .18s; white-space: nowrap;
+}
+.tb-btn:hover { border-color: var(–muted); color: var(–text); }
+.tb-btn.accent {
+background: var(–accent); border-color: var(–accent);
+color: #fff;
+box-shadow: 0 2px 10px rgba(200,82,42,.3);
+}
+.tb-btn.accent:hover { background: var(–accent2); box-shadow: 0 4px 16px rgba(200,82,42,.4); }
+
+/* Focus mode toggle */
+.focus-btn {
+background: none; border: none; color: var(–muted);
+cursor: pointer; padding: 6px; border-radius: 6px;
+transition: all .18s; font-size: .9rem;
+display: flex; align-items: center;
+}
+.focus-btn:hover { color: var(–text); background: var(–wire); }
+
+/* Avatar */
+.av {
+width: 30px; height: 30px; border-radius: 50%;
+background: linear-gradient(135deg, var(–accent), var(–gold));
+display: flex; align-items: center; justify-content: center;
+font-size: .72rem; font-weight: 700; color: #fff;
+cursor: pointer; flex-shrink: 0;
+border: 1.5px solid var(–wire2);
+}
+.av:hover { border-color: var(–accent); }
+
+/* ═══════════════════════════════════════
+MAIN LAYOUT
+═══════════════════════════════════════ */
+.layout {
+flex: 1; display: flex; overflow: hidden;
+}
+
+/* ═══════════════════════════════════════
+LEFT SIDEBAR — CHAPTERS
+═══════════════════════════════════════ */
+.sidebar {
+width: var(–sidebar);
+background: var(–ink2);
+border-right: 1px solid var(–wire);
+display: flex; flex-direction: column;
+flex-shrink: 0;
+transition: width .3s, opacity .3s;
+overflow: hidden;
+}
+.sidebar.collapsed { width: 0; opacity: 0; }
+
+/* Sidebar header */
+.sb-head {
+padding: 16px 16px 12px;
+border-bottom: 1px solid var(–wire);
+flex-shrink: 0;
+}
+.sb-story-card {
+display: flex; align-items: center; gap: 10px;
+padding: 10px 12px; background: var(–ink3);
+border-radius: 8px; border: 1px solid var(–wire);
+margin-bottom: 12px;
+}
+.sb-cover {
+width: 38px; height: 54px; border-radius: 4px;
+background: linear-gradient(135deg, #2a1f18, #3d2d20);
+display: flex; align-items: center; justify-content: center;
+font-size: 1.1rem; flex-shrink: 0; overflow: hidden;
+border: 1px solid var(–wire2);
+}
+.sb-cover img { width: 100%; height: 100%; object-fit: cover; }
+.sb-story-info { flex: 1; min-width: 0; }
+.sb-story-name {
+font-family: ‘Lora’, serif;
+font-size: .82rem; font-weight: 600; color: var(–bright);
+white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sb-story-stat { font-size: .68rem; color: var(–muted); margin-top: 2px; }
+
+.sb-label {
+font-size: .65rem; font-weight: 700;
+letter-spacing: .1em; text-transform: uppercase;
+color: var(–muted); margin-bottom: 8px; display: block;
+}
+
+/* Chapter list */
+.sb-list { flex: 1; overflow-y: auto; padding: 8px 10px; }
+.sb-list::-webkit-scrollbar { width: 3px; }
+.sb-list::-webkit-scrollbar-thumb { background: var(–wire2); border-radius: 2px; }
+
+.ch-item {
+display: flex; align-items: center; gap: 8px;
+padding: 9px 10px; border-radius: 7px;
+cursor: pointer; transition: all .15s;
+border: 1px solid transparent;
+margin-bottom: 2px; position: relative;
+}
+.ch-item:hover { background: var(–wire); }
+.ch-item.active {
+background: var(–ink3);
+border-color: rgba(200,82,42,.25);
+}
+.ch-item.active::before {
+content: ‘’;
+position: absolute; left: -10px; top: 50%;
+transform: translateY(-50%);
+width: 3px; height: 60%; background: var(–accent);
+border-radius: 0 2px 2px 0;
+}
+.ch-drag { color: var(–wire3); font-size: .85rem; cursor: grab; flex-shrink: 0; }
+.ch-num {
+font-size: .66rem; font-weight: 700; color: var(–muted);
+min-width: 16px; text-align: center;
+}
+.ch-item.active .ch-num { color: var(–accent); }
+.ch-info { flex: 1; min-width: 0; }
+.ch-name {
+font-size: .8rem; color: var(–muted2); font-weight: 400;
+white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ch-item.active .ch-name { color: var(–text2); font-weight: 500; }
+.ch-wc { font-size: .65rem; color: var(–muted); margin-top: 1px; }
+.ch-badge {
+font-size: .6rem; padding: 2px 6px; border-radius: 10px;
+background: var(–wire); color: var(–muted); flex-shrink: 0;
+}
+.ch-badge.pub { background: rgba(76,175,130,.15); color: #4caf82; }
+.ch-badge.sch { background: var(–gold-l); color: var(–gold); }
+
+.sb-add {
+margin: 6px 10px 12px;
+display: flex; align-items: center; justify-content: center; gap: 6px;
+padding: 9px; border: 1px dashed var(–wire2);
+border-radius: 7px; background: transparent;
+cursor: pointer; font-family: ‘DM Sans’, sans-serif;
+font-size: .78rem; color: var(–muted); transition: all .18s;
+}
+.sb-add:hover { border-color: var(–accent); color: var(–accent); background: var(–accent-l); }
+
+/* ═══════════════════════════════════════
+RIGHT PANEL — SETTINGS
+═══════════════════════════════════════ */
+.rpanel {
+width: 0; background: var(–ink2);
+border-left: 1px solid var(–wire);
+flex-shrink: 0; overflow: hidden;
+transition: width .3s;
+display: flex; flex-direction: column;
+}
+.rpanel.open { width: 260px; }
+.rp-head {
+padding: 16px; border-bottom: 1px solid var(–wire);
+display: flex; align-items: center; justify-content: space-between;
+}
+.rp-head h3 { font-size: .82rem; font-weight: 600; color: var(–text2); }
+.rp-close {
+background: none; border: none; cursor: pointer;
+color: var(–muted); font-size: 1rem;
+border-radius: 4px; padding: 2px 6px;
+transition: color .18s;
+}
+.rp-close:hover { color: var(–bright); }
+.rp-body { padding: 16px; flex: 1; overflow-y: auto; }
+.rp-section { margin-bottom: 20px; }
+.rp-label {
+font-size: .65rem; font-weight: 700; letter-spacing: .1em;
+text-transform: uppercase; color: var(–muted); margin-bottom: 10px; display: block;
+}
+.rp-row {
+display: flex; align-items: center; justify-content: space-between;
+margin-bottom: 10px;
+}
+.rp-row span { font-size: .8rem; color: var(–text); }
+.rp-select {
+background: var(–wire); border: 1px solid var(–wire2); color: var(–text2);
+border-radius: 5px; padding: 5px 8px; font-family: ‘DM Sans’, sans-serif;
+font-size: .76rem; outline: none; cursor: pointer; appearance: none;
+width: 100%; margin-top: 4px;
+}
+.rp-select:focus { border-color: var(–accent); }
+.rp-slider {
+-webkit-appearance: none; appearance: none;
+width: 100%; height: 3px; background: var(–wire2);
+border-radius: 2px; outline: none; margin-top: 6px; cursor: pointer;
+}
+.rp-slider::-webkit-slider-thumb {
+-webkit-appearance: none; width: 14px; height: 14px;
+border-radius: 50%; background: var(–accent); cursor: pointer;
+box-shadow: 0 0 6px rgba(200,82,42,.4);
+}
+.font-preview {
+padding: 10px 12px; background: var(–wire); border-radius: 6px;
+margin-top: 8px; font-size: .88rem; line-height: 1.7; color: var(–text2);
+border: 1px solid var(–wire2);
+}
+
+/* Toggle */
+.tog-wrap { display: flex; align-items: center; gap: 8px; }
+.tog {
+width: 36px; height: 20px; background: var(–wire2); border-radius: 10px;
+position: relative; cursor: pointer; transition: background .2s; flex-shrink: 0;
+}
+.tog.on { background: var(–accent); }
+.tog::after {
+content: ‘’; width: 14px; height: 14px; border-radius: 50%;
+background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3);
+position: absolute; top: 3px; left: 3px; transition: transform .2s;
+}
+.tog.on::after { transform: translateX(16px); }
+.tog-label { font-size: .78rem; color: var(–muted2); }
+
+/* Chapter settings in panel */
+.rp-input {
+width: 100%; background: var(–wire); border: 1px solid var(–wire2);
+color: var(–text2); border-radius: 5px; padding: 7px 10px;
+font-family: ‘DM Sans’, sans-serif; font-size: .8rem; outline: none;
+margin-top: 6px; transition: border-color .18s;
+}
+.rp-input:focus { border-color: var(–accent); }
+.rp-textarea {
+width: 100%; background: var(–wire); border: 1px solid var(–wire2);
+color: var(–text2); border-radius: 5px; padding: 7px 10px;
+font-family: ‘DM Sans’, sans-serif; font-size: .78rem; outline: none;
+margin-top: 6px; resize: none; height: 70px; line-height: 1.55;
+}
+.rp-textarea:focus { border-color: var(–accent); }
+
+/* Publish options */
+.pub-opts { display: flex; flex-direction: column; gap: 6px; }
+.pub-opt {
+padding: 9px 12px; border-radius: 7px; border: 1px solid var(–wire2);
+cursor: pointer; transition: all .18s; display: flex; align-items: center; gap: 10px;
+}
+.pub-opt:hover { border-color: var(–accent); background: var(–accent-l); }
+.pub-opt .po-icon { font-size: 1rem; }
+.pub-opt .po-title { font-size: .8rem; font-weight: 600; color: var(–text2); }
+.pub-opt .po-sub   { font-size: .68rem; color: var(–muted); margin-top: 1px; }
+.pub-opt.danger .po-title { color: #e07070; }
+
+/* ═══════════════════════════════════════
+CENTER — WRITING AREA
+═══════════════════════════════════════ */
+.editor-area {
+flex: 1; display: flex; flex-direction: column;
+overflow: hidden; position: relative;
+background: var(–ink3);
+transition: background .4s;
+}
+
+/* Focus mode */
+body.focus-mode .editor-area { background: var(–ink); }
+body.focus-mode .sidebar { width: 0; opacity: 0; }
+body.focus-mode .topbar .tb-meta,
+body.focus-mode .topbar .tb-btns { opacity: .3; transition: opacity .3s; }
+body.focus-mode .topbar:hover .tb-meta,
+body.focus-mode .topbar:hover .tb-btns { opacity: 1; }
+
+/* Ambient glow behind text area */
+.editor-area::before {
+content: ‘’;
+position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+width: 600px; height: 200px;
+background: radial-gradient(ellipse at top, rgba(200,82,42,.04) 0%, transparent 70%);
+pointer-events: none; z-index: 0;
+}
+
+/* Toolbar */
+.toolbar {
+background: var(–ink2);
+border-bottom: 1px solid var(–wire);
+padding: 6px 16px;
+display: flex; align-items: center; gap: 4px;
+flex-shrink: 0; flex-wrap: wrap;
+position: relative; z-index: 10;
+}
+.toolbar.hidden { display: none; }
+
+.t-group { display: flex; align-items: center; gap: 2px; }
+.t-sep { width: 1px; height: 20px; background: var(–wire2); margin: 0 6px; }
+
+.tbtn {
+background: none; border: none; color: var(–muted);
+width: 30px; height: 28px; border-radius: 5px;
+cursor: pointer; font-size: .82rem; font-weight: 700;
+display: flex; align-items: center; justify-content: center;
+transition: all .15s; font-family: ‘DM Sans’, sans-serif;
+position: relative;
+}
+.tbtn:hover { background: var(–wire); color: var(–text2); }
+.tbtn.active { background: var(–wire2); color: var(–accent); }
+.tbtn svg { width: 14px; height: 14px; }
+
+.t-select {
+background: var(–wire); border: 1px solid transparent; color: var(–muted2);
+border-radius: 5px; padding: 3px 7px;
+font-family: ‘DM Sans’, sans-serif; font-size: .76rem;
+outline: none; cursor: pointer; appearance: none;
+}
+.t-select:focus { border-color: var(–accent); }
+
+/* Chapter title */
+.ch-title-area {
+padding: 36px 0 0;
+max-width: 720px; margin: 0 auto; width: 100%;
+padding-left: 24px; padding-right: 24px;
+flex-shrink: 0; position: relative; z-index: 1;
+}
+.ch-title-input {
+width: 100%;
+font-family: ‘Playfair Display’, serif;
+font-size: 1.9rem; font-weight: 700;
+background: transparent; border: none; outline: none;
+color: var(–bright); line-height: 1.25;
+border-bottom: 1px solid transparent;
+padding-bottom: 12px;
+transition: border-color .2s;
+caret-color: var(–accent);
+}
+.ch-title-input:focus { border-bottom-color: var(–wire2); }
+.ch-title-input::placeholder {
+color: var(–wire3); font-style: italic;
+font-weight: 400;
+}
+
+.ch-meta-row {
+display: flex; align-items: center; gap: 12px;
+padding: 8px 0 16px;
+font-size: .74rem; color: var(–muted);
+border-bottom: 1px solid var(–wire);
+}
+.ch-meta-row span { display: flex; align-items: center; gap: 4px; }
+.ch-meta-row .dot { color: var(–wire2); }
+
+/* THE WRITING AREA */
+.write-scroll {
+flex: 1; overflow-y: auto; position: relative; z-index: 1;
+}
+.write-scroll::-webkit-scrollbar { width: 5px; }
+.write-scroll::-webkit-scrollbar-thumb { background: var(–wire2); border-radius: 3px; }
+.write-scroll::-webkit-scrollbar-thumb:hover { background: var(–wire3); }
+
+#writer {
+max-width: 720px; margin: 0 auto;
+padding: 28px 24px 120px;
+min-height: 100%;
+font-family: ‘Lora’, serif;
+font-size: 1.1rem; line-height: 1.95;
+color: var(–text2);
+outline: none;
+caret-color: var(–accent);
+}
+#writer:focus { outline: none; }
+
+/* Typography inside writer */
+#writer p { margin-bottom: .65em; }
+#writer h1 {
+font-family: ‘Playfair Display’, serif;
+font-size: 1.7rem; color: var(–bright); margin: 1.4em 0 .4em;
+}
+#writer h2 {
+font-family: ‘Playfair Display’, serif;
+font-size: 1.3rem; color: var(–bright); margin: 1.1em 0 .3em;
+}
+#writer h3 {
+font-family: ‘Lora’, serif;
+font-size: 1.1rem; font-weight: 600; color: var(–text2); margin: .9em 0 .2em;
+}
+#writer blockquote {
+border-left: 3px solid var(–accent);
+padding: 4px 16px; margin: 1em 0;
+color: var(–muted3); font-style: italic;
+}
+#writer hr {
+border: none; text-align: center; margin: 2em 0;
+color: var(–muted);
+}
+#writer hr::before { content: ‘✦  ✦  ✦’; font-size: .9rem; letter-spacing: .5em; }
+#writer strong { color: var(–text2); font-weight: 600; }
+#writer em { color: var(–muted3); font-style: italic; }
+#writer a { color: var(–accent); text-decoration: underline; }
+#writer ul, #writer ol { padding-left: 24px; margin: .5em 0; }
+#writer li { margin-bottom: .3em; }
+#writer[data-empty=“true”]:before {
+content: attr(data-placeholder);
+color: var(–wire3); pointer-events: none;
+font-style: italic; position: absolute;
+font-family: ‘Lora’, serif; font-size: 1.1rem; line-height: 1.95;
+}
+#writer img {
+max-width: 100%; border-radius: 6px; margin: 1em 0;
+box-shadow: 0 4px 20px rgba(0,0,0,.4);
+}
+
+/* Bottom status bar */
+.statusbar {
+position: absolute; bottom: 0; left: 0; right: 0;
+background: linear-gradient(to top, var(–ink2) 70%, transparent);
+padding: 20px 24px 14px;
+display: flex; align-items: center; gap: 16px;
+pointer-events: none; z-index: 10;
+}
+.stat-item { font-size: .73rem; color: var(–muted); white-space: nowrap; }
+.stat-item strong { color: var(–muted3); font-weight: 500; }
+.prog-bar {
+flex: 1; height: 2px; background: var(–wire);
+border-radius: 1px; overflow: hidden; max-width: 200px;
+}
+.prog-fill { height: 100%; background: var(–accent); width: 0%; transition: width .5s; border-radius: 1px; }
+
+/* Word goal hint */
+.goal-tip {
+font-size: .68rem; color: var(–muted);
+display: flex; align-items: center; gap: 5px;
+}
+
+/* ═══════════════════════════════════════
+FLOATING TOOLBAR (selection)
+═══════════════════════════════════════ */
+.float-toolbar {
+position: fixed; z-index: 500;
+background: var(–ink2);
+border: 1px solid var(–wire2);
+border-radius: 8px;
+padding: 5px 7px;
+display: flex; align-items: center; gap: 3px;
+box-shadow: 0 8px 30px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.3);
+opacity: 0; pointer-events: none;
+transform: translateY(6px);
+transition: all .15s;
+}
+.float-toolbar.show { opacity: 1; pointer-events: all; transform: translateY(0); }
+.float-toolbar::after {
+content: ‘’;
+position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+border: 5px solid transparent; border-top-color: var(–wire2);
+}
+.ftbtn {
+background: none; border: none; color: var(–muted2);
+width: 28px; height: 26px; border-radius: 5px;
+cursor: pointer; font-size: .8rem; font-weight: 700;
+display: flex; align-items: center; justify-content: center;
+transition: all .12s; font-family: ‘DM Sans’, sans-serif;
+}
+.ftbtn:hover { background: var(–wire); color: var(–bright); }
+.ftbtn.accent-f { color: var(–accent); }
+.ft-sep { width: 1px; height: 18px; background: var(–wire2); margin: 0 3px; }
+
+/* ═══════════════════════════════════════
+TOAST
+═══════════════════════════════════════ */
+.toast {
+position: fixed; bottom: 28px; right: 24px; z-index: 900;
+background: var(–ink2); color: var(–text2);
+border: 1px solid var(–wire2);
+padding: 10px 16px; border-radius: 8px;
+font-size: .8rem; font-weight: 500;
+box-shadow: 0 8px 30px rgba(0,0,0,.4);
+transform: translateY(8px); opacity: 0;
+transition: all .22s; pointer-events: none;
+display: flex; align-items: center; gap: 8px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.green { border-color: rgba(76,175,130,.3); }
+.toast.orange { border-color: rgba(212,168,67,.3); }
+
+/* ═══════════════════════════════════════
+PREVIEW OVERLAY
+═══════════════════════════════════════ */
+.preview-overlay {
+position: fixed; inset: 0; z-index: 400;
+background: rgba(0,0,0,.85); backdrop-filter: blur(8px);
+display: flex; align-items: center; justify-content: center;
+opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+.preview-overlay.open { opacity: 1; pointer-events: all; }
+.preview-box {
+width: 90%; max-width: 660px; max-height: 88vh;
+background: var(–ink2); border: 1px solid var(–wire);
+border-radius: 12px; overflow: hidden;
+box-shadow: 0 20px 60px rgba(0,0,0,.6);
+display: flex; flex-direction: column;
+transform: scale(.95) translateY(10px);
+transition: transform .25s;
+}
+.preview-overlay.open .preview-box { transform: scale(1) translateY(0); }
+.pv-head {
+padding: 16px 22px; border-bottom: 1px solid var(–wire);
+display: flex; align-items: center; justify-content: space-between;
+flex-shrink: 0;
+}
+.pv-head h3 { font-family: ‘Lora’, serif; font-size: 1rem; color: var(–bright); }
+.pv-head-meta { font-size: .73rem; color: var(–muted); }
+.pv-close {
+background: var(–wire); border: none; color: var(–muted2);
+border-radius: 6px; padding: 5px 12px; cursor: pointer;
+font-family: ‘DM Sans’, sans-serif; font-size: .75rem;
+transition: all .15s;
+}
+.pv-close:hover { color: var(–bright); }
+.pv-body {
+flex: 1; overflow-y: auto; padding: 32px 48px;
+font-family: ‘Lora’, serif; font-size: 1.05rem;
+line-height: 1.95; color: var(–text2);
+}
+.pv-body h1,.pv-body h2,.pv-body h3 { color: var(–bright); }
+.pv-body blockquote { border-left: 3px solid var(–accent); padding: 4px 16px; color: var(–muted3); font-style: italic; }
+.pv-body hr { border: none; text-align: center; margin: 2em 0; color: var(–muted); }
+.pv-body hr::before { content: ‘✦  ✦  ✦’; font-size: .9rem; letter-spacing: .5em; }
+.pv-body::-webkit-scrollbar { width: 4px; }
+.pv-body::-webkit-scrollbar-thumb { background: var(–wire2); border-radius: 2px; }
+
+/* ═══════════════════════════════════════
+WORD GOAL MODAL
+═══════════════════════════════════════ */
+.modal-overlay {
+position: fixed; inset: 0; z-index: 450;
+background: rgba(0,0,0,.7); backdrop-filter: blur(6px);
+display: flex; align-items: center; justify-content: center;
+opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+background: var(–ink2); border: 1px solid var(–wire);
+border-radius: 12px; padding: 26px; width: 90%; max-width: 380px;
+box-shadow: 0 16px 48px rgba(0,0,0,.5);
+transform: scale(.95); transition: transform .2s;
+}
+.modal-overlay.open .modal { transform: scale(1); }
+.modal h3 { font-family: ‘Lora’, serif; font-size: 1rem; color: var(–bright); margin-bottom: 14px; }
+.modal input {
+width: 100%; background: var(–wire); border: 1px solid var(–wire2);
+color: var(–text2); border-radius: 6px; padding: 9px 12px;
+font-family: ‘DM Sans’, sans-serif; font-size: .85rem; outline: none; margin-bottom: 14px;
+}
+.modal input:focus { border-color: var(–accent); }
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ═══════════════════════════════════════
+RESPONSIVE
+═══════════════════════════════════════ */
+@media (max-width: 768px) {
+:root { –sidebar: 260px; }
+.sidebar { position: fixed; top: var(–header); bottom: 0; left: 0; z-index: 200; transform: translateX(-100%); transition: transform .3s; }
+.sidebar.mobile-open { transform: translateX(0); box-shadow: 4px 0 24px rgba(0,0,0,.5); }
+.sidebar.collapsed { transform: translateX(-100%); width: var(–sidebar); opacity: 1; }
+.rpanel { position: fixed; top: var(–header); bottom: 0; right: 0; z-index: 200; }
+.pv-body { padding: 20px 22px; }
+.ch-title-input { font-size: 1.5rem; }
+#writer { font-size: 1rem; }
+.toolbar { gap: 2px; padding: 5px 10px; }
+}
+</style>
+
+</head>
+<body>
+
+<!-- ═══════════════ TOP BAR ═══════════════ -->
+
+<div class="topbar">
+  <!-- Brand -->
+  <a class="brand" href="#">
+    <div class="bixbi">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="50" cy="53" rx="34" ry="35" fill="#1a1714"/>
+        <ellipse cx="18" cy="41" rx="9.5" ry="13" fill="#1a1714"/>
+        <ellipse cx="82" cy="41" rx="9.5" ry="13" fill="#1a1714"/>
+        <ellipse cx="18" cy="41" rx="5.5" ry="8.5" fill="#c8522a"/>
+        <ellipse cx="82" cy="41" rx="5.5" ry="8.5" fill="#c8522a"/>
+        <ellipse cx="50" cy="56" rx="28" ry="29" fill="#2d2520"/>
+        <ellipse cx="37" cy="47" rx="7.5" ry="7.5" fill="#fff"/>
+        <ellipse cx="63" cy="47" rx="7.5" ry="7.5" fill="#fff"/>
+        <ellipse cx="38.5" cy="47" rx="4.8" ry="4.8" fill="#c8522a"/>
+        <ellipse cx="64.5" cy="47" rx="4.8" ry="4.8" fill="#c8522a"/>
+        <circle cx="39.5" cy="46.5" r="2.2" fill="#1a1714"/>
+        <circle cx="65.5" cy="46.5" r="2.2" fill="#1a1714"/>
+        <circle cx="38.5" cy="45" r="1.1" fill="#fff" opacity=".9"/>
+        <circle cx="64.5" cy="45" r="1.1" fill="#fff" opacity=".9"/>
+        <ellipse cx="50" cy="59" rx="5.5" ry="3.8" fill="#c8522a"/>
+        <ellipse cx="50" cy="63" rx="13" ry="8" fill="#3d3028" opacity=".45"/>
+        <path d="M 43 64 Q 50 70 57 64" stroke="#1a1714" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        <line x1="20" y1="60" x2="38" y2="62" stroke="#5a4a3a" stroke-width="1" opacity=".5"/>
+        <line x1="20" y1="64" x2="38" y2="64" stroke="#5a4a3a" stroke-width="1" opacity=".5"/>
+        <line x1="80" y1="60" x2="62" y2="62" stroke="#5a4a3a" stroke-width="1" opacity=".5"/>
+        <line x1="80" y1="64" x2="62" y2="64" stroke="#5a4a3a" stroke-width="1" opacity=".5"/>
+      </svg>
+    </div>
+    <span class="bn">Novel<em>Hub</em></span>
+  </a>
+
+  <div class="tb-sep"></div>
+
+  <div class="tb-meta">
+    <div class="tb-story" id="tbStory">The Last Ember · Fantasy</div>
+    <div class="tb-chapter" id="tbChapter">Chapter 1: The Beginning</div>
+  </div>
+
+  <div class="as-pill">
+    <div class="as-dot" id="asDot"></div>
+    <span id="asText">Not saved</span>
+  </div>
+
+  <div class="tb-btns">
+    <button class="tb-btn" onclick="toggleSidebar()" title="Toggle chapters">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M1 2.5A.5.5 0 011.5 2h3a.5.5 0 010 1h-3a.5.5 0 01-.5-.5zm0 5A.5.5 0 011.5 7h3a.5.5 0 010 1h-3a.5.5 0 01-.5-.5zm0 5a.5.5 0 01.5-.5h3a.5.5 0 010 1h-3a.5.5 0 01-.5-.5zM7 2.5a.5.5 0 01.5-.5h7a.5.5 0 010 1h-7a.5.5 0 01-.5-.5zm0 5a.5.5 0 01.5-.5h7a.5.5 0 010 1h-7a.5.5 0 01-.5-.5zm0 5a.5.5 0 01.5-.5h7a.5.5 0 010 1h-7a.5.5 0 01-.5-.5z"/></svg>
+      Chapters
+    </button>
+    <button class="tb-btn" onclick="openPreview()">👁 Preview</button>
+    <button class="tb-btn" onclick="openWordGoal()">🎯 Goal</button>
+    <button class="tb-btn" onclick="toggleFocus()" id="focusBtn">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 1h4a.5.5 0 010 1h-4v4a.5.5 0 01-1 0v-4A.5.5 0 011.5 1zm9 0h4a.5.5 0 01.5.5v4a.5.5 0 01-1 0v-4h-4a.5.5 0 010-1zM1 10.5a.5.5 0 011 0v4h4a.5.5 0 010 1h-4a.5.5 0 01-.5-.5v-4zm13 0a.5.5 0 011 0v4a.5.5 0 01-.5.5h-4a.5.5 0 010-1h4v-4z"/></svg>
+      Focus
+    </button>
+    <button class="tb-btn" onclick="toggleSettings()">⚙️</button>
+    <button class="tb-btn" onclick="saveDraft()">💾 Save</button>
+    <button class="tb-btn accent" onclick="publishChapter()">🚀 Publish</button>
+    <div class="av" title="Profile">SW</div>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN LAYOUT ═══════════════ -->
+
+<div class="layout">
+
+  <!-- ── SIDEBAR ── -->
+
+  <div class="sidebar" id="sidebar">
+    <div class="sb-head">
+      <div class="sb-story-card">
+        <div class="sb-cover" id="sbCover">📚</div>
+        <div class="sb-story-info">
+          <div class="sb-story-name" id="sbStoryName">The Last Ember</div>
+          <div class="sb-story-stat" id="sbStat">Draft · 1 chapter</div>
+        </div>
+      </div>
+      <span class="sb-label">Chapters</span>
+    </div>
+    <div class="sb-list" id="chList"></div>
+    <button class="sb-add" onclick="addChapter()">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a.5.5 0 01.5.5v3h3a.5.5 0 010 1h-3v3a.5.5 0 01-1 0v-3h-3a.5.5 0 010-1h3v-3A.5.5 0 018 4z"/></svg>
+      Add New Chapter
+    </button>
+  </div>
+
+  <!-- ── CENTER EDITOR ── -->
+
+  <div class="editor-area">
+
+```
+<!-- Formatting Toolbar -->
+<div class="toolbar" id="formatToolbar">
+  <div class="t-group">
+    <select class="t-select" onchange="execCmd('formatBlock',this.value);this.value=''">
+      <option value="" disabled selected>Style</option>
+      <option value="p">Paragraph</option>
+      <option value="h1">Heading 1</option>
+      <option value="h2">Heading 2</option>
+      <option value="h3">Heading 3</option>
+      <option value="blockquote">Quote</option>
+    </select>
+  </div>
+  <div class="t-sep"></div>
+  <div class="t-group">
+    <button class="tbtn" onclick="execCmd('bold')" title="Bold (Ctrl+B)"><b>B</b></button>
+    <button class="tbtn" onclick="execCmd('italic')" title="Italic (Ctrl+I)"><i>I</i></button>
+    <button class="tbtn" onclick="execCmd('underline')" title="Underline (Ctrl+U)"><u>U</u></button>
+    <button class="tbtn" onclick="execCmd('strikeThrough')" title="Strike"><s>S</s></button>
+  </div>
+  <div class="t-sep"></div>
+  <div class="t-group">
+    <button class="tbtn" onclick="execCmd('justifyLeft')" title="Align left">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 12.5a.5.5 0 010-1h7a.5.5 0 010 1H2zm0-3a.5.5 0 010-1h11a.5.5 0 010 1H2zm0-3a.5.5 0 010-1h7a.5.5 0 010 1H2zm0-3a.5.5 0 010-1h11a.5.5 0 010 1H2z"/></svg>
+    </button>
+    <button class="tbtn" onclick="execCmd('justifyCenter')" title="Center">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 12.5a.5.5 0 01.5-.5h7a.5.5 0 010 1h-7a.5.5 0 01-.5-.5zm-2-3a.5.5 0 01.5-.5h11a.5.5 0 010 1H2.5a.5.5 0 01-.5-.5zm2-3a.5.5 0 01.5-.5h7a.5.5 0 010 1h-7a.5.5 0 01-.5-.5zm-2-3a.5.5 0 01.5-.5h11a.5.5 0 010 1H2.5a.5.5 0 01-.5-.5z"/></svg>
+    </button>
+    <button class="tbtn" onclick="execCmd('justifyRight')" title="Right">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M6 12.5a.5.5 0 01.5-.5h7a.5.5 0 010 1h-7a.5.5 0 01-.5-.5zm-4-3a.5.5 0 01.5-.5h11a.5.5 0 010 1H2.5a.5.5 0 01-.5-.5zm4-3a.5.5 0 01.5-.5h7a.5.5 0 010 1h-7a.5.5 0 01-.5-.5zm-4-3a.5.5 0 01.5-.5h11a.5.5 0 010 1H2.5a.5.5 0 01-.5-.5z"/></svg>
+    </button>
+  </div>
+  <div class="t-sep"></div>
+  <div class="t-group">
+    <button class="tbtn" onclick="execCmd('insertUnorderedList')" title="Bullet list">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M5 11.5a.5.5 0 01.5-.5h9a.5.5 0 010 1h-9a.5.5 0 01-.5-.5zm0-4a.5.5 0 01.5-.5h9a.5.5 0 010 1h-9a.5.5 0 01-.5-.5zm0-4a.5.5 0 01.5-.5h9a.5.5 0 010 1h-9A.5.5 0 015 3.5zm-3 1a1 1 0 100-2 1 1 0 000 2zm0 4a1 1 0 100-2 1 1 0 000 2zm0 4a1 1 0 100-2 1 1 0 000 2z"/></svg>
+    </button>
+    <button class="tbtn" onclick="execCmd('insertOrderedList')" title="Numbered list">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M5 11.5a.5.5 0 01.5-.5h9a.5.5 0 010 1h-9a.5.5 0 01-.5-.5zm0-4a.5.5 0 01.5-.5h9a.5.5 0 010 1h-9a.5.5 0 01-.5-.5zm0-4a.5.5 0 01.5-.5h9a.5.5 0 010 1h-9A.5.5 0 015 3.5zM1 .5a.5.5 0 01.5-.5H3.5a.5.5 0 01.5.5v3a.5.5 0 01-1 0V1h-.5A.5.5 0 011 .5z"/></svg>
+    </button>
+  </div>
+  <div class="t-sep"></div>
+  <div class="t-group">
+    <button class="tbtn" onclick="insertHr()" title="Scene break  ✦ ✦ ✦">— </button>
+    <button class="tbtn" onclick="insertLink()" title="Insert link">🔗</button>
+    <button class="tbtn" onclick="document.getElementById('imgInput').click()" title="Insert image">🖼</button>
+    <input type="file" id="imgInput" accept="image/*" style="display:none" onchange="insertImage(event)">
+  </div>
+  <div class="t-sep"></div>
+  <div class="t-group">
+    <select class="t-select" id="fontSelect" onchange="changeFontSize(this.value)">
+      <option value="1rem" selected>Normal</option>
+      <option value="1.15rem">Large</option>
+      <option value=".95rem">Small</option>
+    </select>
+  </div>
+</div>
+
+<!-- Chapter Title -->
+<div class="ch-title-area">
+  <input type="text" class="ch-title-input" id="chTitle"
+    placeholder="Chapter title…"
+    oninput="updateMeta()">
+  <div class="ch-meta-row">
+    <span id="chNumLabel">Chapter 1</span>
+    <span class="dot">·</span>
+    <span id="wcLabel">0 words</span>
+    <span class="dot">·</span>
+    <span id="rtLabel">~1 min read</span>
+    <span class="dot" id="goalDot" style="display:none">·</span>
+    <span id="goalLabel" style="display:none"></span>
+  </div>
+</div>
+
+<!-- Writing area -->
+<div class="write-scroll">
+  <div id="writer"
+    contenteditable="true"
+    data-placeholder="Once upon a time, in a world not unlike our own…"
+    data-empty="true"
+    spellcheck="true"
+    oninput="handleInput()"
+    onkeydown="handleKeydown(event)"
+    onmouseup="showFloatToolbar()"
+    onkeyup="showFloatToolbar()">
+  </div>
+</div>
+
+<!-- Status bar -->
+<div class="statusbar">
+  <div class="stat-item">Words: <strong id="wcStat">0</strong></div>
+  <div class="stat-item">Chars: <strong id="charStat">0</strong></div>
+  <div class="stat-item">Read: <strong id="rtStat">~1 min</strong></div>
+  <div class="prog-bar" id="goalBar" style="display:none">
+    <div class="prog-fill" id="goalFill"></div>
+  </div>
+  <div class="goal-tip" id="goalTip" style="display:none"></div>
+</div>
+```
+
+  </div><!-- /editor-area -->
+
+  <!-- ── RIGHT PANEL ── -->
+
+  <div class="rpanel" id="rpanel">
+    <div class="rp-head">
+      <h3>Settings</h3>
+      <button class="rp-close" onclick="toggleSettings()">✕</button>
+    </div>
+    <div class="rp-body">
+
+```
+  <!-- Chapter settings -->
+  <div class="rp-section">
+    <span class="rp-label">This Chapter</span>
+    <div class="rp-row"><span>Status</span></div>
+    <select class="rp-select" id="chStatus">
+      <option value="draft">Draft</option>
+      <option value="published">Published</option>
+      <option value="scheduled">Scheduled</option>
+    </select>
+    <div style="margin-top:10px"><span style="font-size:.76rem;color:var(--muted)">Author's Note</span></div>
+    <textarea class="rp-textarea" id="authorNote" placeholder="Add a note for readers…"></textarea>
+    <div style="margin-top:10px"><span style="font-size:.76rem;color:var(--muted)">Content Warning</span></div>
+    <input type="text" class="rp-input" id="contentWarn" placeholder="Violence, strong language…">
+  </div>
+
+  <!-- Editor appearance -->
+  <div class="rp-section">
+    <span class="rp-label">Editor Appearance</span>
+    <div class="rp-row" style="margin-bottom:6px"><span>Font Family</span></div>
+    <select class="rp-select" id="fontFamily" onchange="changeFontFamily(this.value)">
+      <option value="'Lora',serif">Lora (Default)</option>
+      <option value="'Georgia',serif">Georgia</option>
+      <option value="'DM Sans',sans-serif">DM Sans</option>
+      <option value="'Playfair Display',serif">Playfair</option>
+      <option value="'Courier New',monospace">Courier</option>
+    </select>
+    <div class="font-preview" id="fontPreview">The quick brown fox jumps over the lazy dog.</div>
+
+    <div style="margin-top:12px"><span style="font-size:.76rem;color:var(--muted)">Font Size</span></div>
+    <input type="range" class="rp-slider" min="14" max="22" value="17" oninput="changeFontSizeSlider(this.value)">
+
+    <div style="margin-top:12px"><span style="font-size:.76rem;color:var(--muted)">Line Height</span></div>
+    <input type="range" class="rp-slider" min="14" max="24" value="195" oninput="changeLineHeight(this.value)">
+  </div>
+
+  <!-- Write mode -->
+  <div class="rp-section">
+    <span class="rp-label">Write Mode</span>
+    <div class="rp-row" style="margin-bottom:8px">
+      <span>Typewriter mode</span>
+      <div class="tog-wrap">
+        <div class="tog" id="typewriterTog" onclick="toggleTypewriter()"></div>
+      </div>
+    </div>
+    <div class="rp-row">
+      <span>Spell check</span>
+      <div class="tog-wrap">
+        <div class="tog on" id="spellTog" onclick="toggleSpell()"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Publish -->
+  <div class="rp-section">
+    <span class="rp-label">Publish Options</span>
+    <div class="pub-opts">
+      <div class="pub-opt" onclick="saveDraft()">
+        <div class="po-icon">💾</div>
+        <div><div class="po-title">Save Draft</div><div class="po-sub">Keep editing later</div></div>
+      </div>
+      <div class="pub-opt" onclick="publishChapter()">
+        <div class="po-icon">🚀</div>
+        <div><div class="po-title">Publish Now</div><div class="po-sub">Go live immediately</div></div>
+      </div>
+      <div class="pub-opt" onclick="openScheduleModal()">
+        <div class="po-icon">📅</div>
+        <div><div class="po-title">Schedule</div><div class="po-sub">Set a publish time</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+```
+
+  </div>
+
+</div><!-- /layout -->
+
+<!-- ═══════ FLOATING SELECTION TOOLBAR ═══════ -->
+
+<div class="float-toolbar" id="floatToolbar">
+  <button class="ftbtn" onclick="execFmt('bold')" title="Bold"><b>B</b></button>
+  <button class="ftbtn" onclick="execFmt('italic')" title="Italic"><i>I</i></button>
+  <button class="ftbtn" onclick="execFmt('underline')" title="Underline"><u>U</u></button>
+  <div class="ft-sep"></div>
+  <button class="ftbtn accent-f" onclick="execFmt('formatBlock','blockquote')" title="Quote">"</button>
+  <button class="ftbtn" onclick="execFmt('strikeThrough')" title="Strike"><s>S</s></button>
+  <div class="ft-sep"></div>
+  <button class="ftbtn" onclick="insertLinkFloat()" title="Link">🔗</button>
+  <button class="ftbtn accent-f" onclick="lookUpWord()" title="Define">📖</button>
+</div>
+
+<!-- ═══════ PREVIEW OVERLAY ═══════ -->
+
+<div class="preview-overlay" id="previewOverlay">
+  <div class="preview-box">
+    <div class="pv-head">
+      <div>
+        <h3 id="pvTitle">Chapter Preview</h3>
+        <div class="pv-head-meta" id="pvMeta"></div>
+      </div>
+      <button class="pv-close" onclick="closePreview()">✕ Close</button>
+    </div>
+    <div class="pv-body" id="pvBody"></div>
+  </div>
+</div>
+
+<!-- ═══════ WORD GOAL MODAL ═══════ -->
+
+<div class="modal-overlay" id="goalModal">
+  <div class="modal">
+    <h3>🎯 Set Word Goal</h3>
+    <input type="number" id="goalInput" placeholder="e.g. 2000" min="100" max="100000" style="margin-bottom:8px">
+    <p style="font-size:.74rem;color:var(--muted);margin-bottom:14px">Set a target word count for this chapter. A progress bar will track your writing.</p>
+    <div class="modal-btns">
+      <button class="tb-btn" onclick="closeGoalModal()">Cancel</button>
+      <button class="tb-btn accent" onclick="setGoal()">Set Goal</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+
+<div class="toast" id="toastEl"></div>
+
+<script>
+// ══════════════════════════════════
+//  STATE
+// ══════════════════════════════════
+let chapters = [
+  { id:1, title:'Chapter 1', content:'', status:'draft', wc:0, note:'', warn:'' }
+];
+let currentId = 1;
+let nextId    = 2;
+let wordGoal  = 0;
+let asTimer   = null;
+let typewriter= false;
+let focusMode = false;
+let sidebarOpen = true;
+let rPanelOpen  = false;
+
+const writer   = document.getElementById('writer');
+const chTitle  = document.getElementById('chTitle');
+
+// ══════════════════════════════════
+//  INIT
+// ══════════════════════════════════
+window.addEventListener('load', () => {
+  renderChList();
+  loadFromStorage();
+  writer.focus();
+});
+
+// ══════════════════════════════════
+//  EDITOR INPUT
+// ══════════════════════════════════
+function handleInput() {
+  // Placeholder
+  writer.setAttribute('data-empty', writer.innerText.trim() === '' ? 'true' : 'false');
+  updateStats();
+  saveCurrentContent();
+  scheduleAS();
+  if (typewriter) scrollTypewriter();
+}
+
+function handleKeydown(e) {
+  // Tab → indent
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    document.execCommand('insertHTML', false, '&emsp;');
+  }
+  // Enter after hr → new paragraph
+  if (e.key === 'Enter') {
+    const sel = window.getSelection();
+    if (sel && sel.anchorNode) {
+      const node = sel.anchorNode.parentElement;
+      if (node && node.tagName === 'HR') {
+        e.preventDefault();
+        document.execCommand('insertParagraph');
+      }
+    }
+  }
+}
+
+// ══════════════════════════════════
+//  STATS
+// ══════════════════════════════════
+function countWords(text) {
+  return text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+}
+
+function updateStats() {
+  const text = writer.innerText || '';
+  const wc   = countWords(text);
+  const chars= text.replace(/\s/g,'').length;
+  const rt   = Math.max(1, Math.ceil(wc / 200));
+
+  document.getElementById('wcStat').textContent   = wc.toLocaleString();
+  document.getElementById('charStat').textContent = chars.toLocaleString();
+  document.getElementById('rtStat').textContent   = `~${rt} min`;
+  document.getElementById('wcLabel').textContent  = `${wc.toLocaleString()} words`;
+  document.getElementById('rtLabel').textContent  = `~${rt} min read`;
+
+  // Goal progress
+  if (wordGoal > 0) {
+    const pct = Math.min(100, Math.round(wc / wordGoal * 100));
+    document.getElementById('goalFill').style.width = pct + '%';
+    document.getElementById('goalBar').style.display = 'block';
+    document.getElementById('goalTip').style.display = 'block';
+    document.getElementById('goalTip').textContent = `${pct}% of ${wordGoal.toLocaleString()} word goal`;
+    document.getElementById('goalDot').style.display = '';
+    document.getElementById('goalLabel').style.display = '';
+    document.getElementById('goalLabel').textContent = `${pct}% of goal`;
+    if (pct >= 100) toast('🎯 Word goal reached!', 'green');
+  }
+
+  // Update chapter
+  const ch = chapters.find(c => c.id === currentId);
+  if (ch) ch.wc = wc;
+}
+
+// ══════════════════════════════════
+//  FORMATTING
+// ══════════════════════════════════
+function execCmd(cmd, val) {
+  document.execCommand(cmd, false, val || null);
+  writer.focus();
+}
+
+function execFmt(cmd, val) {
+  document.execCommand(cmd, false, val || null);
+  hideFloatToolbar();
+}
+
+function insertHr() {
+  document.execCommand('insertHTML', false,
+    '<hr><p><br></p>');
+  writer.focus();
+}
+
+function insertLink() {
+  const url = prompt('Enter URL:');
+  if (url) document.execCommand('createLink', false, url);
+  writer.focus();
+}
+
+function insertLinkFloat() {
+  const url = prompt('Enter URL:');
+  if (url) document.execCommand('createLink', false, url);
+  hideFloatToolbar();
+}
+
+function insertImage(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('⚠️ Image must be under 5MB', 'orange'); return; }
+  const r = new FileReader();
+  r.onload = ev => {
+    document.execCommand('insertHTML', false, `<img src="${ev.target.result}" alt="image">`);
+    writer.focus();
+  };
+  r.readAsDataURL(file);
+  e.target.value = '';
+}
+
+function changeFontFamily(val) {
+  writer.style.fontFamily = val;
+  document.getElementById('fontPreview').style.fontFamily = val;
+}
+
+function changeFontSizeSlider(val) {
+  writer.style.fontSize = val + 'px';
+}
+
+function changeLineHeight(val) {
+  writer.style.lineHeight = (val / 10).toFixed(1);
+}
+
+function changeFontSize(val) {
+  writer.style.fontSize = val;
+}
+
+// ══════════════════════════════════
+//  FLOATING TOOLBAR
+// ══════════════════════════════════
+let ftTimer;
+function showFloatToolbar() {
+  clearTimeout(ftTimer);
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || sel.toString().trim() === '') {
+    hideFloatToolbar(); return;
+  }
+  const range = sel.getRangeAt(0);
+  const rect  = range.getBoundingClientRect();
+  const ft    = document.getElementById('floatToolbar');
+  const x     = rect.left + rect.width / 2 - 80;
+  const y     = rect.top - 48 + window.scrollY;
+  ft.style.left = Math.max(8, x) + 'px';
+  ft.style.top  = Math.max(8, y) + 'px';
+  ft.classList.add('show');
+  ftTimer = setTimeout(hideFloatToolbar, 5000);
+}
+
+function hideFloatToolbar() {
+  document.getElementById('floatToolbar').classList.remove('show');
+}
+
+document.addEventListener('mousedown', e => {
+  if (!e.target.closest('#floatToolbar')) hideFloatToolbar();
+});
+
+function lookUpWord() {
+  const sel = window.getSelection().toString().trim();
+  if (sel) window.open(`https://www.merriam-webster.com/dictionary/${encodeURIComponent(sel)}`, '_blank');
+  hideFloatToolbar();
+}
+
+// ══════════════════════════════════
+//  CHAPTER LIST
+// ══════════════════════════════════
+function renderChList() {
+  const list = document.getElementById('chList');
+  list.innerHTML = '';
+  chapters.forEach((ch, i) => {
+    const el = document.createElement('div');
+    el.className = `ch-item${ch.id === currentId ? ' active' : ''}`;
+    el.innerHTML = `
+      <span class="ch-drag">⠿</span>
+      <span class="ch-num">${i + 1}</span>
+      <div class="ch-info">
+        <div class="ch-name">${esc(ch.title || 'Untitled')}</div>
+        <div class="ch-wc">${(ch.wc || 0).toLocaleString()} words</div>
+      </div>
+      <span class="ch-badge${ch.status === 'published' ? ' pub' : ch.status === 'scheduled' ? ' sch' : ''}">${ch.status}</span>`;
+    el.addEventListener('click', () => switchChapter(ch.id));
+    list.appendChild(el);
+  });
+  // Update sidebar stat
+  document.getElementById('sbStat').textContent =
+    `${chapters.filter(c=>c.status==='published').length} published · ${chapters.length} total`;
+}
+
+function switchChapter(id) {
+  saveCurrentContent();
+  currentId = id;
+  const ch = chapters.find(c => c.id === id);
+  if (!ch) return;
+  chTitle.value = ch.title || '';
+  writer.innerHTML = ch.content || '';
+  writer.setAttribute('data-empty', writer.innerText.trim() === '' ? 'true' : 'false');
+  document.getElementById('chStatus').value = ch.status || 'draft';
+  document.getElementById('authorNote').value = ch.note || '';
+  document.getElementById('contentWarn').value = ch.warn || '';
+  updateStats();
+  updateMeta();
+  renderChList();
+  writer.focus();
+}
+
+function addChapter() {
+  saveCurrentContent();
+  const ch = {
+    id: nextId++,
+    title: `Chapter ${chapters.length + 1}`,
+    content: '', status: 'draft', wc: 0, note: '', warn: ''
+  };
+  chapters.push(ch);
+  switchChapter(ch.id);
+  toast('📝 New chapter created');
+}
+
+function saveCurrentContent() {
+  const ch = chapters.find(c => c.id === currentId);
+  if (!ch) return;
+  ch.title   = chTitle.value || 'Untitled';
+  ch.content = writer.innerHTML;
+  ch.wc      = countWords(writer.innerText);
+  ch.note    = document.getElementById('authorNote').value;
+  ch.warn    = document.getElementById('contentWarn').value;
+  ch.status  = document.getElementById('chStatus').value;
+}
+
+function updateMeta() {
+  const idx = chapters.findIndex(c => c.id === currentId);
+  document.getElementById('chNumLabel').textContent = `Chapter ${idx + 1}`;
+  document.getElementById('tbChapter').textContent =
+    chTitle.value || `Chapter ${idx + 1}`;
+  saveCurrentContent();
+  renderChList();
+}
+
+// ══════════════════════════════════
+//  AUTOSAVE
+// ══════════════════════════════════
+function scheduleAS() {
+  clearTimeout(asTimer);
+  setAS('saving', 'Saving…');
+  asTimer = setTimeout(doAS, 6000);
+}
+
+function doAS() {
+  saveCurrentContent();
+  try { localStorage.setItem('nh_writer_chapters', JSON.stringify(chapters)); } catch(e) {}
+  const t = new Date();
+  setAS('saved', `Saved ${t.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`);
+}
+
+function setAS(state, txt) {
+  document.getElementById('asDot').className = `as-dot ${state}`;
+  document.getElementById('asText').textContent = txt;
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem('nh_writer_chapters');
+    if (raw) {
+      const saved = JSON.parse(raw);
+      if (saved && saved.length) {
+        chapters = saved;
+        nextId = Math.max(...chapters.map(c => c.id)) + 1;
+        currentId = chapters[0].id;
+        switchChapter(currentId);
+        renderChList();
+      }
+    }
+  } catch(e) {}
+}
+
+// ══════════════════════════════════
+//  SAVE / PUBLISH
+// ══════════════════════════════════
+function saveDraft() {
+  saveCurrentContent();
+  doAS();
+  toast('💾 Draft saved!');
+}
+
+function publishChapter() {
+  saveCurrentContent();
+  const ch = chapters.find(c => c.id === currentId);
+  if (ch) { ch.status = 'published'; document.getElementById('chStatus').value = 'published'; }
+  doAS();
+  renderChList();
+  toast('🚀 Chapter published!', 'green');
+}
+
+// ══════════════════════════════════
+//  PREVIEW
+// ══════════════════════════════════
+function openPreview() {
+  saveCurrentContent();
+  const ch  = chapters.find(c => c.id === currentId);
+  const idx = chapters.findIndex(c => c.id === currentId);
+  document.getElementById('pvTitle').textContent = ch.title || `Chapter ${idx + 1}`;
+  const wc = countWords(writer.innerText);
+  const rt = Math.max(1, Math.ceil(wc / 200));
+  document.getElementById('pvMeta').textContent = `${wc.toLocaleString()} words · ~${rt} min read`;
+  document.getElementById('pvBody').innerHTML =
+    ch.content || '<em style="color:var(--muted)">No content yet.</em>';
+  document.getElementById('previewOverlay').classList.add('open');
+}
+
+function closePreview() {
+  document.getElementById('previewOverlay').classList.remove('open');
+}
+
+document.getElementById('previewOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closePreview();
+});
+
+// ══════════════════════════════════
+//  WORD GOAL
+// ══════════════════════════════════
+function openWordGoal() {
+  document.getElementById('goalInput').value = wordGoal || '';
+  document.getElementById('goalModal').classList.add('open');
+}
+
+function closeGoalModal() {
+  document.getElementById('goalModal').classList.remove('open');
+}
+
+function setGoal() {
+  const val = parseInt(document.getElementById('goalInput').value);
+  if (val > 0) {
+    wordGoal = val;
+    updateStats();
+    toast(`🎯 Goal set: ${val.toLocaleString()} words`);
+  }
+  closeGoalModal();
+}
+
+document.getElementById('goalModal').addEventListener('click', function(e) {
+  if (e.target === this) closeGoalModal();
+});
+
+// ══════════════════════════════════
+//  UI TOGGLES
+// ══════════════════════════════════
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('collapsed', !sidebarOpen);
+  // Mobile
+  if (window.innerWidth <= 768) {
+    document.getElementById('sidebar').classList.toggle('mobile-open', sidebarOpen);
+    document.getElementById('sidebar').classList.remove('collapsed');
+  }
+}
+
+function toggleSettings() {
+  rPanelOpen = !rPanelOpen;
+  document.getElementById('rpanel').classList.toggle('open', rPanelOpen);
+}
+
+function toggleFocus() {
+  focusMode = !focusMode;
+  document.body.classList.toggle('focus-mode', focusMode);
+  document.getElementById('focusBtn').style.color = focusMode ? 'var(--accent)' : '';
+  document.getElementById('formatToolbar').classList.toggle('hidden', focusMode);
+  if (focusMode) { sidebarOpen = false; document.getElementById('sidebar').classList.add('collapsed'); }
+  else { sidebarOpen = true; document.getElementById('sidebar').classList.remove('collapsed'); }
+  toast(focusMode ? '🎯 Focus mode on — Ctrl+Shift+F to exit' : '↩ Focus mode off');
+}
+
+function toggleTypewriter() {
+  typewriter = !typewriter;
+  document.getElementById('typewriterTog').classList.toggle('on', typewriter);
+  toast(typewriter ? '⌨️ Typewriter mode on' : 'Typewriter mode off');
+}
+
+function toggleSpell() {
+  const tog = document.getElementById('spellTog');
+  const on = !tog.classList.contains('on');
+  tog.classList.toggle('on', on);
+  writer.setAttribute('spellcheck', on ? 'true' : 'false');
+}
+
+function scrollTypewriter() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  const range = sel.getRangeAt(0).getBoundingClientRect();
+  const scroll = document.querySelector('.write-scroll');
+  const mid = scroll.clientHeight / 2;
+  const offset = range.top - scroll.getBoundingClientRect().top - mid;
+  scroll.scrollBy({ top: offset, behavior: 'smooth' });
+}
+
+function openScheduleModal() {
+  toast('📅 Schedule feature — coming soon!', 'orange');
+}
+
+// ══════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ══════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 's') { e.preventDefault(); saveDraft(); }
+    if (e.shiftKey && e.key === 'F') { e.preventDefault(); toggleFocus(); }
+    if (e.shiftKey && e.key === 'P') { e.preventDefault(); openPreview(); }
+  }
+  if (e.key === 'Escape') { closePreview(); closeGoalModal(); }
+});
+
+// ══════════════════════════════════
+//  TOAST
+// ══════════════════════════════════
+let tTimer;
+function toast(msg, type = '') {
+  clearTimeout(tTimer);
+  const el = document.getElementById('toastEl');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  tTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+// ══════════════════════════════════
+//  UTIL
+// ══════════════════════════════════
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+</script>
+
+</body>
+</html>

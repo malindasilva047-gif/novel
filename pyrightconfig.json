@@ -1,0 +1,14 @@
+{
+  "include": ["backend/app"],
+  "pythonVersion": "3.12",
+  "pythonPath": "C:\\Users\\lakma\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+  "typeCheckingMode": "basic",
+  "executionEnvironments": [
+    {
+      "root": "backend",
+      "pythonVersion": "3.12",
+      "pythonPath": "C:\\Users\\lakma\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "extraPaths": ["backend", "backend/app"]
+    }
+  ]
+}

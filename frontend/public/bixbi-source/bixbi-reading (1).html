@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Sun's Heir – Chapter 67 | Bixbi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Lora:ital,wght@0,400;0,500;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#c9a96e;--gold-light:#e8c98a;--gold-soft:rgba(201,169,110,0.15);--crimson:#8B1A1A;--crimson-bright:#c0392b;--rose:#e8748a;--teal:#2dd4c0;--tr:0.25s ease;--font-read:'Lora',Georgia,serif;--font-display:'Cormorant Garamond',serif;--font-ui:'DM Sans',sans-serif}
+[data-theme="light"]{--bg:#faf8f4;--bg2:#f2ede4;--surface:#ffffff;--surface2:#f7f3ee;--border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.12);--text:#1a1410;--text2:#3d3228;--muted:rgba(0,0,0,0.45);--hbg:rgba(250,248,244,0.94);--shadow:rgba(0,0,0,0.1);--shadow-deep:rgba(0,0,0,0.18);--reading-bg:#ffffff;--reading-text:#1e1812;--reading-muted:#6b5f54;--ink-line:rgba(0,0,0,0.06)}
+[data-theme="dark"]{--bg:#0e0b08;--bg2:#14110d;--surface:#1c1712;--surface2:#231e18;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.11);--text:rgba(255,255,255,0.9);--text2:rgba(255,255,255,0.7);--muted:rgba(255,255,255,0.4);--hbg:rgba(14,11,8,0.94);--shadow:rgba(0,0,0,0.5);--shadow-deep:rgba(0,0,0,0.7);--reading-bg:#1c1712;--reading-text:rgba(255,255,255,0.87);--reading-muted:rgba(255,255,255,0.5);--ink-line:rgba(255,255,255,0.05)}
+[data-theme="sepia"]{--bg:#f4ead8;--bg2:#ede0c8;--surface:#fdf5e6;--surface2:#f7ebcf;--border:rgba(120,80,20,0.12);--border2:rgba(120,80,20,0.18);--text:#3b2a0e;--text2:#5a3e1a;--muted:rgba(80,50,10,0.5);--hbg:rgba(244,234,216,0.96);--shadow:rgba(80,40,0,0.12);--shadow-deep:rgba(80,40,0,0.2);--reading-bg:#fdf5e6;--reading-text:#3b2a0e;--reading-muted:#7a5a2a;--ink-line:rgba(80,50,10,0.07)}
+*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font-ui);font-size:15px;overflow-x:hidden;transition:background var(--tr),color var(--tr)}
+
+/* ── PROGRESS BAR ── */
+#progress-bar{position:fixed;top:0;left:0;height:3px;width:0%;background:linear-gradient(90deg,var(--crimson),var(--gold),var(--crimson-bright));z-index:1001;transition:width 0.1s linear;box-shadow:0 0 10px rgba(192,57,43,0.5)}
+
+/* ── HEADER (Bixbi Profile style) ── */
+header{position:sticky;top:0;z-index:400;background:var(--hbg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);height:56px;display:flex;align-items:center;padding:0 16px;gap:8px;transition:background var(--tr)}
+@media(min-width:640px){header{padding:0 24px;gap:10px}}
+.logo{font-family:var(--font-display);font-size:22px;font-weight:600;color:var(--text);text-decoration:none;flex-shrink:0}
+.logo span{color:var(--gold)}
+@media(min-width:400px){.logo{font-size:24px}}
+.hdr-search{flex:1;max-width:340px;position:relative;display:none}
+@media(min-width:560px){.hdr-search{display:block}}
+.hdr-search input{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 14px 7px 36px;border-radius:20px;font-size:13px;font-family:var(--font-ui);outline:none;transition:border-color 0.2s,background var(--tr)}
+.hdr-search input::placeholder{color:var(--muted)}.hdr-search input:focus{border-color:rgba(201,169,110,0.4)}
+.hsr{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}.hsr svg{width:14px;height:14px;display:block}
+.hdr-right{display:flex;align-items:center;gap:4px;margin-left:auto;flex-shrink:0}
+@media(min-width:400px){.hdr-right{gap:5px}}
+.hico{background:none;border:none;color:var(--muted);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;position:relative;flex-shrink:0}
+.hico:hover{color:var(--text);background:var(--surface2)}.hico svg{width:17px;height:17px}
+.ndot{position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--rose);border:2px solid var(--bg)}
+
+/* Write button */
+.btn-write{display:flex;align-items:center;gap:5px;background:var(--gold);color:#0d0d12;border:none;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font-ui);white-space:nowrap;transition:background 0.2s;flex-shrink:0}
+@media(min-width:400px){.btn-write{padding:7px 13px;font-size:13px}}
+.btn-write:hover{background:#dfc082}.btn-write svg{width:13px;height:13px}
+.btn-write .write-lbl{display:none}
+@media(min-width:480px){.btn-write .write-lbl{display:inline}}
+.btn-write .chv{width:11px;height:11px;opacity:0.7}
+
+/* Write dropdown */
+.dd-wrap{position:relative}
+.dd{display:none;position:absolute;top:calc(100% + 8px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;min-width:190px;box-shadow:0 10px 36px var(--shadow);z-index:600;overflow:hidden;transition:background var(--tr)}
+.dd.open{display:block;animation:dIn 0.15s ease}
+@keyframes dIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.dd-sec{padding:5px 0;border-bottom:1px solid var(--border)}.dd-sec:last-child{border-bottom:none}
+.dd-row{display:flex;align-items:center;gap:10px;padding:9px 14px;font-size:13px;color:var(--text);cursor:pointer;transition:background 0.15s}
+.dd-row:hover{background:rgba(128,128,128,0.08)}.dd-row svg{width:14px;height:14px;color:var(--muted);flex-shrink:0}
+.dd-row.hi{color:var(--teal)}.dd-row.hi svg{color:var(--teal)}.dd-row.danger{color:var(--rose)}.dd-row.danger svg{color:var(--rose)}
+
+/* Profile avatar + dropdown */
+.pna{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1a1a0a,#2e2a08);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:12px;font-weight:600;color:#fff;cursor:pointer;border:2px solid var(--border);transition:border-color 0.2s;flex-shrink:0}
+@media(min-width:400px){.pna{width:34px;height:34px;font-size:13px}}
+.pna:hover{border-color:var(--gold)}
+.pnd-user{display:flex;align-items:center;gap:10px;padding:14px;border-bottom:1px solid var(--border)}
+.pnd-av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1a1a0a,#2e2a08);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--gold)}
+.pnd-name{font-size:13.5px;font-weight:500;color:var(--text)}.pnd-handle{font-size:11px;color:var(--muted)}
+
+/* ── SETTINGS PANEL (attached to header, opens from settings btn) ── */
+.settings-wrap{position:relative}
+.settings-panel{display:none;position:absolute;top:calc(100% + 10px);right:0;background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:18px 20px;width:272px;box-shadow:0 12px 40px var(--shadow-deep);z-index:700;transition:background var(--tr)}
+.settings-panel.open{display:block;animation:fadeDown 0.18s ease}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.sp-head{font-size:13px;font-weight:500;color:var(--text);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sp-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0}
+.sp-close:hover{color:var(--text)}
+.sp-lbl{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:8px}
+.theme-pills{display:flex;gap:6px;margin-bottom:16px}
+.tpill{flex:1;padding:7px 4px;border-radius:9px;border:2px solid transparent;cursor:pointer;font-size:11px;font-family:var(--font-ui);font-weight:500;text-align:center;transition:all 0.2s}
+.tpill.light{background:#faf8f4;color:#1a1410;border-color:rgba(0,0,0,0.1)}
+.tpill.dark{background:#1c1712;color:rgba(255,255,255,0.85);border-color:rgba(255,255,255,0.1)}
+.tpill.sepia{background:#fdf5e6;color:#3b2a0e;border-color:rgba(120,80,20,0.15)}
+.tpill.active{border-color:var(--gold)!important;box-shadow:0 0 0 1px var(--gold)}
+.font-row{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sp-val{font-size:12.5px;color:var(--text);flex:1}
+.font-btns{display:flex;gap:5px}
+.fbtn{width:30px;height:30px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);color:var(--text);transition:all 0.2s}
+.fbtn:hover{border-color:var(--gold);color:var(--gold)}
+.font-family-row{display:flex;gap:6px;margin-bottom:14px}
+.ffbtn{flex:1;padding:7px 4px;border:1.5px solid var(--border);border-radius:7px;background:none;cursor:pointer;font-size:11px;color:var(--muted);text-align:center;transition:all 0.2s;font-family:var(--font-ui)}
+.ffbtn.active{border-color:var(--gold);color:var(--gold);background:var(--gold-soft)}
+.lh-row{display:flex;align-items:center;gap:8px}
+.lh-slider{flex:1;-webkit-appearance:none;height:3px;border-radius:2px;background:var(--border2);outline:none}
+.lh-slider::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--gold);cursor:pointer}
+
+/* ── HERO ── */
+.hero{position:relative;height:340px;overflow:hidden;display:flex;align-items:flex-end}
+@media(min-width:640px){.hero{height:420px}}
+@media(min-width:1024px){.hero{height:480px}}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 30% 60%,rgba(139,26,26,0.55) 0%,transparent 60%),radial-gradient(ellipse at 75% 30%,rgba(30,10,5,0.8) 0%,transparent 55%),linear-gradient(160deg,#0e0402 0%,#1a0505 40%,#110808 70%,#0a0604 100%)}
+.hero-particles{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.particle{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(201,169,110,0.6),transparent);animation:floatParticle linear infinite}
+.p1{width:3px;height:3px;left:15%;bottom:-10px;animation-duration:8s;animation-delay:0s}
+.p2{width:2px;height:2px;left:35%;bottom:-10px;animation-duration:11s;animation-delay:2s}
+.p3{width:4px;height:4px;left:55%;bottom:-10px;animation-duration:9s;animation-delay:1s}
+.p4{width:2px;height:2px;left:70%;bottom:-10px;animation-duration:13s;animation-delay:3s}
+.p5{width:3px;height:3px;left:85%;bottom:-10px;animation-duration:10s;animation-delay:0.5s}
+.p6{width:2px;height:2px;left:25%;bottom:-10px;animation-duration:12s;animation-delay:4s}
+@keyframes floatParticle{0%{transform:translateY(0) scale(1);opacity:0}10%{opacity:1}90%{opacity:0.6}100%{transform:translateY(-400px) scale(0.3);opacity:0}}
+.hero-cover-wrap{position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);z-index:2;filter:drop-shadow(0 20px 60px rgba(0,0,0,0.8))}
+.hero-cover{width:110px;height:165px;border-radius:8px;background:linear-gradient(160deg,#2a1a0a,#4a2a0a);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);color:rgba(201,169,110,0.9);font-size:12px;font-weight:600;text-align:center;line-height:1.4;padding:10px;border:1px solid rgba(201,169,110,0.2);position:relative;overflow:hidden}
+@media(min-width:640px){.hero-cover{width:140px;height:210px;font-size:14px}}
+.hero-cover::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,169,110,0.12) 0%,transparent 60%)}
+.hero-cover::after{content:'';position:absolute;inset:-3px;border-radius:10px;background:conic-gradient(from 0deg,transparent 0%,rgba(201,169,110,0.3) 25%,transparent 50%,rgba(201,169,110,0.2) 75%,transparent 100%);animation:glowRotate 6s linear infinite;filter:blur(4px);z-index:-1}
+@keyframes glowRotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.hero-glow{position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:230px;height:230px;border-radius:50%;background:radial-gradient(circle,rgba(139,26,26,0.35) 0%,transparent 70%);filter:blur(30px);z-index:1;animation:glowPulse 4s ease-in-out infinite}
+@keyframes glowPulse{0%,100%{opacity:0.7;transform:translate(-50%,-60%) scale(1)}50%{opacity:1;transform:translate(-50%,-60%) scale(1.1)}}
+.hero-bottom-grad{position:absolute;bottom:0;left:0;right:0;height:160px;background:linear-gradient(to top,var(--bg) 0%,transparent 100%);z-index:3}
+@media(min-width:640px){.hero-bottom-grad{height:200px}}
+.hero-info{position:relative;z-index:4;padding:0 16px 18px;width:100%;text-align:center}
+@media(min-width:640px){.hero-info{padding:0 24px 26px}}
+.hero-chapter-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(139,26,26,0.75);border:1px solid rgba(201,169,110,0.3);backdrop-filter:blur(8px);color:var(--gold-light);font-size:11px;font-weight:500;padding:4px 12px;border-radius:20px;margin-bottom:7px;letter-spacing:0.5px;text-transform:uppercase}
+.hero-story-title{font-family:var(--font-display);font-size:24px;font-weight:400;color:#fff;line-height:1.15;margin-bottom:3px;text-shadow:0 2px 20px rgba(0,0,0,0.8)}
+@media(min-width:640px){.hero-story-title{font-size:32px}}
+.hero-chapter-title{font-family:var(--font-display);font-size:14px;font-style:italic;color:var(--gold-light);opacity:0.9}
+@media(min-width:640px){.hero-chapter-title{font-size:16px}}
+
+/* ── META BAR ── */
+.meta-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;transition:background var(--tr)}
+@media(min-width:640px){.meta-bar{padding:14px 24px;gap:14px}}
+.author-pill{display:flex;align-items:center;gap:8px;cursor:pointer;text-decoration:none}
+.author-av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1a1a0a,#2e2a08);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:12px;font-weight:600;color:var(--gold);border:2px solid var(--border2);flex-shrink:0}
+.author-name{font-size:13px;font-weight:500;color:var(--text)}.author-handle{font-size:11px;color:var(--muted)}
+.meta-divider{width:1px;height:28px;background:var(--border2);flex-shrink:0}
+@media(max-width:480px){.meta-divider{display:none}}
+.meta-stats{display:flex;gap:12px;flex-wrap:wrap}
+.mstat{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)}.mstat svg{width:12px;height:12px}
+.meta-actions{display:flex;gap:6px;margin-left:auto;flex-shrink:0}
+.act-btn{display:flex;align-items:center;gap:4px;padding:6px 11px;border-radius:20px;border:1.5px solid var(--border2);background:none;color:var(--text);font-size:12px;font-family:var(--font-ui);cursor:pointer;transition:all 0.2s;white-space:nowrap}
+.act-btn svg{width:12px;height:12px}
+.act-btn:hover{border-color:rgba(139,26,26,0.4);color:var(--crimson-bright)}
+.act-btn.liked{background:rgba(232,116,138,0.12);border-color:var(--rose);color:var(--rose)}
+.act-btn.geeked{background:rgba(201,169,110,0.12);border-color:var(--gold);color:var(--gold)}
+.act-btn.bookmarked{background:rgba(45,212,192,0.1);border-color:var(--teal);color:var(--teal)}
+@media(max-width:520px){.act-btn .btn-label{display:none}.act-btn{padding:6px 9px}}
+
+/* ── MAIN LAYOUT ── */
+.main-layout{display:grid;grid-template-columns:1fr;gap:0;max-width:1200px;margin:0 auto;padding:20px 14px}
+@media(min-width:640px){.main-layout{padding:24px 20px}}
+@media(min-width:1024px){.main-layout{grid-template-columns:1fr 308px;gap:28px;padding:32px 36px;align-items:start}}
+@media(min-width:1280px){.main-layout{padding:36px 48px}}
+
+/* ── READING CONTAINER ── */
+.reading-wrap{min-width:0}
+.reading-container{background:var(--reading-bg);border:1px solid var(--border);border-radius:14px;padding:28px 20px;box-shadow:0 4px 24px var(--shadow);transition:background var(--tr),border-color var(--tr);position:relative;overflow:hidden}
+@media(min-width:640px){.reading-container{padding:40px 44px;border-radius:18px}}
+@media(min-width:1024px){.reading-container{padding:48px 56px}}
+.reading-container::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,var(--crimson),var(--gold),var(--crimson),transparent);opacity:0.6}
+.chapter-header{text-align:center;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--ink-line);position:relative}
+.chapter-header::after{content:'✦';position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);background:var(--reading-bg);padding:0 12px;color:var(--gold);font-size:11px;transition:background var(--tr)}
+.ch-number{font-family:var(--font-ui);font-size:11px;font-weight:500;color:var(--crimson-bright);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;display:block}
+.ch-title{font-family:var(--font-display);font-size:26px;font-weight:400;font-style:italic;color:var(--reading-text);line-height:1.2}
+@media(min-width:640px){.ch-title{font-size:32px}}
+.ch-meta{font-size:12px;color:var(--reading-muted);margin-top:8px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.reading-body{font-family:var(--font-display);font-size:18px;line-height:1.95;color:var(--reading-text);transition:color var(--tr)}
+@media(max-width:640px){.reading-body{font-size:16px;line-height:1.88}}
+.reading-body p{margin-bottom:1.4em;text-align:justify;text-justify:inter-character}
+@media(max-width:480px){.reading-body p{text-align:left}}
+.reading-body p.dropcap::first-letter{font-family:var(--font-display);font-size:4.2em;font-weight:600;float:left;line-height:0.72;margin-right:6px;margin-top:8px;color:var(--crimson-bright)}
+.reading-body p.dialogue{padding-left:18px;border-left:2px solid rgba(139,26,26,0.25);font-style:italic;color:var(--reading-muted)}
+.scene-break{text-align:center;margin:32px 0;color:var(--gold);letter-spacing:16px;font-size:13px;opacity:0.7}
+
+/* ── INLINE AD ── */
+.inline-ad{margin:28px 0;padding:14px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;transition:background var(--tr)}
+.inline-ad::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold-soft),rgba(201,169,110,0.3),var(--gold-soft))}
+.ad-label{position:absolute;top:6px;right:10px;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;opacity:0.6}
+.ad-img{width:56px;height:74px;border-radius:6px;background:linear-gradient(135deg,#1a1a0a,#3a2a0a);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px}
+.ad-text .ad-tagline{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:3px}
+.ad-text .ad-title{font-family:var(--font-display);font-size:15px;color:var(--text);font-weight:500;margin-bottom:5px}
+.ad-text .ad-sub{font-size:12px;color:var(--muted);margin-bottom:8px}
+.ad-cta{display:inline-flex;align-items:center;gap:5px;background:linear-gradient(135deg,var(--crimson),#6b0f0f);color:#fff;font-size:11.5px;font-weight:500;padding:5px 13px;border-radius:20px;text-decoration:none;border:none;cursor:pointer;font-family:var(--font-ui);transition:opacity 0.2s}
+.ad-cta:hover{opacity:0.85}
+
+/* ── CHAPTER END ── */
+.chapter-end{margin-top:36px;padding-top:28px;border-top:1px solid var(--ink-line);text-align:center}
+.chapter-end-ornament{font-size:16px;color:var(--gold);letter-spacing:20px;opacity:0.6;margin-bottom:18px}
+.chapter-end-msg{font-family:var(--font-display);font-size:16px;font-style:italic;color:var(--reading-muted);margin-bottom:24px;line-height:1.6}
+.nav-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.nav-btn{display:flex;align-items:center;gap:7px;padding:11px 20px;border-radius:10px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:var(--font-ui);transition:all 0.22s;text-decoration:none;border:none}
+.nav-btn-prev{background:var(--surface2);color:var(--text);border:1.5px solid var(--border2)}
+.nav-btn-prev:hover{border-color:var(--gold);color:var(--gold)}
+.nav-btn-next{background:linear-gradient(135deg,var(--crimson) 0%,#6b0f0f 100%);color:#fff;box-shadow:0 4px 20px rgba(139,26,26,0.4)}
+.nav-btn-next:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(139,26,26,0.5)}
+.nav-btn svg{width:14px;height:14px}
+.end-ad{margin:24px 0;padding:18px;background:linear-gradient(135deg,rgba(139,26,26,0.06),rgba(201,169,110,0.06));border:1px solid rgba(139,26,26,0.15);border-radius:12px;text-align:center;position:relative}
+.end-ad .ad-label{position:static;display:inline-block;margin-bottom:7px}
+.end-ad-title{font-family:var(--font-display);font-size:19px;color:var(--text);margin-bottom:5px}
+.end-ad-sub{font-size:12.5px;color:var(--muted);margin-bottom:13px}
+
+/* ── COMMENTS ── */
+.comments-section{margin-top:24px;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:background var(--tr)}
+@media(min-width:640px){.comments-section{border-radius:18px}}
+.comments-head{padding:16px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+@media(min-width:640px){.comments-head{padding:18px 22px 14px}}
+.comments-title{font-family:var(--font-display);font-size:18px;font-weight:400;color:var(--text)}
+.comments-count{font-size:12px;color:var(--muted)}
+.comment-input-row{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
+@media(min-width:640px){.comment-input-row{padding:14px 22px}}
+.comment-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1a1a0a,#2e2a08);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:11px;color:var(--gold);flex-shrink:0}
+.comment-input-wrap{flex:1}
+.comment-input{width:100%;background:var(--surface2);border:1.5px solid var(--border);color:var(--text);padding:9px 13px;border-radius:9px;font-size:13px;font-family:var(--font-ui);outline:none;resize:none;min-height:40px;max-height:120px;transition:border-color 0.2s,background var(--tr);overflow-y:hidden}
+.comment-input:focus{border-color:rgba(139,26,26,0.4);min-height:76px}
+.comment-input::placeholder{color:var(--muted)}
+.comment-submit{background:linear-gradient(135deg,var(--crimson),#6b0f0f);color:#fff;border:none;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font-ui);margin-top:7px;transition:opacity 0.2s;display:none}
+.comment-submit:hover{opacity:0.85}
+.comment-input:focus~.comment-submit{display:inline-block}
+.comment-list{padding:4px 0}
+.comment-item{display:flex;gap:10px;padding:12px 18px;border-bottom:1px solid var(--border);transition:background 0.15s}
+@media(min-width:640px){.comment-item{padding:13px 22px;gap:11px}}
+.comment-item:last-child{border-bottom:none}
+.comment-item:hover{background:rgba(128,128,128,0.03)}
+.comment-item-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:11px;font-weight:600;color:#fff;flex-shrink:0}
+.comment-body{flex:1;min-width:0}
+.comment-meta{display:flex;align-items:center;gap:7px;margin-bottom:4px;flex-wrap:wrap}
+.comment-author{font-size:12.5px;font-weight:500;color:var(--text)}
+.comment-time{font-size:11px;color:var(--muted)}
+.comment-badge{font-size:10px;background:var(--gold-soft);color:var(--gold);padding:1px 7px;border-radius:4px;font-weight:500}
+.comment-text{font-size:13px;color:var(--text2);line-height:1.6}
+.comment-actions{display:flex;gap:12px;margin-top:7px}
+.cact{background:none;border:none;font-size:11.5px;color:var(--muted);cursor:pointer;font-family:var(--font-ui);display:flex;align-items:center;gap:3px;transition:color 0.2s;padding:0}
+.cact:hover{color:var(--crimson-bright)}.cact svg{width:12px;height:12px}.cact.liked{color:var(--rose)}
+.show-more-btn{width:100%;background:none;border:none;border-top:1px solid var(--border);color:var(--gold);font-size:12.5px;font-family:var(--font-ui);padding:13px;cursor:pointer;transition:background 0.2s}
+.show-more-btn:hover{background:var(--surface2)}
+
+/* ── RECOMMENDATIONS (Wattpad style, below comments) ── */
+.reco-section{margin-top:24px;background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:background var(--tr)}
+@media(min-width:640px){.reco-section{border-radius:18px}}
+.reco-head{padding:16px 18px 12px;border-bottom:1px solid var(--border);font-size:16px;font-family:var(--font-display);color:var(--text)}
+@media(min-width:640px){.reco-head{padding:18px 22px 14px;font-size:17px}}
+.reco-list{display:flex;flex-direction:column}
+.reco-item{display:flex;gap:14px;padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer;text-decoration:none;transition:background 0.15s}
+@media(min-width:640px){.reco-item{padding:16px 22px;gap:16px}}
+.reco-item:last-child{border-bottom:none}
+.reco-item:hover{background:var(--surface2)}
+.reco-cover{width:80px;min-width:80px;height:110px;border-radius:6px;overflow:hidden;flex-shrink:0;box-shadow:0 4px 14px var(--shadow)}
+@media(min-width:640px){.reco-cover{width:90px;min-width:90px;height:124px;border-radius:7px}}
+.reco-cover img{width:100%;height:100%;object-fit:cover;display:block}
+.reco-cover-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:10px;font-weight:600;color:rgba(201,169,110,0.8);text-align:center;line-height:1.3;padding:6px}
+.reco-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-start;gap:4px}
+.reco-title{font-size:15px;font-weight:600;color:var(--text);line-height:1.25;margin-bottom:1px}
+@media(min-width:640px){.reco-title{font-size:16px}}
+.reco-author{font-size:12px;color:var(--muted);margin-bottom:6px}
+.reco-stats{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--muted);margin-bottom:8px}
+.reco-stat{display:flex;align-items:center;gap:3px}.reco-stat svg{width:12px;height:12px}
+.reco-desc{font-size:12.5px;color:var(--text2);line-height:1.55;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:8px}
+@media(min-width:640px){.reco-desc{-webkit-line-clamp:2}}
+.reco-tags{display:flex;flex-wrap:wrap;gap:5px}
+.reco-tag{font-size:11px;color:var(--muted);background:rgba(128,128,128,0.08);border:1px solid var(--border);padding:2px 8px;border-radius:4px}
+
+/* ── SIDEBAR ── */
+.sidebar{display:none}
+@media(min-width:1024px){.sidebar{display:flex;flex-direction:column;gap:18px;position:sticky;top:72px;max-height:calc(100vh - 90px);overflow-y:auto;scrollbar-width:none;padding-right:2px}}
+.sidebar::-webkit-scrollbar{display:none}
+.sidebar-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:background var(--tr)}
+.sc-head{padding:14px 16px 11px;border-bottom:1px solid var(--border);font-family:var(--font-display);font-size:15px;font-weight:400;color:var(--text);display:flex;align-items:center;gap:6px}
+
+/* Chapter list in sidebar */
+.ch-list{max-height:340px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}
+.ch-list::-webkit-scrollbar{width:4px}.ch-list::-webkit-scrollbar-track{background:transparent}.ch-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.ch-item{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s;text-decoration:none}
+.ch-item:last-child{border-bottom:none}
+.ch-item:hover{background:var(--surface2)}
+.ch-item.current{background:rgba(139,26,26,0.07);border-left:3px solid var(--crimson-bright)}
+.ch-item.current .ch-item-num{color:var(--crimson-bright)}
+.ch-item-num{font-size:10.5px;font-weight:600;color:var(--muted);min-width:28px;flex-shrink:0}
+.ch-item-title{flex:1;font-size:12.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ch-item.current .ch-item-title{color:var(--crimson-bright);font-weight:500}
+.ch-item-time{font-size:10.5px;color:var(--muted);flex-shrink:0}
+.ch-lock{font-size:11px;color:var(--muted);flex-shrink:0}
+
+/* About author sidebar */
+.author-sidebar{padding:14px 16px}
+.as-row{display:flex;align-items:center;gap:11px;margin-bottom:11px}
+.as-av{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#1a1a0a,#2e2a08);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--gold);border:2px solid var(--border2);flex-shrink:0}
+.as-name{font-size:13.5px;font-weight:500;color:var(--text)}.as-handle{font-size:11px;color:var(--muted)}
+.as-bio{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:11px}
+.as-geek{width:100%;background:linear-gradient(135deg,#1a1a0a 0%,#2e2a08 100%);color:var(--gold-light);border:1.5px solid rgba(201,169,110,0.3);padding:8px;border-radius:9px;font-size:12.5px;font-weight:500;cursor:pointer;font-family:var(--font-ui);transition:all 0.2s}
+.as-geek:hover{border-color:var(--gold);box-shadow:0 0 16px rgba(201,169,110,0.15)}
+
+/* Sidebar small rec */
+.rec-list-sb{padding:6px 0}
+.rec-item-sb{display:flex;gap:9px;padding:8px 14px;cursor:pointer;transition:background 0.15s;text-decoration:none}
+.rec-item-sb:hover{background:var(--surface2)}
+.rec-cov-sb{width:40px;min-width:40px;height:56px;border-radius:5px;overflow:hidden;flex-shrink:0}
+.rec-cov-sb img{width:100%;height:100%;object-fit:cover}
+.rec-cov-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:8px;font-family:var(--font-display);font-weight:600;color:rgba(201,169,110,0.8);text-align:center;line-height:1.2;padding:3px}
+.rec-info-sb{flex:1;min-width:0}
+.rec-title-sb{font-size:12.5px;font-weight:500;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec-author-sb{font-size:11px;color:var(--muted);margin-bottom:3px}
+.rec-stats-sb{display:flex;gap:7px;font-size:10.5px;color:var(--muted)}
+
+/* Sidebar ad */
+.sidebar-ad{background:linear-gradient(160deg,rgba(139,26,26,0.05),rgba(201,169,110,0.05));border:1px solid rgba(139,26,26,0.15);border-radius:14px;padding:16px;text-align:center;transition:background var(--tr)}
+.sa-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;opacity:0.6}
+.sa-img{font-size:36px;margin-bottom:8px}
+.sa-title{font-family:var(--font-display);font-size:15px;color:var(--text);margin-bottom:4px}
+.sa-sub{font-size:11.5px;color:var(--muted);margin-bottom:12px;line-height:1.5}
+.sa-cta{display:inline-flex;align-items:center;gap:5px;width:100%;justify-content:center;background:linear-gradient(135deg,var(--crimson),#6b0f0f);color:#fff;font-size:12.5px;font-weight:500;padding:9px;border-radius:9px;border:none;cursor:pointer;font-family:var(--font-ui);transition:opacity 0.2s}
+.sa-cta:hover{opacity:0.85}
+
+/* ── MOBILE BOTTOM TOOLBAR ── */
+.reading-toolbar{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--hbg);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);padding:6px 10px;z-index:300;transition:background var(--tr);justify-content:space-around}
+@media(min-width:1024px){.reading-toolbar{display:none}}
+.tb-btn{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--muted);font-size:9.5px;font-family:var(--font-ui);cursor:pointer;padding:5px 8px;border-radius:8px;transition:all 0.2s;flex:1}
+.tb-btn:hover,.tb-btn.active{color:var(--crimson-bright)}.tb-btn svg{width:19px;height:19px}
+.tb-btn.liked{color:var(--rose)}.tb-btn.bookmarked{color:var(--teal)}
+@media(max-width:1023px){body{padding-bottom:60px}}
+
+/* ── SCROLL TOP ── */
+.scroll-top{position:fixed;bottom:76px;right:14px;width:38px;height:38px;background:var(--surface);border:1px solid var(--border2);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);box-shadow:0 4px 14px var(--shadow);transition:all 0.2s;opacity:0;pointer-events:none;z-index:200}
+@media(min-width:1024px){.scroll-top{bottom:22px;right:22px}}
+.scroll-top.visible{opacity:1;pointer-events:all}
+.scroll-top:hover{color:var(--gold);border-color:var(--gold);transform:translateY(-2px)}
+.scroll-top svg{width:15px;height:15px}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--surface);border:1px solid var(--border2);color:var(--text);font-size:12.5px;padding:9px 18px;border-radius:10px;box-shadow:0 8px 24px var(--shadow-deep);z-index:999;transition:transform 0.3s ease;white-space:nowrap;font-family:var(--font-ui)}
+@media(min-width:480px){.toast{bottom:22px}}
+.toast.show{transform:translateX(-50%) translateY(0)}
+::selection{background:rgba(139,26,26,0.2);color:var(--reading-text)}
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<!-- ══ HEADER (Bixbi Profile style) ══ -->
+<header>
+  <a href="#" class="logo">Bi<span>x</span>bi</a>
+  <div class="hdr-search">
+    <div class="hsr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
+    <input type="text" placeholder="Search stories, authors…">
+  </div>
+  <div class="hdr-right">
+    <!-- Reading Settings btn — opens panel from same button -->
+    <div class="settings-wrap">
+      <button class="hico" id="settingsBtn" onclick="toggleSettings(event)" title="Reading Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+      </button>
+      <div class="settings-panel" id="settingsPanel">
+        <div class="sp-head">Reading Settings <button class="sp-close" onclick="closeSettings()">✕</button></div>
+        <div class="sp-lbl">Theme</div>
+        <div class="theme-pills">
+          <button class="tpill light active" onclick="setTheme('light',this)">☀️ Light</button>
+          <button class="tpill dark" onclick="setTheme('dark',this)">🌙 Dark</button>
+          <button class="tpill sepia" onclick="setTheme('sepia',this)">📜 Sepia</button>
+        </div>
+        <div class="sp-lbl">Font Size</div>
+        <div class="font-row">
+          <span class="sp-val" id="fontSizeLabel">18px</span>
+          <div class="font-btns">
+            <button class="fbtn" onclick="changeFontSize(-1)" style="font-size:11px;">A</button>
+            <button class="fbtn" onclick="changeFontSize(1)" style="font-size:16px;">A</button>
+          </div>
+        </div>
+        <div class="sp-lbl">Font Style</div>
+        <div class="font-family-row">
+          <button class="ffbtn active" style="font-family:'Lora',serif" onclick="setFont('lora',this)">Lora</button>
+          <button class="ffbtn" style="font-family:'Cormorant Garamond',serif" onclick="setFont('cormorant',this)">Garamond</button>
+          <button class="ffbtn" style="font-family:'DM Sans',sans-serif" onclick="setFont('sans',this)">Sans</button>
+        </div>
+        <div class="sp-lbl">Line Spacing</div>
+        <div class="lh-row">
+          <span style="font-size:11px;color:var(--muted)">Tight</span>
+          <input type="range" class="lh-slider" min="140" max="240" value="195" oninput="setLineHeight(this.value)">
+          <span style="font-size:11px;color:var(--muted)">Loose</span>
+        </div>
+      </div>
+    </div>
+    <!-- Notification bell -->
+    <button class="hico" title="Notifications">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+      <div class="ndot"></div>
+    </button>
+    <!-- Write dropdown -->
+    <div class="dd-wrap">
+      <button class="btn-write" onclick="toggleDD('wdd')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <span class="write-lbl">Write</span>
+        <svg class="chv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="dd" id="wdd">
+        <div class="dd-sec">
+          <div class="dd-row hi" onclick="closeDD('wdd');showToast('Create Story →')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>Create Story</div>
+          <div class="dd-row" onclick="closeDD('wdd')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>My Stories</div>
+          <div class="dd-row" onclick="closeDD('wdd')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Drafts</div>
+          <div class="dd-row" onclick="closeDD('wdd')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Stats</div>
+        </div>
+      </div>
+    </div>
+    <!-- Profile -->
+    <div class="dd-wrap">
+      <div class="pna" onclick="toggleDD('pdd')">LC</div>
+      <div class="dd" id="pdd" style="min-width:200px;">
+        <div class="pnd-user"><div class="pnd-av">LC</div><div><div class="pnd-name">Lyra Cole</div><div class="pnd-handle">@lyracole</div></div></div>
+        <div class="dd-sec">
+          <div class="dd-row" onclick="closeDD('pdd')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</div>
+          <div class="dd-row" onclick="closeDD('pdd')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>Reading List</div>
+          <div class="dd-row" onclick="closeDD('pdd')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>Bookmarks</div>
+          <div class="dd-row" onclick="closeDD('pdd')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Stats</div>
+        </div>
+        <div class="dd-sec">
+          <div class="dd-row danger" onclick="closeDD('pdd')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ══ HERO ══ -->
+<div class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-particles">
+    <div class="particle p1"></div><div class="particle p2"></div>
+    <div class="particle p3"></div><div class="particle p4"></div>
+    <div class="particle p5"></div><div class="particle p6"></div>
+  </div>
+  <div class="hero-glow"></div>
+  <div class="hero-cover-wrap"><div class="hero-cover">The Sun's<br>Heir</div></div>
+  <div class="hero-bottom-grad"></div>
+  <div class="hero-info">
+    <div class="hero-chapter-badge">✦ Chapter 67 of 67</div>
+    <div class="hero-story-title">The Sun's Heir</div>
+    <div class="hero-chapter-title">The Final Ember</div>
+  </div>
+</div>
+
+<!-- ══ META BAR ══ -->
+<div class="meta-bar">
+  <a href="#" class="author-pill">
+    <div class="author-av">LC</div>
+    <div><div class="author-name">Lyra Cole</div><div class="author-handle">@lyracole</div></div>
+  </a>
+  <div class="meta-divider"></div>
+  <div class="meta-stats">
+    <div class="mstat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>2.1M</div>
+    <div class="mstat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>48K</div>
+    <div class="mstat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>3.4K</div>
+    <div class="mstat" id="rtDisplay" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span id="rtText">12 min read</span></div>
+  </div>
+  <div class="meta-actions">
+    <button class="act-btn" id="likeBtn" onclick="toggleLike()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg><span class="btn-label" id="likeCount">48K</span></button>
+    <button class="act-btn" id="geekBtn" onclick="toggleGeek()"><span>🤓</span><span class="btn-label">Geek</span></button>
+    <button class="act-btn" id="bookmarkBtn" onclick="toggleBookmark()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg><span class="btn-label">Save</span></button>
+    <button class="act-btn" onclick="showToast('Link copied! 🔗')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span class="btn-label">Share</span></button>
+  </div>
+</div>
+
+<!-- ══ MAIN LAYOUT ══ -->
+<div class="main-layout">
+
+  <!-- LEFT: Reading + Comments + Recommendations -->
+  <div class="reading-wrap">
+    <div class="reading-container" id="readingContainer">
+      <div class="chapter-header">
+        <span class="ch-number">Chapter 67</span>
+        <h1 class="ch-title">The Final Ember</h1>
+        <div class="ch-meta"><span>Updated 2 days ago</span><span>·</span><span>~2,800 words</span><span>·</span><span>12 min read</span></div>
+      </div>
+      <div class="reading-body" id="readingBody">
+        <p class="dropcap">The sun had not risen in three days. Kael stood at the edge of the broken Solarium, his boots grinding against shattered glass that had once captured the light of a thousand mornings, and he looked at her. She was not the girl he had found half-buried in the river two seasons past. She was not the frightened thing who had woken screaming in the dark with her palms on fire.</p>
+        <p>She was Solenne. Daughter of the Radiant God. And right now, she was the only thing standing between the dying world and absolute night.</p>
+        <p>"You don't have to do this," he said. His voice came out quieter than he intended. The wind pulled at it, scattered it across the ruins like ash.</p>
+        <p class="dialogue">"Yes, I do." She didn't look at him. Her eyes were fixed on the place where the horizon should have been — where darkness had swallowed the sky whole, where the Old Veil pressed against the world like a hand against glass. "You know I do."</p>
+        <p>He crossed the distance between them in three steps. His fingers caught her wrist — not to stop her, not to beg her. Just to hold her. To have something real to hold onto while the world unmade itself around them.</p>
+        <p>"Tell me there's another way." It wasn't a demand. It was barely a question. It was the sound of a man who already knew the answer refusing to accept it.</p>
+        <div class="scene-break">✦ ✦ ✦</div>
+        <p>She turned to face him then, and he almost wished she hadn't. Her eyes had changed in the last hour. The amber he knew — warm, cautious, a little wary of everything including herself — had given way to something older. Something that had no business living behind human eyes.</p>
+        <p>Gold. Burning gold, the same as the light that had not come at dawn.</p>
+        <p class="dialogue">"There was never another way, Kael. There was only the way I chose not to see."</p>
+        <p>He thought of the night she had laughed so hard at his terrible attempt at camp cooking that she'd knocked the pot clean off the fire. He thought of the morning he'd woken to find her sitting outside their tent, speaking in soft tones to a crow who seemed, impossibly, to be listening. He thought of the first time she had reached for his hand first. Not the second time. The first.</p>
+        <div class="inline-ad">
+          <div class="ad-label">Sponsored</div>
+          <div class="ad-img">📚</div>
+          <div class="ad-text">
+            <div class="ad-tagline">You might also love</div>
+            <div class="ad-title">Blood and Silk</div>
+            <div class="ad-sub">A political marriage, a hidden assassin, and a love that could destroy empires. By Sera Voss — 3.8M reads</div>
+            <button class="ad-cta">Read Now →</button>
+          </div>
+        </div>
+        <p>It felt, suddenly, like every moment had been leading here — not to this ruin, not to this impossible choice, but to this: him holding her wrist in the dark while she prepared to burn herself out like a star.</p>
+        <p class="dialogue">"I'm not afraid," she said.</p>
+        <p class="dialogue">"I know." He lifted her hand to his mouth and pressed his lips against her knuckles. "I am."</p>
+        <p>Something moved across her expression. He catalogued it the way he'd catalogued every expression in every dangerous place they'd survived together: grief, recognition, love — yes, love, he could see it now, clearly, the way you can only see things when it's almost too late — and beneath all of it, that ancient golden resolve.</p>
+        <p class="dialogue">"When it's done," she said quietly, "the light will come back. The crops will grow. The children who can't sleep will sleep."</p>
+        <p class="dialogue">"And what about me?" The words left him before he could call them back. "What do I do with the fact that there's no light worth having if it isn't—"</p>
+        <p>She kissed him.</p>
+        <p>Not gently. Not like a farewell, though he supposed that's what it was. She kissed him like she was furious and grateful and terrified all at once, like she was trying to press every unsaid thing into the space of a single breath, and he held her face in his hands and kissed her back the same way, because what else was there to do?</p>
+        <div class="scene-break">✦ ✦ ✦</div>
+        <p>When she pulled back, her cheeks were wet. So were his. He hadn't noticed. She raised one palm toward the smothered sky, and the first crack of gold appeared — faint, thin as a thread, like a seam torn in a dark curtain.</p>
+        <p class="dialogue">"Stay back," she whispered. Not to him. To the dark.</p>
+        <p>The light poured out of her like something that had been waiting a very long time to be released. It was blinding and terrible and the most beautiful thing Kael had ever seen. He shielded his eyes with one arm but did not turn away.</p>
+        <p>He would not turn away from this. He would not turn away from her.</p>
+        <p>The darkness screamed — an ancient, shapeless sound, like the groan of stone giving way underground — and then the light split the sky open from horizon to horizon, and the sun returned, and Solenne—</p>
+        <p>Solenne fell.</p>
+        <p>He caught her before she reached the ground.</p>
+        <p>She was still breathing. Barely. Her pulse under his fingers was thin as a candle flame in wind, but it was there. He gathered her against his chest, felt the slow rise and fall of her lungs, tilted his face up into the sun she had brought back, and closed his eyes.</p>
+        <p class="dialogue">"Stubborn," he said quietly. His voice cracked on the word. He didn't bother to hide it. "Absolutely insufferable."</p>
+        <p>Against his chest, barely a whisper: <em>"You're welcome."</em></p>
+        <p>He laughed. It came out broken and wet and entirely uncontrolled, the laugh of someone who has been frightened down to the bone and found themselves, impossibly, still standing. Still holding something precious. Still here.</p>
+        <p>The dawn light fell across the ruins of the Solarium. Somewhere in the city below, a bell began to ring.</p>
+      </div>
+      <div class="chapter-end">
+        <div class="chapter-end-ornament">✦  ✦  ✦</div>
+        <div class="chapter-end-msg">End of Chapter 67<br><em style="font-size:0.85em;opacity:0.7;">Thank you for reading The Sun's Heir ✨</em></div>
+        <div class="end-ad">
+          <div class="ad-label">Sponsored · Premium</div>
+          <div class="end-ad-title">Unlock Bixbi Premium</div>
+          <div class="end-ad-sub">Ad-free reading, offline chapters, early access, and exclusive author content. Join 280K premium readers.</div>
+          <button class="ad-cta" style="margin:0 auto;">✨ Try 7 Days Free</button>
+        </div>
+        <div class="nav-btns">
+          <button class="nav-btn nav-btn-prev" onclick="showToast('← Chapter 66 loading…')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>Previous</button>
+          <button class="nav-btn nav-btn-next" onclick="showToast('This is the final chapter! 🎉')">Final Chapter<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMMENTS — show 2, then load more -->
+    <div class="comments-section" id="commentsSection">
+      <div class="comments-head">
+        <div class="comments-title">Comments</div>
+        <div class="comments-count">3,412 comments</div>
+      </div>
+      <div class="comment-input-row">
+        <div class="comment-av">LC</div>
+        <div class="comment-input-wrap">
+          <textarea class="comment-input" placeholder="Share your thoughts on this chapter…" rows="1" oninput="autoResize(this)" onfocus="showSubmit(this)"></textarea>
+          <button class="comment-submit" onclick="postComment()">Post Comment</button>
+        </div>
+      </div>
+      <div class="comment-list" id="commentList"></div>
+      <button class="show-more-btn" id="loadMoreBtn" onclick="loadMoreComments()">Load more comments ↓</button>
+    </div>
+
+    <!-- RECOMMENDATIONS (Wattpad style) -->
+    <div class="reco-section">
+      <div class="reco-head">Recommendations</div>
+      <div class="reco-list" id="recoList"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Sticky Sidebar (Chapter List + Author + Recs + Ad) -->
+  <aside class="sidebar" id="sidebarEl">
+
+    <!-- About Author — LEFT (as requested, first in sidebar) -->
+    <div class="sidebar-card">
+      <div class="sc-head">About the Author</div>
+      <div class="author-sidebar">
+        <div class="as-row">
+          <div class="as-av">LC</div>
+          <div><div class="as-name">Lyra Cole</div><div class="as-handle">@lyracole · 142K followers</div></div>
+        </div>
+        <div class="as-bio">Fantasy & paranormal romance writer from Sri Lanka. Obsessed with morally grey characters and worlds you can get lost in ✨</div>
+        <button class="as-geek" onclick="showToast('Now geeking Lyra Cole 🤓')">🤓 Geek This Author</button>
+      </div>
+    </div>
+
+    <!-- Chapter List -->
+    <div class="sidebar-card">
+      <div class="sc-head">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+        Chapters
+      </div>
+      <div class="ch-list" id="chapterList"></div>
+    </div>
+
+    <!-- Sidebar Premium Ad -->
+    <div class="sidebar-ad">
+      <div class="sa-label">Advertisement</div>
+      <div class="sa-img">✨</div>
+      <div class="sa-title">Bixbi Premium</div>
+      <div class="sa-sub">Read without ads. Download chapters. Support your favorite authors directly.</div>
+      <button class="sa-cta">Get Premium — Free Trial</button>
+    </div>
+
+    <!-- Sidebar Recommendations -->
+    <div class="sidebar-card">
+      <div class="sc-head">✦ You Might Like</div>
+      <div class="rec-list-sb" id="recListSb"></div>
+    </div>
+
+    <!-- Second sidebar ad -->
+    <div class="sidebar-ad" style="background:linear-gradient(160deg,rgba(45,212,192,0.06),rgba(45,212,192,0.02));border-color:rgba(45,212,192,0.15)">
+      <div class="sa-label">Advertisement</div>
+      <div class="sa-img">📖</div>
+      <div class="sa-title">Reading Challenge</div>
+      <div class="sa-sub">Join 50K readers in this month's fantasy reading challenge. Earn badges & win prizes.</div>
+      <button class="sa-cta" style="background:linear-gradient(135deg,#1a8a7a,#0e6b5e)">Join Challenge →</button>
+    </div>
+
+  </aside>
+</div>
+
+<!-- MOBILE BOTTOM TOOLBAR -->
+<div class="reading-toolbar">
+  <button class="tb-btn" id="tbLike" onclick="toggleLike()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>Like</button>
+  <button class="tb-btn" onclick="toggleGeek()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>Geek</button>
+  <button class="tb-btn" id="tbBookmark" onclick="toggleBookmark()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>Save</button>
+  <button class="tb-btn" onclick="document.getElementById('commentsSection').scrollIntoView({behavior:'smooth'})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Comments</button>
+  <button class="tb-btn" onclick="toggleSettings(event)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>Settings</button>
+</div>
+
+<button class="scroll-top" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════ DATA ══════════════ */
+const CHAPTERS = [
+  {n:1,title:'The Buried River',time:'2y ago',locked:false},
+  {n:2,title:'Ash and Ember',time:'2y ago',locked:false},
+  {n:3,title:'The Radiant Name',time:'2y ago',locked:false},
+  {n:4,title:'Crow and Candle',time:'2y ago',locked:false},
+  {n:5,title:'Where the Gods Sleep',time:'2y ago',locked:false},
+  {n:10,title:'The First Fire',time:'1y ago',locked:false},
+  {n:20,title:'Iron and Oath',time:'1y ago',locked:false},
+  {n:30,title:'What the Dark Knows',time:'9mo ago',locked:false},
+  {n:40,title:'Golden Threshold',time:'7mo ago',locked:false},
+  {n:50,title:'The Shattered Solarium',time:'4mo ago',locked:false},
+  {n:60,title:'Before the Veil',time:'2mo ago',locked:false},
+  {n:65,title:'The Last Council',time:'3w ago',locked:false},
+  {n:66,title:'Something Like Goodbye',time:'1w ago',locked:false},
+  {n:67,title:'The Final Ember',time:'2d ago',locked:false},
+];
+
+const ALL_COMMENTS = [
+  {id:1,av:'MR',color:'linear-gradient(135deg,#1a0510,#3d0a22)',name:'Moana Riku',handle:'@moanareads',time:'2 hours ago',text:'I\'ve been following this story for two years and I genuinely started crying. The "you\'re welcome" destroyed me. Lyra you absolute genius.',likes:342,liked:false,badge:'Top Fan'},
+  {id:2,av:'ST',color:'linear-gradient(135deg,#051a10,#0a3d22)',name:'Sian Tao',handle:'@sianreads',time:'3 hours ago',text:'The "you\'re welcome" at the end is the most Solenne thing ever written. I\'m done. I\'m deceased. Thank you for this story.',likes:218,liked:false,badge:null},
+  {id:3,av:'AV',color:'linear-gradient(135deg,#0a0a1a,#1a1040)',name:'Asha Vel',handle:'@ashavel',time:'5 hours ago',text:'Kael catching her before she hit the ground. The way this whole chapter was constructed. Lyra please know you have ruined me for every other fantasy romance.',likes:189,liked:false,badge:null},
+  {id:4,av:'PM',color:'linear-gradient(135deg,#1a0505,#3a0f0f)',name:'Priya Mehra',handle:'@priyam',time:'8 hours ago',text:'The first letter, the first time she reached for his hand... and he remembered it here. Two years of buildup paid off in one sentence. This is what storytelling looks like.',likes:156,liked:false,badge:'Gold Reader'},
+  {id:5,av:'ZK',color:'linear-gradient(135deg,#051510,#0a3328)',name:'Zara Kim',handle:'@zarakim',time:'Yesterday',text:'I reread the first chapter after finishing this and now I\'m crying for completely different reasons. The journey. THE JOURNEY.',likes:134,liked:false,badge:null},
+];
+
+const RECS_MAIN = [
+  {
+    title:'Blood and Silk',author:'playgirldiorr',cover:null,coverBg:'linear-gradient(160deg,#1a0505,#3d1010)',
+    reads:'3.8M',stars:'47.9K',chapters:56,
+    desc:'Sera "Tank" Voss, a 22 year old political bride, crosses paths with a royal assassin who has been paid to end her bloodline before the wedding night...',
+    tags:['romance','political','dark']
+  },
+  {
+    title:'Knight',author:'hipstateasee',cover:null,coverBg:'linear-gradient(160deg,#0a1a0a,#1a3010)',
+    reads:'21.4M',stars:'714K',chapters:57,
+    desc:'COMPLETED [boyxboy] Mason Maloney has lived his whole life in the shadow of his twin brother, Nathan, star quarterback of the football team. While Nathan impresses ever...',
+    tags:['lgbtrights','lgbtq','forbidden']
+  },
+];
+
+const RECS_SIDEBAR = [
+  {title:'Blood and Silk',author:'Sera Voss',coverBg:'linear-gradient(160deg,#1a0505,#3d1010)',reads:'3.8M',stars:'4.9'},
+  {title:'Tide of Shadows',author:'Mira Quinn',coverBg:'linear-gradient(160deg,#050a1a,#0e1f3d)',reads:'1.2M',stars:'4.7'},
+  {title:'The Ashen Crown',author:'Zoe Stark',coverBg:'linear-gradient(160deg,#0a0a1a,#1a1030)',reads:'780K',stars:'4.8'},
+  {title:'Ice and Iron',author:'Lyra Cole',coverBg:'linear-gradient(160deg,#081420,#122840)',reads:'890K',stars:'4.9'},
+];
+
+let comments = [...ALL_COMMENTS];
+let shownComments = 2; // show only 2 initially
+
+/* ══════════════ RENDER CHAPTERS ══════════════ */
+function renderChapters() {
+  document.getElementById('chapterList').innerHTML = CHAPTERS.map(c => `
+    <a class="ch-item ${c.n===67?'current':''}" href="#" onclick="showToast('Loading Chapter ${c.n}…');return false;">
+      <span class="ch-item-num">Ch.${c.n}</span>
+      <span class="ch-item-title">${c.title}</span>
+      <span class="ch-item-time">${c.time}</span>
+      ${c.locked ? '<span class="ch-lock">🔒</span>' : ''}
+    </a>
+  `).join('');
+  // Scroll current chapter into view
+  setTimeout(() => {
+    const cur = document.querySelector('.ch-item.current');
+    if(cur) cur.scrollIntoView({block:'center',behavior:'smooth'});
+  }, 300);
+}
+
+/* ══════════════ RENDER COMMENTS ══════════════ */
+function renderComments() {
+  const visible = comments.slice(0, shownComments);
+  document.getElementById('commentList').innerHTML = visible.map(c => `
+    <div class="comment-item" id="comment-${c.id}">
+      <div class="comment-item-av" style="background:${c.color}">${c.av}</div>
+      <div class="comment-body">
+        <div class="comment-meta">
+          <span class="comment-author">${c.name}</span>
+          ${c.badge ? `<span class="comment-badge">${c.badge}</span>` : ''}
+          <span class="comment-time">${c.time}</span>
+        </div>
+        <div class="comment-text">${c.text}</div>
+        <div class="comment-actions">
+          <button class="cact ${c.liked?'liked':''}" onclick="likeComment(${c.id})">
+            <svg viewBox="0 0 24 24" fill="${c.liked?'currentColor':'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+            ${c.likes}
+          </button>
+          <button class="cact" onclick="showToast('Reply coming soon!')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            Reply
+          </button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  // Show/hide load more btn
+  document.getElementById('loadMoreBtn').style.display = shownComments >= comments.length ? 'none' : 'block';
+}
+
+function likeComment(id) {
+  const c = comments.find(x => x.id === id);
+  if(!c) return;
+  c.liked = !c.liked;
+  c.likes += c.liked ? 1 : -1;
+  renderComments();
+}
+
+function loadMoreComments() {
+  shownComments = Math.min(shownComments + 3, comments.length);
+  renderComments();
+  if(shownComments >= comments.length) showToast('All comments loaded');
+}
+
+function postComment() {
+  const ta = document.querySelector('.comment-input');
+  const text = ta.value.trim();
+  if(!text) return;
+  const newC = {id:Date.now(),av:'LC',color:'linear-gradient(135deg,#1a1a0a,#2e2a08)',name:'Lyra Cole',time:'Just now',text,likes:0,liked:false,badge:'Author'};
+  comments.unshift(newC);
+  renderComments();
+  ta.value = '';
+  ta.style.height = 'auto';
+  showToast('Comment posted ✓');
+}
+
+/* ══════════════ RENDER RECOMMENDATIONS (Wattpad style) ══════════════ */
+function renderRecos() {
+  document.getElementById('recoList').innerHTML = RECS_MAIN.map(r => `
+    <a class="reco-item" href="#" onclick="showToast('Opening ${r.title}…');return false;">
+      <div class="reco-cover">
+        <div class="reco-cover-placeholder" style="background:${r.coverBg}">${r.title}</div>
+      </div>
+      <div class="reco-info">
+        <div class="reco-title">${r.title}</div>
+        <div class="reco-author">by ${r.author}</div>
+        <div class="reco-stats">
+          <div class="reco-stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${r.reads}</div>
+          <div class="reco-stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>${r.stars}</div>
+          <div class="reco-stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>${r.chapters}</div>
+        </div>
+        <div class="reco-desc">${r.desc}</div>
+        <div class="reco-tags">${r.tags.map(t=>`<span class="reco-tag">${t}</span>`).join('')} <span class="reco-tag" style="color:var(--muted);background:none;border:none">+${Math.floor(Math.random()*20+10)} more</span></div>
+      </div>
+    </a>
+  `).join('');
+}
+
+/* ══════════════ RENDER SIDEBAR RECS ══════════════ */
+function renderSidebarRecs() {
+  document.getElementById('recListSb').innerHTML = RECS_SIDEBAR.map(r => `
+    <a class="rec-item-sb" href="#" onclick="showToast('Opening ${r.title}…');return false;">
+      <div class="rec-cov-sb"><div class="rec-cov-ph" style="background:${r.coverBg}">${r.title}</div></div>
+      <div class="rec-info-sb">
+        <div class="rec-title-sb">${r.title}</div>
+        <div class="rec-author-sb">${r.author}</div>
+        <div class="rec-stats-sb"><span>👁 ${r.reads}</span><span>⭐ ${r.stars}</span></div>
+      </div>
+    </a>
+  `).join('');
+}
+
+/* ══════════════ SETTINGS ══════════════ */
+let fontSize = 18;
+const fontFamilies = {lora:"'Lora',Georgia,serif",cormorant:"'Cormorant Garamond',Georgia,serif",sans:"'DM Sans',sans-serif"};
+
+function toggleSettings(e) {
+  if(e) e.stopPropagation();
+  document.getElementById('settingsPanel').classList.toggle('open');
+}
+function closeSettings() {
+  document.getElementById('settingsPanel').classList.remove('open');
+}
+document.addEventListener('click', e => {
+  if(!e.target.closest('.settings-wrap') && !e.target.closest('#settingsBtn')) {
+    document.getElementById('settingsPanel').classList.remove('open');
+  }
+});
+
+function setTheme(theme, btn) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.querySelectorAll('.tpill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  showToast(theme==='light'?'☀️ Light mode':theme==='dark'?'🌙 Dark mode':'📜 Sepia mode');
+}
+function changeFontSize(d) {
+  fontSize = Math.max(14, Math.min(26, fontSize + d));
+  document.getElementById('readingBody').style.fontSize = fontSize + 'px';
+  document.getElementById('fontSizeLabel').textContent = fontSize + 'px';
+}
+function setFont(family, btn) {
+  document.getElementById('readingBody').style.fontFamily = fontFamilies[family];
+  document.querySelectorAll('.ffbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function setLineHeight(val) {
+  document.getElementById('readingBody').style.lineHeight = (val/100).toFixed(2);
+}
+
+/* ══════════════ DROPDOWN ══════════════ */
+function toggleDD(id) {
+  const el = document.getElementById(id);
+  const open = el.classList.contains('open');
+  document.querySelectorAll('.dd').forEach(d => d.classList.remove('open'));
+  if(!open) el.classList.add('open');
+}
+function closeDD(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('click', e => {
+  if(!e.target.closest('[onclick*="toggleDD"]') && !e.target.closest('.dd') && !e.target.closest('.pna'))
+    document.querySelectorAll('.dd').forEach(d => d.classList.remove('open'));
+});
+
+/* ══════════════ ACTIONS ══════════════ */
+let liked=false,geeked=false,bookmarked=false;
+function toggleLike(){liked=!liked;document.getElementById('likeBtn').classList.toggle('liked',liked);document.getElementById('tbLike').classList.toggle('liked',liked);document.getElementById('likeCount').textContent=liked?'48.1K':'48K';showToast(liked?'Liked ❤️':'Like removed')}
+function toggleGeek(){geeked=!geeked;document.getElementById('geekBtn').classList.toggle('geeked',geeked);showToast(geeked?'Geeking this chapter 🤓':'Ungeek-ed')}
+function toggleBookmark(){bookmarked=!bookmarked;document.getElementById('bookmarkBtn').classList.toggle('bookmarked',bookmarked);document.getElementById('tbBookmark').classList.toggle('bookmarked',bookmarked);showToast(bookmarked?'Chapter saved 🔖':'Bookmark removed')}
+
+/* ══════════════ PROGRESS ══════════════ */
+function updateProgress() {
+  const s=window.scrollY||document.documentElement.scrollTop;
+  const h=document.documentElement.scrollHeight-window.innerHeight;
+  const p=h>0?(s/h)*100:0;
+  document.getElementById('progress-bar').style.width=p+'%';
+  document.getElementById('scrollTopBtn').classList.toggle('visible',s>400);
+  const rem=Math.max(0,Math.ceil(2800*(1-p/100)/200));
+  document.getElementById('rtText').textContent=rem>0?`${rem} min left`:'Done!';
+  document.getElementById('rtDisplay').style.display='flex';
+}
+window.addEventListener('scroll',updateProgress,{passive:true});
+
+/* ══════════════ UTILS ══════════════ */
+function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px'}
+function showSubmit(el){const b=el.nextElementSibling;if(b)b.style.display='inline-block'}
+let tt;
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2600)}
+
+/* ══════════════ INIT ══════════════ */
+renderChapters();
+renderComments();
+renderRecos();
+renderSidebarRecs();
+updateProgress();
+</script>
+</body>
+</html>

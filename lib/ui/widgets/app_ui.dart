@@ -25,8 +25,8 @@ class SoftCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = color ?? (isDark ? const Color(0xFF1C1C22) : Colors.white);
-    final border = isDark ? const Color(0xFF2A2A32) : AppTheme.borderOf(context);
+    final bg = color ?? (isDark ? AppTheme.surfaceOf(context) : Colors.white);
+    final border = AppTheme.borderOf(context);
 
     final content = Container(
       margin: margin,
@@ -38,12 +38,12 @@ class SoftCard extends StatelessWidget {
         boxShadow: isDark
             ? const []
             : [
- BoxShadow(
+                BoxShadow(
                   color: AppTheme.brand.withValues(alpha: 0.06),
                   blurRadius: 24,
                   offset: const Offset(0, 10),
                 ),
- BoxShadow(
+                BoxShadow(
                   color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
@@ -119,8 +119,10 @@ class _FadeSlideInState extends State<FadeSlideIn>
     vsync: this,
     duration: AppMotion.normal,
   );
-  late final Animation<double> _fade =
- CurvedAnimation(parent: _c, curve: AppMotion.easeOut);
+  late final Animation<double> _fade = CurvedAnimation(
+    parent: _c,
+    curve: AppMotion.easeOut,
+  );
   late final Animation<Offset> _slide = Tween<Offset>(
     begin: Offset(0, widget.offset / 80),
     end: Offset.zero,
@@ -179,12 +181,12 @@ class GradientAura extends StatelessWidget {
               ),
             ),
           ),
- Positioned(
+          Positioned(
             right: -30,
             top: -20,
             child: _blob(120, Colors.white.withValues(alpha: 0.12)),
           ),
- Positioned(
+          Positioned(
             left: -40,
             bottom: 10,
             child: _blob(100, Colors.white.withValues(alpha: 0.08)),
@@ -232,7 +234,7 @@ class GlowButton extends StatelessWidget {
             colors: [AppTheme.brand, AppTheme.brandDeep],
           ),
           boxShadow: [
- BoxShadow(
+            BoxShadow(
               color: AppTheme.brand.withValues(alpha: 0.35),
               blurRadius: 18,
               offset: const Offset(0, 8),
@@ -253,10 +255,10 @@ class GlowButton extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (icon != null) ...[
- Icon(icon, color: Colors.white, size: 20),
+                    Icon(icon, color: Colors.white, size: 20),
                     const SizedBox(width: 8),
                   ],
- Text(
+                  Text(
                     label,
                     style: const TextStyle(
                       color: Colors.white,

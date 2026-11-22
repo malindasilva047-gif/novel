@@ -16,6 +16,13 @@ def register_inkitt_routes(
     require_admin: Callable | None = None,
     bump_content_version: Callable | None = None,
 ):
+    # Runtime startup hooks call this a second time to apply patched database
+    # helpers. Registering FastAPI endpoints twice causes ambiguous dispatch and
+    # duplicate OpenAPI operation IDs, so keep route installation idempotent.
+    if getattr(app.state, "inkitt_routes_registered", False):
+        return
+    app.state.inkitt_routes_registered = True
+
     def _bump():
         if bump_content_version:
             try:
@@ -179,10 +186,14 @@ def register_inkitt_routes(
 
     def _publish_impl(story_id: int, user: dict[str, Any] | None):
         uid = user.get("user_id") if isinstance(user, dict) else None
-        rows = fetch_all("SELECT id, user_id, status_text FROM books WHERE id=%s", (story_id,))
+        rows = fetch_all("SELECT id, user_id, status_text, description, genre, primary_genre FROM books WHERE id=%s", (story_id,))
         if not rows:
             raise HTTPException(status_code=404, detail="Story not found")
         book = rows[0]
+        description = str(book.get("description") or "") if isinstance(book, dict) else ""
+        genre = str((book.get("genre") or book.get("primary_genre") or "") if isinstance(book, dict) else "")
+        if not description.strip() or not genre.strip():
+            raise HTTPException(status_code=400, detail="Complete the story summary and primary genre before publishing.")
         owner = book.get("user_id") if isinstance(book, dict) else None
         if uid is not None and owner is not None and int(owner) != int(uid):
             raise HTTPException(status_code=403, detail="Not your story")
@@ -249,17 +260,6 @@ def register_inkitt_routes(
         def publish_writer_story(story_id: int, user: dict[str, Any] = Depends(require_user)):
             return _publish_impl(story_id, user)
 
-        @app.post("/api/books/{book_id}/report")
-        def report_book(
-            book_id: int,
-            payload: dict[str, Any] | None = Body(default=None),
-            user: dict[str, Any] = Depends(require_user),
-        ):
-            reason = ""
-            if isinstance(payload, dict):
-                reason = str(payload.get("reason") or "")
-            return _report_impl(book_id, user, reason)
-
         @app.post("/api/write/chapters/{chapter_id}/submit")
         def submit_chapter(chapter_id: int, user: dict[str, Any] = Depends(require_user)):
             rows = fetch_all("SELECT * FROM chapters WHERE id=%s", (chapter_id,))
@@ -267,6 +267,21 @@ def register_inkitt_routes(
                 raise HTTPException(status_code=404, detail="Chapter not found")
             chapter = rows[0]
             story_id = chapter.get("story_id") if isinstance(chapter, dict) else None
+            if story_id is None:
+                raise HTTPException(status_code=400, detail="Chapter has no story.")
+            owner_rows = fetch_all("SELECT user_id FROM books WHERE id=%s LIMIT 1", (story_id,))
+            owner_id = owner_rows[0].get("user_id") if owner_rows and isinstance(owner_rows[0], dict) else None
+            if owner_id is not None and int(owner_id) != int(user.get("user_id") or 0):
+                raise HTTPException(status_code=403, detail="Not your story")
+            story_rows = fetch_all(
+                "SELECT description, genre, primary_genre FROM books WHERE id=%s LIMIT 1",
+                (story_id,),
+            )
+            story = story_rows[0] if story_rows else {}
+            description = str(story.get("description") or "") if isinstance(story, dict) else ""
+            genre = str((story.get("genre") or story.get("primary_genre") or "") if isinstance(story, dict) else "")
+            if not description.strip() or not genre.strip():
+                raise HTTPException(status_code=400, detail="Complete the story summary and primary genre before publishing.")
             execute_write(
                 "UPDATE chapters SET submission_status=%s WHERE id=%s",
                 ("submitted", chapter_id),
@@ -285,82 +300,3 @@ def register_inkitt_routes(
         def publish_writer_story_open(story_id: int):
             return _publish_impl(story_id, None)
 
-        @app.post("/api/books/{book_id}/report")
-        def report_book_open(book_id: int, payload: dict[str, Any] | None = Body(default=None)):
-            raise HTTPException(status_code=401, detail="Auth required")
-
-    @app.get("/api/admin/reports")
-    def admin_list_reports():
-        _ensure_reports_table()
-        rows = fetch_all(
-            """
-            SELECT b.id AS book_id, b.title, b.author, b.status_text, b.cover_path,
-                   COUNT(DISTINCT r.user_id) AS report_count,
-                   MAX(r.created_at) AS last_report_at
-            FROM story_reports r
-            JOIN books b ON b.id = r.book_id
-            GROUP BY b.id, b.title, b.author, b.status_text, b.cover_path
-            ORDER BY report_count DESC, last_report_at DESC
-            LIMIT 200
-            """
-        )
-        items = []
-        for row in rows:
-            if isinstance(row, dict):
-                items.append(dict(row))
-            else:
-                items.append({"book_id": row[0], "title": row[1], "report_count": row[4] if len(row) > 4 else 0})
-        return {"items": items}
-
-    @app.get("/api/admin/tags")
-    def admin_list_tags():
-        rows = fetch_all(
-            """
-            SELECT t.id, t.name,
-                   (SELECT COUNT(*) FROM book_tags bt WHERE bt.tag_id = t.id) AS book_count
-            FROM tags t
-            ORDER BY t.name
-            """
-        )
-        items = []
-        for row in rows:
-            if isinstance(row, dict):
-                items.append({"id": row.get("id"), "name": row.get("name"), "book_count": row.get("book_count") or 0})
-            else:
-                items.append({"id": row[0], "name": row[1], "book_count": row[2] if len(row) > 2 else 0})
-        return {"items": items}
-
-    @app.post("/api/admin/tags")
-    def admin_create_tag(payload: dict[str, Any] = Body(...)):
-        name = str(payload.get("name") or "").strip().lstrip("#")
-        if not name:
-            raise HTTPException(status_code=400, detail="Tag name required")
-        existing = fetch_all("SELECT id FROM tags WHERE name=%s LIMIT 1", (name,))
-        if existing:
-            raise HTTPException(status_code=400, detail="Tag already exists")
-        tag_id, _ = execute_write("INSERT INTO tags (name) VALUES (%s)", (name,))
-        _bump()
-        return {"ok": True, "id": tag_id, "name": name}
-
-    @app.put("/api/admin/tags/{tag_id}")
-    def admin_update_tag(tag_id: int, payload: dict[str, Any] = Body(...)):
-        name = str(payload.get("name") or "").strip().lstrip("#")
-        if not name:
-            raise HTTPException(status_code=400, detail="Tag name required")
-        _, affected = execute_write("UPDATE tags SET name=%s WHERE id=%s", (name, tag_id))
-        if affected == 0:
-            raise HTTPException(status_code=404, detail="Tag not found")
-        _bump()
-        return {"ok": True, "id": tag_id, "name": name}
-
-    @app.delete("/api/admin/tags/{tag_id}")
-    def admin_delete_tag(tag_id: int):
-        try:
-            execute_write("DELETE FROM book_tags WHERE tag_id=%s", (tag_id,))
-        except Exception:
-            pass
-        _, affected = execute_write("DELETE FROM tags WHERE id=%s", (tag_id,))
-        if affected == 0:
-            raise HTTPException(status_code=404, detail="Tag not found")
-        _bump()
-        return {"ok": True}

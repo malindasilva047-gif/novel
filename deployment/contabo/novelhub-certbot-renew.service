@@ -1,0 +1,11 @@
+[Unit]
+Description=Renew Wingsaga and Contabo IP TLS certificates with Certbot
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+TimeoutStartSec=10min
+ExecStart=/usr/bin/docker run --rm -v /opt/novelhub/certbot/conf:/etc/letsencrypt -v /opt/novelhub/certbot/www:/var/www/certbot certbot/certbot:v5.8.0 renew --quiet --no-random-sleep-on-renew --webroot --webroot-path /var/www/certbot
+ExecStartPost=/usr/bin/docker exec contabo-web-1 nginx -t
+ExecStartPost=/usr/bin/docker exec contabo-web-1 nginx -s reload

@@ -16,12 +16,16 @@ class MoreScreen extends StatelessWidget {
     required this.apiService,
     required this.session,
     required this.onSignOut,
+    required this.onRefresh,
+    this.onProfilePhotoChanged,
   });
   final AppBootstrap data;
   final ApiService apiService;
   final AuthSession session;
   final Future<void> Function() onSignOut;
-  static const _purple = Color(0xFF8B5CF6);
+  final Future<void> Function() onRefresh;
+  final Future<void> Function(String photoUrl)? onProfilePhotoChanged;
+  static const _purple = AppTheme.brand;
 
   ProfileModel _profile() {
     final p = data.profile;
@@ -46,6 +50,11 @@ class MoreScreen extends StatelessWidget {
       bio: p.bio,
       gender: p.gender,
       birthDate: p.birthDate,
+      country: p.country,
+      facebookUrl: p.facebookUrl,
+      youtubeUrl: p.youtubeUrl,
+      instagramUrl: p.instagramUrl,
+      twitterUrl: p.twitterUrl,
     );
   }
 
@@ -57,6 +66,7 @@ class MoreScreen extends StatelessWidget {
           apiService: apiService,
           achievements: data.achievements,
           onSignOut: onSignOut,
+          onProfilePhotoChanged: onProfilePhotoChanged,
         ),
       ),
     );
@@ -78,50 +88,54 @@ class MoreScreen extends StatelessWidget {
 
     return RefreshIndicator(
       color: _purple,
-      onRefresh: () async {
-        // StatelessWidget has no State.mounted — use context.mounted.
-        if (context.mounted) {
-          (context as Element).markNeedsBuild();
-        }
-        await Future<void>.delayed(const Duration(milliseconds: 400));
-      },
+      onRefresh: onRefresh,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(14, 10, 14, 28),
         children: [
- Container(
+          Container(
             padding: const EdgeInsets.all(14),
             decoration: _card(context, isDark),
             child: Row(
               children: [
- GestureDetector(
+                GestureDetector(
                   onTap: () => _openProfile(context),
                   child: CircleAvatar(
                     radius: 24,
                     backgroundColor: isDark
                         ? Colors.white24
-                        : const Color(0xFFEDE9FE),
-                    backgroundImage: _profile().photoUrl.trim().isNotEmpty
-                        ? NetworkImage(
-                            apiService.resolveAssetUrl(_profile().photoUrl),
-                          )
-                        : null,
+                        : const Color(0xFFDDE2DF),
                     child: _profile().photoUrl.trim().isEmpty
                         ? Text(
                             name.isEmpty ? '?' : name[0].toUpperCase(),
                             style: const TextStyle(fontWeight: FontWeight.w800),
                           )
-                        : null,
+                        : ClipOval(
+                            child: Image.network(
+                              apiService.resolveAssetUrl(_profile().photoUrl),
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Center(
+                                child: Text(
+                                  name.isEmpty ? '?' : name[0].toUpperCase(),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(width: 12),
- Expanded(
+                Expanded(
                   child: GestureDetector(
                     onTap: () => _openProfile(context),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
- Text(
+                        Text(
                           name,
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
@@ -130,7 +144,7 @@ class MoreScreen extends StatelessWidget {
                           ),
                         ),
                         if (email.isNotEmpty)
- Text(
+                          Text(
                             email,
                             style: TextStyle(
                               color: isDark
@@ -148,7 +162,7 @@ class MoreScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _sectionLabel('Appearance'),
- Container(
+          Container(
             padding: const EdgeInsets.all(12),
             decoration: _card(context, isDark),
             child: Column(
@@ -159,7 +173,7 @@ class MoreScreen extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 10),
- AnimatedBuilder(
+                AnimatedBuilder(
                   animation: ThemeController.instance,
                   builder: (context, _) {
                     final mode = ThemeController.instance.mode;
@@ -242,7 +256,7 @@ class MoreScreen extends StatelessWidget {
               () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) =>
- NotificationSettingsScreen(apiService: apiService),
+                      NotificationSettingsScreen(apiService: apiService),
                 ),
               ),
             ),
@@ -273,6 +287,18 @@ class MoreScreen extends StatelessWidget {
                 ),
               ),
             ),
+            _Item(
+              Icons.manage_accounts_outlined,
+              'Profile Management',
+              () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => ProfileManagementScreen(
+                    apiService: apiService,
+                    onSignOut: onSignOut,
+                  ),
+                ),
+              ),
+            ),
           ]),
           const SizedBox(height: 12),
           _sectionLabel('Legal'),
@@ -283,7 +309,7 @@ class MoreScreen extends StatelessWidget {
               () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) =>
- CookiePreferencesScreen(apiService: apiService),
+                      CookiePreferencesScreen(apiService: apiService),
                 ),
               ),
             ),
@@ -294,7 +320,7 @@ class MoreScreen extends StatelessWidget {
                 MaterialPageRoute<void>(
                   builder: (_) => LegalTextScreen(
                     title: 'Terms of Service',
-                    sections: termsSections(),
+                    assetPath: 'assets/legal/terms.txt',
                   ),
                 ),
               ),
@@ -306,7 +332,7 @@ class MoreScreen extends StatelessWidget {
                 MaterialPageRoute<void>(
                   builder: (_) => LegalTextScreen(
                     title: 'Privacy Policy',
-                    sections: privacySections(),
+                    assetPath: 'assets/legal/privacy.txt',
                   ),
                 ),
               ),
@@ -328,15 +354,15 @@ class MoreScreen extends StatelessWidget {
   }
 
   BoxDecoration _card(BuildContext context, bool isDark) => BoxDecoration(
-    color: isDark ? const Color(0xFF1C1C22) : Colors.white,
+    color: isDark ? AppTheme.surfaceOf(context) : Colors.white,
     borderRadius: BorderRadius.circular(20),
     border: Border.all(
-      color: isDark ? const Color(0xFF2F2F3A) : AppTheme.borderOf(context),
+      color: isDark ? AppTheme.borderOf(context) : AppTheme.borderOf(context),
     ),
     boxShadow: isDark
         ? const []
         : [
- BoxShadow(
+            BoxShadow(
               color: AppTheme.brand.withValues(alpha: 0.06),
               blurRadius: 20,
               offset: const Offset(0, 8),
@@ -360,7 +386,7 @@ class MoreScreen extends StatelessWidget {
     ),
   );
   Widget _themeChip(String label, bool selected, VoidCallback onTap) =>
- Expanded(
+      Expanded(
         child: Builder(
           builder: (context) {
             final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -376,7 +402,7 @@ class MoreScreen extends StatelessWidget {
                   border: Border.all(
                     color: selected
                         ? _purple
-                        : (isDark ? Colors.white24 : const Color(0xFFE9E4F5)),
+                        : (isDark ? Colors.white24 : const Color(0xFFF6F5FA)),
                   ),
                 ),
                 child: Text(
@@ -394,54 +420,57 @@ class MoreScreen extends StatelessWidget {
           },
         ),
       );
-  Widget _menuCard(BuildContext context, bool isDark, List<_Item> items) => Material(
-    color: Colors.transparent,
-    child: Container(
-    decoration: _card(context, isDark),
-    child: Column(
-      children: [
-        for (var i = 0; i < items.length; i++) ...[
- Material(
-            color: Colors.transparent,
-            child: ListTile(
-            dense: true,
-            visualDensity: VisualDensity.compact,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 2,
-            ),
-            leading: Icon(
-              items[i].icon,
-              size: 22,
-              color: items[i].danger ? const Color(0xFFE53935) : _purple,
-            ),
-            title: Text(
-              items[i].label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-                color: items[i].danger ? const Color(0xFFE53935) : null,
-              ),
-            ),
-            trailing: items[i].danger
-                ? null
-                : const Icon(Icons.chevron_right, size: 20),
-            onTap: items[i].onTap,
+  Widget _menuCard(BuildContext context, bool isDark, List<_Item> items) =>
+      Material(
+        color: Colors.transparent,
+        child: Container(
+          decoration: _card(context, isDark),
+          child: Column(
+            children: [
+              for (var i = 0; i < items.length; i++) ...[
+                Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 2,
+                    ),
+                    leading: Icon(
+                      items[i].icon,
+                      size: 22,
+                      color: items[i].danger
+                          ? const Color(0xFFE53935)
+                          : _purple,
+                    ),
+                    title: Text(
+                      items[i].label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: items[i].danger ? const Color(0xFFE53935) : null,
+                      ),
+                    ),
+                    trailing: items[i].danger
+                        ? null
+                        : const Icon(Icons.chevron_right, size: 20),
+                    onTap: items[i].onTap,
+                  ),
+                ),
+                if (i < items.length - 1)
+                  Divider(
+                    height: 1,
+                    indent: 56,
+                    color: isDark ? Colors.white12 : const Color(0xFFF6F5FA),
+                  ),
+              ],
+            ],
           ),
-          ),
-          if (i < items.length - 1)
- Divider(
-              height: 1,
-              indent: 56,
-              color: isDark ? Colors.white12 : const Color(0xFFE9E4F5),
-            ),
-        ],
-      ],
-    ),
-  ),
-  );
+        ),
+      );
 }
 
 class _Item {

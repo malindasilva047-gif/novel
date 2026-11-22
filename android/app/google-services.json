@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "195335188258",
+    "project_id": "novelv7",
+    "storage_bucket": "novelv7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:195335188258:android:94bbd0ecc89bfc3abc3f7b",
+        "android_client_info": {
+          "package_name": "com.example.novel_mobile_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0D20ibH2NTwSOHcDlLpE9Q0UY60O37dQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/services/api_service.dart';
 import '../../core/theme/app_styles.dart';
+import '../widgets/app_notice.dart';
+import '../widgets/image_adjustment.dart';
 import 'edit_chapter_screen.dart';
 import 'root_shell.dart';
 
@@ -30,18 +32,18 @@ class CreateStoryScreen extends StatefulWidget {
 
 class _CreateStoryScreenState extends State<CreateStoryScreen> {
   // Theme-aware colors resolved in build() via AppStyles (dark default OK)
-  Color _ink = Color(0xFFF7F5FC);
+  Color _ink = Color(0xFFF6F5FA);
   Color _panel = Color(0xFFFFFFFF);
-  Color _panelAlt = Color(0xFFF3F0FF);
+  Color _panelAlt = Color(0xFFF6F5FA);
   Color _border = Color(0xFFE8E8E8);
-  Color _borderSoft = Color(0xFFEDE9FE);
-  Color _textHi = Color(0xFF231F20);
+  Color _borderSoft = Color(0xFFDDE2DF);
+  Color _textHi = Color(0xFF202020);
   Color _textLo = Color(0xFF767676);
   Color _textFaint = Color(0xFF9A9A9A);
-  Color _magenta = Color(0xFF8B5CF6);
-  Color _violet = Color(0xFFB794F6);
-  Color _amber = Color(0xFFF0B357);
-  Color _green = Color(0xFF8B5CF6);
+  Color _magenta = Color(0xFF16856A);
+  Color _violet = Color(0xFF35A486);
+  Color _amber = Color(0xFFF4CC2F);
+  Color _green = Color(0xFF16856A);
 
   void _applyThemeColors(BuildContext context) {
     final c = AppStyles.colors(context);
@@ -55,7 +57,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
     _textFaint = c.textFaint;
     _magenta = c.brand;
     _violet = AppStyles.purpleBright;
-    _amber = Color(0xFFF0B357);
+    _amber = Color(0xFFF4CC2F);
     _green = c.brand;
   }
 
@@ -80,7 +82,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
   static final List<String> _languages = ['Sinhala', 'English', 'Tamil'];
   static final List<String> _audiences = [
     'All Ages',
-    'Teen (13+)',
+    'Teen (16+)',
     'Mature (18+)',
   ];
   static final List<String> _warningOptions = [
@@ -116,7 +118,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
   final bool _showCustomGenre = false;
 
   String _status = 'Draft';
-  String _language = 'Sinhala';
+  String? _language;
   String? _audience = 'All Ages';
   int? _savedStoryId;
   final Set<String> _selectedWarnings = {};
@@ -128,14 +130,15 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
     if (_titleController.text.trim().isNotEmpty) n++;
     if (_summaryController.text.trim().isNotEmpty) n++;
     if ((_selectedGenre ?? '').trim().isNotEmpty) n++;
+    if (_coverPath.trim().isNotEmpty) n++;
     return n;
   }
 
-  int get _readinessPct => ((_readinessDone / 3) * 100).round();
+  int get _readinessPct => ((_readinessDone / 4) * 100).round();
 
   String get _readinessCaption {
-    if (_readinessPct == 0) return 'A blank page. Where will it begin?';
-    if (_readinessPct < 100) return 'Still inking the details in';
+    if (_readinessPct == 0) return 'A blank page. Where does it begin?';
+    if (_readinessPct < 100) return 'Still filling in the details';
     return 'Ready for readers';
   }
 
@@ -293,7 +296,6 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
     }
   }
 
-
   Future<void> _showCoverGuidelines() async {
     await showDialog<void>(
       context: context,
@@ -341,10 +343,15 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
     );
     if (picked == null) return;
     try {
-      final bytes = await picked.readAsBytes();
+      final bytes = await showImageAdjustmentDialog(
+        context,
+        picked,
+        aspectRatio: 2 / 3,
+      );
+      if (bytes == null) return;
       final result = await widget.apiService.uploadWriterImage(
         bytes,
-        picked.name,
+        'story-cover.png',
       );
       final path =
           (result['path'] ??
@@ -355,20 +362,22 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
               .toString();
       if (!mounted) return;
       if (path.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Cover upload returned empty path')),
+        showAppNotice(
+          context,
+          'Cover upload returned empty path',
+          type: AppNoticeType.error,
         );
         return;
       }
       setState(() => _coverPath = path);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Cover uploaded')));
+      showAppNotice(context, 'Cover uploaded');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      showAppNotice(
         context,
-      ).showSnackBar(SnackBar(content: Text('Cover upload failed: $e')));
+        'Cover upload failed: $e',
+        type: AppNoticeType.error,
+      );
     }
   }
 
@@ -393,7 +402,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
           if (a.contains('18') || a.contains('mature')) {
             _audience = 'Mature (18+)';
           } else if (a.contains('13') || a.contains('teen')) {
-            _audience = 'Teen (13+)';
+            _audience = 'Teen (16+)';
           } else if (a.contains('all')) {
             _audience = 'All Ages';
           } else {
@@ -470,7 +479,6 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
     setState(() => _selectedTags.remove(name));
     _scheduleDraftSave();
   }
-
 
   /// Inkitt: never wipe the app stack — return to Write / previous route.
   Future<void> _softReturnToWrite({bool openDrafts = true}) async {
@@ -561,6 +569,16 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
     final summary = _summaryController.text.trim();
     final author = _authorController.text.trim();
     final genre = (_selectedGenre ?? '').trim();
+    if (title.isEmpty) {
+      if (!silent && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter a story title to start writing'),
+          ),
+        );
+      }
+      return;
+    }
     final safeTitle = title.isEmpty ? 'Untitled Story' : title;
 
     _draftDebounce?.cancel();
@@ -578,7 +596,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
         'title': safeTitle,
         'description': summary,
         'author': author.isEmpty ? 'Author' : author,
-        'genre': genre.isEmpty ? 'Romance' : genre,
+        'genre': genre,
         'content_warnings': warnings,
         'tags': List<String>.from(_selectedTags.take(3)),
         'language': _language,
@@ -587,13 +605,10 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
             : _audience!.trim()),
         'cover_path': _coverPath,
       };
-      // Inkitt contract: Edit details must NEVER change story status.
-      // Forcing Draft here was moving Ongoing stories out of Submitted
-      // and made chapters look "deleted". Only set status on NEW stories
-      // or when caller explicitly passes forceStatus for create flow.
+      // Editing details never changes story status. New stories remain Draft
+      // until the author publishes a chapter or explicitly chooses a status.
       if (!_isEditing) {
-        payload['status_text'] =
-            forceStatus ?? (asDraft ? 'Draft' : 'Ongoing');
+        payload['status_text'] = forceStatus ?? 'Draft';
       } else if (forceStatus != null && forceStatus.isNotEmpty) {
         // Explicit status change only (rare from this screen)
         payload['status_text'] = forceStatus;
@@ -660,9 +675,9 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
 
       if (storyId <= 0) {
         if (!silent) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Could not save — try again')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Could not save — try again')));
         }
         return;
       }
@@ -678,9 +693,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
       if (_isEditing || (widget.story != null && storyId > 0 && asDraft)) {
         if (!silent && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Details updated — chapters unchanged'),
-            ),
+            SnackBar(content: Text('Details updated — chapters unchanged')),
           );
         }
         if (mounted) {
@@ -693,7 +706,8 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
               final st = (forceStatus ?? (asDraft ? 'Draft' : 'Ongoing'))
                   .toString()
                   .toLowerCase();
-              final isDraft = st.contains('draft') ||
+              final isDraft =
+                  st.contains('draft') ||
                   st.contains('private') ||
                   st.contains('unpublish');
               await prefs.setBool('write_open_drafts', isDraft);
@@ -704,10 +718,10 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
               Navigator.of(context).pop(true);
             } else {
               if (Navigator.of(context).canPop()) {
-                              Navigator.of(context).pop(_isEditing ? true : true);
-                            } else {
-                              await _softReturnToWrite(openDrafts: true);
-                            }
+                Navigator.of(context).pop(_isEditing ? true : true);
+              } else {
+                await _softReturnToWrite(openDrafts: true);
+              }
             }
           }
         }
@@ -716,9 +730,9 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
 
       if (asDraft) {
         if (!popAfter && !silent) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Draft saved')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Draft saved')));
         }
         if (popAfter && mounted) {
           try {
@@ -727,28 +741,15 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
             await prefs.setBool('write_open_submitted', false);
           } catch (_) {}
           if (Navigator.of(context).canPop()) {
-                              Navigator.of(context).pop(_isEditing ? true : true);
-                            } else {
-                              await _softReturnToWrite(openDrafts: true);
-                            }
+            Navigator.of(context).pop(_isEditing ? true : true);
+          } else {
+            await _softReturnToWrite(openDrafts: true);
+          }
         }
         return;
       }
 
       // NEW story only: after first publish-style save, open chapter editor
-      if (_readinessDone < 3) {
-        if (!silent) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Complete all story details before adding chapters',
-              ),
-            ),
-          );
-        }
-        return;
-      }
-
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Story saved — add your first chapter')),
@@ -766,10 +767,10 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
       );
       if (mounted) {
         if (Navigator.of(context).canPop()) {
-                              Navigator.of(context).pop(_isEditing ? true : true);
-                            } else {
-                              await _softReturnToWrite(openDrafts: true);
-                            }
+          Navigator.of(context).pop(_isEditing ? true : true);
+        } else {
+          await _softReturnToWrite(openDrafts: true);
+        }
       }
     } catch (e) {
       if (!mounted) return;
@@ -830,10 +831,10 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
             await prefs.setBool('write_open_submitted', false);
           } catch (_) {}
           if (Navigator.of(context).canPop()) {
-                              Navigator.of(context).pop(_isEditing ? true : true);
-                            } else {
-                              await _softReturnToWrite(openDrafts: true);
-                            }
+            Navigator.of(context).pop(_isEditing ? true : true);
+          } else {
+            await _softReturnToWrite(openDrafts: true);
+          }
         }
         return;
       }
@@ -846,10 +847,10 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
         }
         if (popAfter && mounted) {
           if (Navigator.of(context).canPop()) {
-                              Navigator.of(context).pop(_isEditing ? true : true);
-                            } else {
-                              await _softReturnToWrite(openDrafts: true);
-                            }
+            Navigator.of(context).pop(_isEditing ? true : true);
+          } else {
+            await _softReturnToWrite(openDrafts: true);
+          }
         }
         return;
       }
@@ -964,6 +965,54 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
     _applyThemeColors(context);
 
     final titleLen = _titleController.text.length;
+    final saveDraftButton = OutlinedButton(
+      onPressed: _saving ? null : () => _save(asDraft: true),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: _textHi,
+        side: BorderSide(color: _border),
+        backgroundColor: _panelAlt,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      child: _saving
+          ? SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2, color: _textHi),
+            )
+          : const Text(
+              'Save Draft',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+    );
+    final saveDetailsButton = ElevatedButton(
+      onPressed: _saving
+          ? null
+          : () => _isEditing
+                ? _save(asDraft: true, popAfter: true)
+                : _save(asDraft: false, forceStatus: 'Draft'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _magenta,
+        disabledBackgroundColor: _magenta.withValues(alpha: 0.4),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      child: _saving
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : Text(
+              _isEditing ? 'Save details' : 'Create Story',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+    );
 
     // Inherit app theme (dark default); only override scaffold surface colors
     final parent = Theme.of(context);
@@ -1001,10 +1050,10 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
               Navigator.of(context).pop(true);
             } else {
               if (Navigator.of(context).canPop()) {
-                              Navigator.of(context).pop(_isEditing ? true : true);
-                            } else {
-                              await _softReturnToWrite(openDrafts: true);
-                            }
+                Navigator.of(context).pop(_isEditing ? true : true);
+              } else {
+                await _softReturnToWrite(openDrafts: true);
+              }
             }
           }
         },
@@ -1061,7 +1110,10 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                     padding: EdgeInsets.fromLTRB(16, 18, 16, 24),
                     children: [
                       GestureDetector(
-                        onTap: () async { await _showCoverGuidelines(); await _pickCover(); },
+                        onTap: () async {
+                          await _showCoverGuidelines();
+                          await _pickCover();
+                        },
                         child: Container(
                           width: double.infinity,
                           height: 180,
@@ -1135,7 +1187,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Shown on Draft & Submitted lists',
+                        'Shown on Draft & Published lists',
                         textAlign: TextAlign.center,
                         style: TextStyle(fontSize: 11.5, color: _textFaint),
                       ),
@@ -1155,12 +1207,11 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                                 Text('✒', style: TextStyle(fontSize: 14)),
                                 SizedBox(width: 8),
                                 Text(
-                                  'DRAFT READINESS',
+                                  'Details Completion',
                                   style: TextStyle(
-                                    fontSize: 10.5,
-                                    letterSpacing: 0.8,
+                                    fontSize: 13,
                                     color: _textLo,
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],
@@ -1204,7 +1255,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                         ),
                       ),
                       SizedBox(height: 20),
-                      _label('TITLE'),
+                      _label('Title * (Required)'),
                       SizedBox(height: 7),
                       _darkField(
                         child: TextField(
@@ -1234,7 +1285,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                         ),
                       ),
                       SizedBox(height: 14),
-                      _label('AUTHOR (FROM YOUR ACCOUNT)'),
+                      _label('Author'),
                       SizedBox(height: 7),
                       Stack(
                         children: [
@@ -1243,10 +1294,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                               controller: _authorController,
                               readOnly: true,
                               enabled: false,
-                              style: TextStyle(
-                                color: _textFaint,
-                                fontSize: 15,
-                              ),
+                              style: TextStyle(color: _textFaint, fontSize: 15),
                               decoration: InputDecoration(
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.symmetric(
@@ -1268,7 +1316,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                         ],
                       ),
                       SizedBox(height: 14),
-                      _label('SUMMARY'),
+                      _label('Summary * (Required before publishing)'),
                       SizedBox(height: 7),
                       _darkField(
                         child: TextField(
@@ -1310,7 +1358,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                         ),
                       ),
                       SizedBox(height: 14),
-                      _label('GENRE'),
+                      _label('Genre * (Required before publishing)'),
                       SizedBox(height: 7),
                       GestureDetector(
                         onTap: () => _openPicker(
@@ -1332,19 +1380,22 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _label('LANGUAGE'),
+                                _label('Language *'),
                                 SizedBox(height: 7),
                                 GestureDetector(
                                   onTap: () => _openPicker(
                                     title: 'Select language',
                                     options: _languages,
-                                    current: _language,
+                                    current: _language ?? 'Select language',
                                     onSelect: (v) {
                                       setState(() => _language = v);
                                       _scheduleDraftSave();
                                     },
                                   ),
-                                  child: _dropdownTrigger(_language),
+                                  child: _dropdownTrigger(
+                                    _language ?? 'Select language',
+                                    isPlaceholder: _language == null,
+                                  ),
                                 ),
                               ],
                             ),
@@ -1354,7 +1405,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _label('AUDIENCE'),
+                                _label('Audience *'),
                                 SizedBox(height: 7),
                                 GestureDetector(
                                   onTap: () => _openPicker(
@@ -1377,7 +1428,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                         ],
                       ),
                       SizedBox(height: 14),
-                      _label('CONTENT WARNINGS (OPTIONAL)'),
+                      _label('Content Warnings (Optional)'),
                       SizedBox(height: 7),
                       GridView.count(
                         crossAxisCount: 2,
@@ -1459,10 +1510,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                         _darkField(
                           child: TextField(
                             controller: _otherWarningController,
-                            style: TextStyle(
-                              color: _textHi,
-                              fontSize: 15,
-                            ),
+                            style: TextStyle(color: _textHi, fontSize: 15),
                             decoration: InputDecoration(
                               hintText: 'Describe the other warning...',
                               hintStyle: TextStyle(color: _textFaint),
@@ -1476,7 +1524,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                         ),
                       ],
                       SizedBox(height: 14),
-                      _label('HASHTAGS (MAX 3)'),
+                      _label('Hashtags (Max 3)'),
                       SizedBox(height: 7),
                       Container(
                         padding: EdgeInsets.symmetric(
@@ -1518,7 +1566,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                                           Text(
                                             '#$t',
                                             style: TextStyle(
-                                              color: Color(0xFF8B5CF6),
+                                              color: Color(0xFF16856A),
                                               fontSize: 12.5,
                                             ),
                                           ),
@@ -1528,7 +1576,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                                             child: Icon(
                                               Icons.close,
                                               size: 12,
-                                              color: Color(0xFF8B5CF6),
+                                              color: Color(0xFF16856A),
                                             ),
                                           ),
                                         ],
@@ -1666,9 +1714,7 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                                         (t) => ActionChip(
                                           label: Text(
                                             '#$t',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                            ),
+                                            style: TextStyle(fontSize: 12),
                                           ),
                                           onPressed: () => _addTag(t),
                                           visualDensity: VisualDensity.compact,
@@ -1711,78 +1757,26 @@ class _CreateStoryScreenState extends State<CreateStoryScreen> {
                     color: _ink,
                     border: Border(top: BorderSide(color: _borderSoft)),
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _saving
-                              ? null
-                              : () => _save(asDraft: true),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: _textHi,
-                            side: BorderSide(color: _border),
-                            backgroundColor: _panelAlt,
-                            padding: EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: _saving
-                              ? SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: _textHi,
-                                  ),
-                                )
-                              : Text(
-                                  'Save Draft',
-                                  style: TextStyle(fontWeight: FontWeight.w500),
-                                ),
-                        ),
-                      ),
-                      SizedBox(width: 10),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          onPressed: _saving
-                              ? null
-                              : () => _isEditing
-                                  // Edit details: meta only — never open Chapter 1
-                                  ? _save(asDraft: true, popAfter: true)
-                                  : _save(
-                                      asDraft: false,
-                                      forceStatus: 'Draft',
-                                    ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _magenta,
-                            disabledBackgroundColor: _magenta.withValues(
-                              alpha: 0.4,
-                            ),
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 14),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: _saving
-                              ? SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Text(
-                                  _isEditing ? 'Save details' : 'Save',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                        ),
-                      ),
-                    ],
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      if (constraints.maxWidth < 370) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            saveDraftButton,
+                            const SizedBox(height: 10),
+                            saveDetailsButton,
+                          ],
+                        );
+                      }
+                      return Row(
+                        children: [
+                          Expanded(child: saveDraftButton),
+                          const SizedBox(width: 10),
+                          Expanded(flex: 2, child: saveDetailsButton),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ],

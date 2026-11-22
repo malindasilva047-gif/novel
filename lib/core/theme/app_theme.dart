@@ -4,41 +4,46 @@ import 'package:flutter/services.dart';
 
 import 'app_styles.dart';
 
-/// Dark purple theme matching Novara / Explore reference UI.
+/// Dark green NovelHub theme shared with the website.
 /// Prefer [AppStyles.colors] in widgets for adaptive surfaces.
 class AppTheme {
-
   // --- Adaptive colors (prefer these over static light-only constants) ---
   static Color bgOf(BuildContext context) => AppStyles.colors(context).bg;
-  static Color surfaceOf(BuildContext context) => AppStyles.colors(context).card;
-  static Color elevatedOf(BuildContext context) => AppStyles.colors(context).elevated;
+  static Color surfaceOf(BuildContext context) =>
+      AppStyles.colors(context).card;
+  static Color elevatedOf(BuildContext context) =>
+      AppStyles.colors(context).elevated;
   static Color fieldOf(BuildContext context) => AppStyles.colors(context).field;
-  static Color borderOf(BuildContext context) => AppStyles.colors(context).border;
-  static Color inkOf(BuildContext context) => AppStyles.colors(context).textPrimary;
-  static Color mutedOf(BuildContext context) => AppStyles.colors(context).textMuted;
-  static Color faintOf(BuildContext context) => AppStyles.colors(context).textFaint;
+  static Color borderOf(BuildContext context) =>
+      AppStyles.colors(context).border;
+  static Color inkOf(BuildContext context) =>
+      AppStyles.colors(context).textPrimary;
+  static Color mutedOf(BuildContext context) =>
+      AppStyles.colors(context).textMuted;
+  static Color faintOf(BuildContext context) =>
+      AppStyles.colors(context).textFaint;
   static bool isDark(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark;
 
-  static const Color brand = AppStyles.purple;
-  static const Color brandDeep = AppStyles.purpleDeep;
-  static const Color accent = AppStyles.purpleBright;
-  static const Color rose = AppStyles.purpleBright;
-  static const Color coral = AppStyles.purple;
-  static const Color amber = Color(0xFFFBBF24);
-  static const Color teal = AppStyles.purple;
-  static const Color sky = AppStyles.purpleBright;
-  static const Color mint = AppStyles.purpleBright;
-  static const Color pink = AppStyles.purpleBright;
+  static const Color brand = AppStyles.green;
+  static const Color brandDeep = AppStyles.greenDeep;
+  static const Color accent = AppStyles.greenBright;
+  static const Color rose = AppStyles.greenBright;
+  static const Color coral = AppStyles.greenBright;
+  static const Color amber = AppStyles.star;
+  static const Color teal = AppStyles.green;
+  static const Color sky = AppStyles.greenBright;
+  static const Color mint = AppStyles.greenBright;
+  static const Color pink = AppStyles.greenBright;
 
   static const Color ink = AppStyles.black;
   // LIGHT-only fallbacks — do not use for Scaffold/text in dual-theme UIs.
   // Prefer bgOf/surfaceOf/mutedOf(context) or AppStyles.colors(context).
-  static const Color muted = Color(0xFF8B8099);
+  static const Color muted = Color(0xFF777777);
   static const Color surface = Colors.white;
-  static const Color border = Color(0xFFE8E0F0);
-  static const Color background = Color(0xFFF6F2FF);
-  static const Color field = Color(0xFFF0EBFA);
+  static const Color border = Color(0xFFDDE2DF);
+  static const Color background = Color(0xFFFFFFFF);
+  static const Color field = Color(0xFFF6F5FA);
 
   static const Color darkInk = AppStyles.white;
   static const Color darkMuted = AppStyles.whiteMuted;
@@ -49,9 +54,9 @@ class AppTheme {
 
   static ThemeData get lightTheme {
     final base = ColorScheme.light(
-      primary: brandDeep,
+      primary: AppStyles.lightAccent,
       onPrimary: Colors.white,
-      secondary: brand,
+      secondary: AppStyles.lightGreen,
       onSecondary: Colors.white,
       surface: surface,
       onSurface: ink,
@@ -84,11 +89,21 @@ class AppTheme {
           side: const BorderSide(color: border),
         ),
       ),
-      elevatedButtonTheme:
- ElevatedButtonThemeData(style: AppStyles.primaryButton()),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppStyles.lightGreen,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppStyles.radiusMd),
+          ),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+        ),
+      ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: brand,
+          backgroundColor: AppStyles.lightGreen,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppStyles.radiusMd),
@@ -97,8 +112,8 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: brandDeep,
-          side: BorderSide(color: brand.withValues(alpha: 0.4)),
+          foregroundColor: AppStyles.lightAccent,
+          side: BorderSide(color: AppStyles.lightGreen.withValues(alpha: 0.4)),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppStyles.radiusMd),
           ),
@@ -108,8 +123,10 @@ class AppTheme {
         filled: true,
         fillColor: field,
         hintStyle: const TextStyle(color: muted),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 16,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: border),
@@ -124,7 +141,7 @@ class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: surface,
+        backgroundColor: Colors.white,
         indicatorColor: brand.withValues(alpha: 0.18),
         height: 70,
         labelTextStyle: WidgetStateProperty.resolveWith((s) {
@@ -132,18 +149,18 @@ class AppTheme {
           return TextStyle(
             fontSize: 11,
             fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
-            color: sel ? brandDeep : muted,
+            color: sel ? AppStyles.lightAccent : muted,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((s) {
           final sel = s.contains(WidgetState.selected);
-          return IconThemeData(size: 24, color: sel ? brandDeep : muted);
+          return IconThemeData(size: 24, color: sel ? AppStyles.lightAccent : muted);
         }),
       ),
       tabBarTheme: const TabBarThemeData(
-        labelColor: brandDeep,
+        labelColor: AppStyles.lightAccent,
         unselectedLabelColor: muted,
-        indicatorColor: brand,
+      indicatorColor: AppStyles.lightGreen,
       ),
       dividerTheme: const DividerThemeData(color: border, thickness: 0.8),
       dialogTheme: DialogThemeData(
@@ -212,8 +229,10 @@ class AppTheme {
         backgroundColor: darkField,
         selectedColor: brand.withValues(alpha: 0.28),
         side: const BorderSide(color: darkBorder),
-        labelStyle:
-            const TextStyle(color: darkInk, fontWeight: FontWeight.w600),
+        labelStyle: const TextStyle(
+          color: darkInk,
+          fontWeight: FontWeight.w600,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -253,7 +272,7 @@ class AppTheme {
         foregroundColor: Colors.white,
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: darkCard,
+        backgroundColor: AppStyles.blackElevated,
         elevation: 0,
         height: 70,
         indicatorColor: brand.withValues(alpha: 0.22),
@@ -310,8 +329,10 @@ class AppTheme {
         labelStyle: const TextStyle(color: darkMuted),
         prefixIconColor: brand,
         suffixIconColor: darkMuted,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 16,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: darkBorder),
@@ -334,4 +355,4 @@ class AppTheme {
   }
 }
 
-const Color brandBrightCompat = Color(0xFFA78BFA);
+const Color brandBrightCompat = AppStyles.greenBright;

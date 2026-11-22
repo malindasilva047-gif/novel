@@ -27,6 +27,7 @@ def register_inkitt_extra_routes(
     app,
     *,
     require_user,
+    require_admin,
     fetch_all,
     execute_write,
     LOGGER,
@@ -130,7 +131,7 @@ def register_inkitt_extra_routes(
             return {"items": []}
 
     @app.get("/api/admin/contests")
-    def list_all_contests(user: dict[str, Any] = Depends(require_user)):
+    def list_all_contests(user: dict[str, Any] = Depends(require_admin)):
         _ensure_contests()
         rows = fetch_all(
             "SELECT id, title, theme, deadline, is_active, is_neon, created_at FROM contests ORDER BY id DESC"
@@ -138,7 +139,7 @@ def register_inkitt_extra_routes(
         return {"items": [_ser_contest(r) for r in (rows or [])]}
 
     @app.post("/api/admin/contests")
-    def create_contest(payload: ContestCreate, user: dict[str, Any] = Depends(require_user)):
+    def create_contest(payload: ContestCreate, user: dict[str, Any] = Depends(require_admin)):
         _ensure_contests()
         title = (payload.title or "").strip()
         if not title:
@@ -151,7 +152,7 @@ def register_inkitt_extra_routes(
         return {"ok": True, "item": _ser_contest(rows[0]) if rows else None}
 
     @app.patch("/api/admin/contests/{contest_id}")
-    def update_contest(contest_id: int, payload: ContestUpdate, user: dict[str, Any] = Depends(require_user)):
+    def update_contest(contest_id: int, payload: ContestUpdate, user: dict[str, Any] = Depends(require_admin)):
         _ensure_contests()
         fields = []
         vals = []
@@ -177,7 +178,7 @@ def register_inkitt_extra_routes(
         return {"ok": True}
 
     @app.delete("/api/admin/contests/{contest_id}")
-    def delete_contest(contest_id: int, user: dict[str, Any] = Depends(require_user)):
+    def delete_contest(contest_id: int, user: dict[str, Any] = Depends(require_admin)):
         _ensure_contests()
         execute_write("DELETE FROM contests WHERE id=%s", (contest_id,))
         return {"ok": True}
@@ -254,6 +255,12 @@ def register_inkitt_extra_routes(
     @app.post("/api/reading-lists/{reading_list_id}/follow")
     def follow_reading_list(reading_list_id: int, user: dict[str, Any] = Depends(require_user)):
         _ensure_list_follows()
+        public_list = fetch_all(
+            "SELECT id FROM reading_lists WHERE id=%s AND user_id IS NULL LIMIT 1",
+            (reading_list_id,),
+        )
+        if not public_list:
+            raise HTTPException(status_code=404, detail="Public reading list not found")
         existing = fetch_all(
             "SELECT id FROM reading_list_follows WHERE user_id=%s AND reading_list_id=%s LIMIT 1",
             (user["user_id"], reading_list_id),
@@ -273,6 +280,12 @@ def register_inkitt_extra_routes(
     @app.get("/api/reading-lists/{reading_list_id}/follow")
     def get_list_follow(reading_list_id: int, user: dict[str, Any] = Depends(require_user)):
         _ensure_list_follows()
+        public_list = fetch_all(
+            "SELECT id FROM reading_lists WHERE id=%s AND user_id IS NULL LIMIT 1",
+            (reading_list_id,),
+        )
+        if not public_list:
+            raise HTTPException(status_code=404, detail="Public reading list not found")
         rows = fetch_all(
             "SELECT id FROM reading_list_follows WHERE user_id=%s AND reading_list_id=%s LIMIT 1",
             (user["user_id"], reading_list_id),

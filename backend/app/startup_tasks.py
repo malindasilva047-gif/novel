@@ -132,7 +132,7 @@ def _ensure_mysql_extra_tables(connection) -> int:
                 book_id INT NULL,
                 user_id INT NOT NULL,
                 body TEXT NOT NULL,
-                paragraph_index INT DEFAULT 0,
+                paragraph_index INT DEFAULT -1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """,
@@ -387,6 +387,7 @@ def _ensure_mysql_extra_tables(connection) -> int:
             ("last_chapter_number", "ALTER TABLE library_entries ADD COLUMN last_chapter_number INT DEFAULT 1"),
             ("last_paragraph_index", "ALTER TABLE library_entries ADD COLUMN last_paragraph_index INT DEFAULT 0"),
             ("chapters_read", "ALTER TABLE library_entries ADD COLUMN chapters_read INT DEFAULT 0"),
+            ("reading_progress_percent", "ALTER TABLE library_entries ADD COLUMN reading_progress_percent INT NULL"),
         ]:
             try:
                 cursor.execute(f"SHOW COLUMNS FROM library_entries LIKE '{col}'")
@@ -403,6 +404,10 @@ def _ensure_mysql_extra_tables(connection) -> int:
             ("birth_date", "ALTER TABLE app_users ADD COLUMN birth_date VARCHAR(32) NULL"),
             ("country", "ALTER TABLE app_users ADD COLUMN country VARCHAR(64) NULL"),
             ("facebook_url", "ALTER TABLE app_users ADD COLUMN facebook_url VARCHAR(255) NULL"),
+            ("youtube_url", "ALTER TABLE app_users ADD COLUMN youtube_url VARCHAR(255) NULL"),
+            ("instagram_url", "ALTER TABLE app_users ADD COLUMN instagram_url VARCHAR(255) NULL"),
+            ("twitter_url", "ALTER TABLE app_users ADD COLUMN twitter_url VARCHAR(255) NULL"),
+            ("website_url", "ALTER TABLE app_users ADD COLUMN website_url VARCHAR(255) NULL"),
             ("bio", "ALTER TABLE app_users ADD COLUMN bio TEXT NULL"),
             ("photo_url", "ALTER TABLE app_users ADD COLUMN photo_url VARCHAR(512) NULL"),
             ("cover_url", "ALTER TABLE app_users ADD COLUMN cover_url VARCHAR(512) NULL"),
@@ -531,6 +536,7 @@ def _apply_runtime_patches() -> None:
             register_inkitt_extra_routes(
                 main_mod.app,
                 require_user=main_mod.require_user,
+                require_admin=main_mod.require_admin,
                 fetch_all=main_mod.fetch_all,
                 execute_write=main_mod.execute_write,
                 LOGGER=LOGGER,
@@ -612,6 +618,8 @@ def _apply_safe_sql_scripts() -> dict[str, Any]:
             "00_widen_section_name.sql",
             "01_tag_follows_notify.sql",
             "02_writer_settings.sql",
+            # Repairs only known stale seed image paths and is safe to repeat.
+            "fix_stale_cover_paths.sql",
         }
         files = sorted(sql_dir.glob("*.sql"))
         conn = get_connection()
@@ -665,6 +673,11 @@ def _apply_safe_sql_scripts() -> dict[str, Any]:
                         continue
                     try:
                         cursor.execute(s)
+                        # Some reviewed data migrations include a final SELECT
+                        # for verification. Consume its rows before the same
+                        # MySQL cursor is reused for the next SQL file.
+                        if getattr(cursor, "with_rows", False):
+                            cursor.fetchall()
                         ok += 1
                         report["statements_ok"] += 1
                     except Exception as stmt_exc:
@@ -691,6 +704,17 @@ def _apply_safe_sql_scripts() -> dict[str, Any]:
         report["errors"].append({"file": "*", "error": str(exc)[:300]})
         LOGGER.warning("apply_safe_sql_scripts failed: %s", exc)
     return report
+
+
+def _run_safe_sql_migrations(result: dict[str, Any], *, enabled: bool) -> None:
+    if not enabled:
+        result["sql_scripts"] = {"skipped": True, "reason": "AUTO_RUN_DB_MIGRATIONS_disabled"}
+        return
+    report = _apply_safe_sql_scripts()
+    result["sql_scripts"] = report
+    LOGGER.info("Auto SQL scripts: %s", report)
+    if report.get("errors"):
+        raise RuntimeError(f"Automatic SQL migrations failed: {report['errors']}")
 
 
 
@@ -819,13 +843,10 @@ def _ensure_tags_columns(connection) -> None:
 
 
 def run_startup_tasks() -> dict[str, Any]:
-    """Startup for serverless: finish in seconds when DB already has data.
+    """Run safe schema migrations and idempotent catalog seeds on startup.
 
-    Heavy migrations/seeds only run when the books table is empty.
-    Inkitt seed is idempotent and runs automatically (local always;
-    Vercel only when books empty or ENABLE_INKITT_SEED=1).
-    Safe SQL scripts and schema ensures run every startup when
-    AUTO_RUN_DB_MIGRATIONS=true (default).
+    Destructive setup/reset dumps and data-rewrite scripts are deliberately not
+    executed automatically; reviewed additive SQL migrations are allowlisted.
     """
     import os as _os
     global _FULL_STARTUP_MIGRATIONS_DONE
@@ -866,27 +887,27 @@ def run_startup_tasks() -> dict[str, Any]:
         LOGGER.warning("quick books count failed: %s", count_exc)
         book_count = 0
 
-    # Run only the reviewed allowlisted idempotent SQL compatibility migrations.
     auto_migrate = _os.getenv("AUTO_RUN_DB_MIGRATIONS", "true").strip().lower() in ("1", "true", "yes")
     on_vercel = bool(_os.getenv("VERCEL") or _os.getenv("VERCEL_ENV"))
-    if auto_migrate:
-        try:
-            result["sql_scripts"] = _apply_safe_sql_scripts()
-            LOGGER.info("Auto SQL scripts: %s", result["sql_scripts"])
-        except Exception as sql_exc:
-            LOGGER.warning("Auto SQL scripts failed: %s", sql_exc)
-            result["sql_scripts_error"] = str(sql_exc)
 
-    try:
-        result["duplicate_cleanup"] = _cleanup_duplicate_seed_rows()
-        LOGGER.info("Duplicate cleanup result: %s", result["duplicate_cleanup"])
-    except Exception as dup_exc:
-        LOGGER.warning("duplicate cleanup failed: %s", dup_exc)
-        result["duplicate_cleanup_error"] = str(dup_exc)
+    cleanup_duplicates = _os.getenv(
+        "CLEAN_DUPLICATE_SEED_ROWS_ON_STARTUP", ""
+    ).strip().lower() in ("1", "true", "yes")
+    if cleanup_duplicates:
+        try:
+            result["duplicate_cleanup"] = _cleanup_duplicate_seed_rows()
+            LOGGER.info("Duplicate cleanup result: %s", result["duplicate_cleanup"])
+        except Exception as dup_exc:
+            LOGGER.warning("duplicate cleanup failed: %s", dup_exc)
+            result["duplicate_cleanup_error"] = str(dup_exc)
+    else:
+        result["duplicate_cleanup"] = {
+            "skipped": True,
+            "reason": "requires_explicit_opt_in",
+        }
 
     if book_count > 0:
-        # Keep Vercel cold starts lightweight. Skip heavy migrations when already populated.
-        if auto_migrate and not _FULL_STARTUP_MIGRATIONS_DONE and not on_vercel:
+        if auto_migrate and not _FULL_STARTUP_MIGRATIONS_DONE:
             try:
                 result["migrations"] = run_startup_migrations()
                 from .database import force_seed_if_empty
@@ -894,10 +915,19 @@ def run_startup_tasks() -> dict[str, Any]:
                 result["force_seed"] = force_seed_if_empty()
                 _FULL_STARTUP_MIGRATIONS_DONE = True
             except Exception as migration_exc:
-                LOGGER.warning("fast_path migrations skipped: %s", migration_exc)
-        elif on_vercel:
-            _FULL_STARTUP_MIGRATIONS_DONE = True
-            result["migrations"] = {"skipped": True, "reason": "vercel_fast_path"}
+                result["migration_error"] = str(migration_exc)
+                LOGGER.exception("fast_path migrations failed")
+                raise RuntimeError("Automatic database migrations failed during backend startup.") from migration_exc
+        if auto_migrate:
+            conn = get_connection()
+            try:
+                result["tables_ensured"] = _ensure_mysql_extra_tables(conn)
+                _ensure_tags_columns(conn)
+                _ensure_tag_follows_notify(conn)
+                result["tags_seeded"] = _seed_tags(conn)
+            finally:
+                conn.close()
+        _run_safe_sql_migrations(result, enabled=auto_migrate)
         try:
             from .database import ensure_discover_catalog_seed
 
@@ -912,11 +942,14 @@ def run_startup_tasks() -> dict[str, Any]:
         try:
             _apply_runtime_patches()
             result["patches_applied"] = True
+            from .main import _seed_book_tag_links
+
+            result["book_tag_links"] = _seed_book_tag_links()
         except Exception as exc:
             LOGGER.exception("Patch step failed: %s", exc)
 
         result["fast_path"] = True
-        # Idempotent inkitt seed on every local start; Vercel only if forced.
+        # Idempotent catalog seed runs on startup by default in all environments.
         # Use local connection wrappers (execute_write lives in main.py, not database).
         try:
             enable_inkitt = _os.getenv("ENABLE_INKITT_SEED", "").strip().lower() in ("1", "true", "yes")
@@ -968,7 +1001,7 @@ def run_startup_tasks() -> dict[str, Any]:
             else:
                 result["inkitt_seed"] = {
                     "skipped": True,
-                    "reason": "vercel_or_disabled",
+                    "reason": "AUTO_RUN_INKITT_SEED_disabled",
                 }
         except Exception as inkitt_exc:
             LOGGER.warning("fast_path inkitt_seed: %s", inkitt_exc)
@@ -979,12 +1012,15 @@ def run_startup_tasks() -> dict[str, Any]:
         import os as _os
         on_vercel = bool(_os.getenv("VERCEL") or _os.getenv("VERCEL_ENV"))
         enrich_setting = _os.getenv("RUN_CONTENT_ENRICHMENT")
+        enrich_mode = (enrich_setting or "").strip().lower()
         run_enrich = (
-            enrich_setting.strip().lower() in ("1", "true", "yes")
+            enrich_mode in ("1", "true", "yes")
             if enrich_setting is not None
             else not on_vercel
         )
-        if not run_enrich:
+        if enrich_mode == "background":
+            result["content_enrichment"] = {"scheduled": True, "mode": "background"}
+        elif not run_enrich:
             result["content_enrichment"] = {
                 "skipped": True,
                 "reason": "serverless_startup_timeout_protection",
@@ -1033,7 +1069,8 @@ def run_startup_tasks() -> dict[str, Any]:
                     _ensure_home_slider_sections(conn)
                     result["home_slider_sections_ensured"] = True
                 except Exception as hs_exc:
-                    LOGGER.warning("home_slider_sections: %s", hs_exc)
+                    LOGGER.exception("home_slider_sections failed")
+                    raise RuntimeError("Could not ensure home slider database tables.") from hs_exc
             finally:
                 conn.close()
         except Exception as tag_exc:
@@ -1057,13 +1094,15 @@ def run_startup_tasks() -> dict[str, Any]:
         initialized = initialize_database_if_needed()
         result["initialized"] = bool(initialized)
     except Exception as init_exc:
-        LOGGER.warning("initialize_database_if_needed: %s", init_exc)
+        LOGGER.exception("initialize_database_if_needed failed")
+        raise RuntimeError("Automatic database initialization failed.") from init_exc
 
     try:
         migration_report = run_startup_migrations()
         result["migrations"] = migration_report
     except Exception as mig_exc:
-        LOGGER.warning("run_startup_migrations: %s", mig_exc)
+        LOGGER.exception("run_startup_migrations failed")
+        raise RuntimeError("Automatic database migrations failed.") from mig_exc
 
     try:
         from .database import force_seed_if_empty
@@ -1072,8 +1111,8 @@ def run_startup_tasks() -> dict[str, Any]:
         result["force_seed"] = seed_report
         LOGGER.info("force_seed_if_empty: %s", seed_report)
     except Exception as seed_exc:
-        LOGGER.warning("force_seed_if_empty failed: %s", seed_exc)
-        result["force_seed_error"] = str(seed_exc)
+        LOGGER.exception("force_seed_if_empty failed")
+        raise RuntimeError("Automatic baseline database seeding failed.") from seed_exc
 
     try:
         conn = get_connection()
@@ -1105,6 +1144,9 @@ def run_startup_tasks() -> dict[str, Any]:
         conn.close()
     except Exception as exc:
         LOGGER.exception("Failed after migrations: %s", exc)
+        raise RuntimeError("Automatic database startup setup failed.") from exc
+
+    _run_safe_sql_migrations(result, enabled=auto_migrate)
 
     try:
         _apply_runtime_patches()
@@ -1114,7 +1156,7 @@ def run_startup_tasks() -> dict[str, Any]:
 
     LOGGER.info("Startup tasks finished: %s", result)
 
-    # The idempotent story catalog seed runs on empty databases by default.
+    # The idempotent story catalog seed runs on startup by default.
     _run_inkitt = _os.getenv("AUTO_RUN_INKITT_SEED", "true").strip().lower() in ("1", "true", "yes")
     if not _run_inkitt and _os.getenv("ENABLE_INKITT_SEED", "").strip().lower() in ("1", "true", "yes"):
         _run_inkitt = True
@@ -1188,13 +1230,16 @@ def run_startup_tasks() -> dict[str, Any]:
     # Apply the same idempotent demo/catalog enrichment after empty-DB setup.
     # It defaults on for long-lived local backends and remains opt-in on Vercel.
     enrich_setting = _os.getenv("RUN_CONTENT_ENRICHMENT")
+    enrich_mode = (enrich_setting or "").strip().lower()
     on_vercel = bool(_os.getenv("VERCEL") or _os.getenv("VERCEL_ENV"))
     run_enrich = (
         enrich_setting.strip().lower() in ("1", "true", "yes")
         if enrich_setting is not None
         else not on_vercel
     )
-    if run_enrich:
+    if enrich_mode == "background":
+        result["content_enrichment"] = {"scheduled": True, "mode": "background"}
+    elif run_enrich:
         try:
             from .content_enrichment_seed import run_content_enrichment
 

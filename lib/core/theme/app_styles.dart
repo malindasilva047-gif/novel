@@ -1,41 +1,45 @@
 import 'package:flutter/material.dart';
 
-/// Novara / Explore reference palette (dark purple).
-/// Use [AppStyles.colors] for theme-aware surfaces/text so dark & light stay consistent.
+/// Shared NovelHub palette. Use [AppStyles.colors] for theme-aware surfaces/text.
 class AppStyles {
   AppStyles._();
 
   // ── Brand (same in light & dark) ──────────────────────────────────────────
-  static const Color black = Color(0xFF0B0A12);
-  static const Color blackElevated = Color(0xFF12101A);
-  static const Color blackCard = Color(0xFF1A1625);
-  static const Color blackSoft = Color(0xFF221C30);
-  static const Color white = Color(0xFFF5F3FF);
-  static const Color whiteMuted = Color(0xFFA89BB8);
-  static const Color purple = Color(0xFF8B5CF6);
-  static const Color purpleBright = Color(0xFFA78BFA);
-  static const Color purpleDeep = Color(0xFF7C3AED);
-  static const Color purpleDim = Color(0xFF2A1F3D);
-  static const Color border = Color(0xFF2E2640);
+  static const Color black = Color(0xFF0D1914);
+  static const Color blackElevated = Color(0xFF192A23);
+  static const Color blackCard = Color(0xFF17211D);
+  static const Color blackSoft = Color(0xFF2B3832);
+  static const Color white = Color(0xFFF5F5F5);
+  static const Color whiteMuted = Color(0xFF929792);
+  static const Color green = Color(0xFF16856A);
+  static const Color greenBright = Color(0xFF35A486);
+  static const Color greenDeep = Color(0xFF35A486);
+  static const Color greenDim = Color(0xFF192A23);
+  static const Color coral = greenBright;
+
+  // Legacy names remain available for existing widgets.
+  static const Color purple = green;
+  static const Color purpleBright = coral;
+  static const Color purpleDeep = greenDeep;
+  static const Color purpleDim = greenDim;
+  static const Color border = Color(0xFF2B3832);
   static const Color danger = Color(0xFFFF6B6B);
 
   // Light companions
-  static const Color lightBg = Color(0xFFF6F2FF);
-  static const Color lightCard = Color(0xFFFFFFFF);
-  static const Color lightField = Color(0xFFF0EBFA);
-  static const Color lightBorder = Color(0xFFE8E0F0);
-  static const Color lightText = Color(0xFF231F20);
-  static const Color lightMuted = Color(0xFF8B8099);
+  static const Color lightBg = Color(0xFFFFFFFF);
+  static const Color lightCard = Color(0xFFF6F5FA);
+  static const Color lightField = Color(0xFFF6F5FA);
+  static const Color lightBorder = Color(0xFFDDE2DF);
+  static const Color lightText = Color(0xFF202020);
+  static const Color lightMuted = Color(0xFF777777);
+  static const Color lightGreen = Color(0xFF16785F);
+  static const Color lightAccent = Color(0xFF205B4C);
+  static const Color star = Color(0xFFF4CC2F);
 
-  // Aliases used by older call sites
-  static const Color green = purple;
-  static const Color greenDeep = purpleDeep;
-  static const Color greenDim = purpleDim;
-
-  static const double radiusSm = 10;
-  static const double radiusMd = 16;
-  static const double radiusLg = 22;
-  static const double radiusPill = 28;
+  static const double radiusSm = 6;
+  static const double radiusMd = 8;
+  static const double radiusLg = 12;
+  static const double radiusPill = 24;
 
   static const Duration animFast = Duration(milliseconds: 200);
   static const Duration animNormal = Duration(milliseconds: 320);
@@ -58,7 +62,7 @@ class AppStyles {
     boxShadow: glow
         ? [
             BoxShadow(
-              color: purple.withValues(alpha: 0.22),
+              color: green.withValues(alpha: 0.22),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -81,7 +85,7 @@ class AppStyles {
       boxShadow: glow
           ? [
               BoxShadow(
-                color: purple.withValues(alpha: 0.2),
+                color: green.withValues(alpha: 0.2),
                 blurRadius: 18,
                 offset: const Offset(0, 6),
               ),
@@ -96,25 +100,25 @@ class AppStyles {
     );
   }
 
-  static LinearGradient purpleGradient() => const LinearGradient(
+  static LinearGradient brandGradient() => const LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [purpleDeep, purpleBright],
+    colors: [greenDeep, greenBright],
   );
+
+  static LinearGradient purpleGradient() => brandGradient();
 
   static LinearGradient heroGradient(BuildContext context) {
     final dark = isDark(context);
     return LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: dark
-          ? const [Color(0xFF3B2A6B), Color(0xFF1A1228)]
-          : const [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+      colors: dark ? const [greenDeep, black] : const [green, greenBright],
     );
   }
 
   static ButtonStyle primaryButton() => ElevatedButton.styleFrom(
-    backgroundColor: purple,
+    backgroundColor: green,
     foregroundColor: Colors.white,
     elevation: 0,
     padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
@@ -162,26 +166,26 @@ class AppColorBundle {
     elevated: AppStyles.blackElevated,
     field: AppStyles.blackSoft,
     border: AppStyles.border,
-    borderSoft: Color(0xFF3A3150),
+    borderSoft: AppStyles.border,
     textPrimary: AppStyles.white,
     textMuted: AppStyles.whiteMuted,
-    textFaint: Color(0xFF7A6F8F),
-    brand: AppStyles.purple,
-    brandSoft: AppStyles.purpleDim,
+    textFaint: Color(0xFF7A8B80),
+    brand: AppStyles.green,
+    brandSoft: AppStyles.greenDim,
   );
 
   static const light = AppColorBundle(
     isDark: false,
     bg: AppStyles.lightBg,
     card: AppStyles.lightCard,
-    elevated: Color(0xFFF3F0FF),
+    elevated: AppStyles.lightField,
     field: AppStyles.lightField,
     border: AppStyles.lightBorder,
-    borderSoft: Color(0xFFEDE9FE),
+    borderSoft: AppStyles.lightBorder,
     textPrimary: AppStyles.lightText,
     textMuted: AppStyles.lightMuted,
-    textFaint: Color(0xFF9A9A9A),
-    brand: AppStyles.purple,
-    brandSoft: Color(0xFFF3EEFF),
+    textFaint: Color(0xFF777777),
+    brand: AppStyles.lightGreen,
+    brandSoft: Color(0xFFE8F1ED),
   );
 }

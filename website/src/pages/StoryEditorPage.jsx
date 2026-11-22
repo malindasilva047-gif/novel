@@ -1,20 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useBlocker, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   createChapter,
-  deleteStory,
   createStory,
   deleteChapter,
   getWriteStory,
+  getStoryChapterRevisions,
+  reorderStoryChapters,
   resolveAssetUrl,
+  submitAllChapters,
+  restoreStoryChapterRevision,
   updateChapter,
   updateStory,
   uploadWriteImage,
 } from "../api";
 import { isGuestUser } from "../utils/guest";
+import ImageAdjustModal from "../components/ImageAdjustModal";
+import { showToast } from "../components/ToastViewport";
+import { parseRichTextParagraphs, richTextToPlainText, sanitizeRichTextHtml } from "../utils/richText";
+import { formatSelectedText } from "../utils/inlineTextFormatting";
 
-const MIN_PUBLISH_CHARS = 50;
-const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const MIN_PUBLISH_WORDS = 60;
+const MAX_PUBLISH_WORDS = 10000;
 
 export default function StoryEditorPage({ user }) {
   const { storyId } = useParams();
@@ -22,112 +29,127 @@ export default function StoryEditorPage({ user }) {
   const navigate = useNavigate();
   const guest = isGuestUser(user);
   const coverInputRef = useRef(null);
-  const manuscriptInputRef = useRef(null);
-  const editorTextareaRef = useRef(null);
+  const editorSurfaceRef = useRef(null);
   const notesTextareaRef = useRef(null);
+  const moreMenuRef = useRef(null);
 
-  // Match the Flutter editor: apply visible Unicode styling to selected text
-  // instead of leaving markdown markers in chapter text shown by the reader.
-  const applyInlineFormat = (kind, target = "chapter") => {
-    const input = target === "notes" ? notesTextareaRef.current : editorTextareaRef.current;
+  // Notes remain plain text; chapter formatting uses semantic markup in the rich editor.
+  const applyInlineFormat = (kind) => {
+    const input = notesTextareaRef.current;
     if (!input) return;
     const start = input.selectionStart;
     const end = input.selectionEnd;
-    if (start === end) return;
-    const currentText = target === "notes" ? notes : content;
+    if (start === end) {
+      input.focus();
+      return;
+    }
+    const currentText = notes;
     const selected = currentText.slice(start, end);
-    const styled = Array.from(selected, (char) => {
-      const cp = char.codePointAt(0);
-      if (cp >= 0x1d400 && cp <= 0x1d7ff) return char;
-      if (kind === "bold") {
-        if (cp >= 65 && cp <= 90) return String.fromCodePoint(0x1d400 + cp - 65);
-        if (cp >= 97 && cp <= 122) return String.fromCodePoint(0x1d41a + cp - 97);
-      } else {
-        if (cp >= 65 && cp <= 90) return String.fromCodePoint(0x1d434 + cp - 65);
-        if (cp >= 97 && cp <= 122) return cp === 104 ? "ℎ" : String.fromCodePoint(0x1d44e + cp - 97);
-      }
-      return char;
-    }).join("");
+    const styled = formatSelectedText(selected, kind);
+    const scrollTop = input.scrollTop;
     const next = currentText.slice(0, start) + styled + currentText.slice(end);
-    if (target === "notes") setNotes(next);
-    else setContent(next);
+    setNotes(next);
+    setDraftDirty(true);
     requestAnimationFrame(() => {
       input.focus();
       input.setSelectionRange(start, start + styled.length);
+      input.scrollTop = scrollTop;
     });
   };
 
+  function syncEditorContent() {
+    const editor = editorSurfaceRef.current;
+    if (!editor) return;
+    const safeContent = sanitizeRichTextHtml(editor.innerHTML);
+    setContent((current) => current === safeContent ? current : safeContent);
+    setDraftDirty(true);
+  }
+
+  function applyEditorFormat(command) {
+    const editor = editorSurfaceRef.current;
+    const selection = window.getSelection();
+    if (!editor || !selection || !selection.rangeCount || selection.isCollapsed
+      || !editor.contains(selection.anchorNode) || !editor.contains(selection.focusNode)) {
+      editor?.focus();
+      return;
+    }
+    const range = selection.getRangeAt(0).cloneRange();
+    editor.focus();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.execCommand("styleWithCSS", false, false);
+    document.execCommand(command, false);
+    syncEditorContent();
+  }
+
   const [story, setStory] = useState(null);
+  const [coverCropFile, setCoverCropFile] = useState(null);
   const [chapters, setChapters] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [title, setTitle] = useState("");
   const [storyTitle, setStoryTitle] = useState("");
   const [content, setContent] = useState("");
-  const [newChapterName, setNewChapterName] = useState("");
+  const [draftDirty, setDraftDirty] = useState(false);
+  const blocker = useBlocker(draftDirty);
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [reordering, setReordering] = useState(false);
+  const [addingChapter, setAddingChapter] = useState(false);
+  const [savingChapterDraft, setSavingChapterDraft] = useState(false);
   const [deletingStory, setDeletingStory] = useState(false);
   const [lastSaved, setLastSaved] = useState("");
   const [submitOpen, setSubmitOpen] = useState(false);
+  const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [notes, setNotes] = useState("");
-  const [titleModal, setTitleModal] = useState(false);
-  const [titleDraft, setTitleDraft] = useState("");
-  const [renameId, setRenameId] = useState(null);
-  const [renameVal, setRenameVal] = useState("");
+  const [revisionsOpen, setRevisionsOpen] = useState(false);
+  const [revisions, setRevisions] = useState([]);
+  const [loadingRevisions, setLoadingRevisions] = useState(false);
+  const [restoringRevision, setRestoringRevision] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [newScheduleOpen, setNewScheduleOpen] = useState(false);
-  const [editScheduleId, setEditScheduleId] = useState(null);
-  const [audioView, setAudioView] = useState(
-    search.get("entry") === "audiobook" || window.location.pathname.includes("/audiobook")
-  );
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState("details");
-  const [settings, setSettings] = useState({
-    work_type: "original",
-    work_status: "",
-    series: "standalone",
-    summary: "",
-    story_notes: "",
-    genre: "Romance",
-    genre2: "",
-    tags: "",
-    age_rating: "All Ages",
-    content_warnings: "",
-    ai_assisted: "original",
-    availability: "web_app",
-    language: "English",
-    inline_comments: true,
-    expand_languages: true,
-  });
-  const [scheduleForm, setScheduleForm] = useState({
-    name: "",
-    interval: "Weekly",
-    days: [],
-    timezone: "Asia/Colombo",
-    time: "05:00",
-    start: new Date().toISOString().slice(0, 10),
-    chapters: "1",
-  });
-  const [schedules, setSchedules] = useState([]);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduling, setScheduling] = useState(false);
+  const [chapterPanelOpen, setChapterPanelOpen] = useState(true);
+  const autoSaveTimer = useRef(null);
+  const saveQueue = useRef(Promise.resolve());
+  const pendingSaves = useRef(0);
+  const draftRef = useRef({ id: activeId, title, content, notes });
+  draftRef.current = { id: activeId, title, content, notes };
+
+  useEffect(() => {
+    const editor = editorSurfaceRef.current;
+    if (!editor) return;
+    const safeContent = sanitizeRichTextHtml(content);
+    if (sanitizeRichTextHtml(editor.innerHTML) !== safeContent) editor.innerHTML = safeContent;
+  }, [activeId, content]);
+
+  useEffect(() => {
+    if (!moreOptionsOpen) return undefined;
+    const closeOnOutsideClick = (event) => {
+      if (!moreMenuRef.current?.contains(event.target)) setMoreOptionsOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setMoreOptionsOpen(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [moreOptionsOpen]);
 
   const active = useMemo(
     () => chapters.find((c) => String(c.id) === String(activeId)) || chapters[0],
     [chapters, activeId]
   );
-
-  async function persistSchedules(list) {
-    const writerSettings = { ...(story?.writer_settings || {}), ...settings, schedules: list };
-    await updateStory(storyId, { writer_settings: writerSettings });
-    setSchedules(list);
-    setStory((current) => current ? { ...current, writer_settings: writerSettings } : current);
-  }
-
-  async function load(id) {
+  async function load(id, preferredChapterId = null, preferLatestChapter = false) {
     const res = await getWriteStory(id);
+    if (res?.chaptersError) {
+      throw new Error(`Could not load this story's chapters: ${res.chaptersError.message || "Please check your connection and try again."}`);
+    }
     const s = res?.story || res?.item || res;
-    const savedSettings = s?.writer_settings && typeof s.writer_settings === "object" ? s.writer_settings : {};
     let ch = res?.chapters || res?.items || [];
     if (!Array.isArray(ch)) ch = [];
     // Normalize chapter fields from backend
@@ -142,43 +164,15 @@ export default function StoryEditorPage({ user }) {
     }));
     setStory(s);
     setStoryTitle(s?.title || "Untitled Story");
-    setSchedules(Array.isArray(savedSettings.schedules) ? savedSettings.schedules : []);
-    setSettings((prev) => ({
-      ...prev,
-      ...savedSettings,
-      summary: s?.description || "",
-      genre: s?.genre || s?.primary_genre || prev.genre || "Romance",
-      content_warnings: s?.content_warnings || "",
-      work_status: s?.status_text || prev.work_status || "",
-      story_notes: savedSettings.story_notes || "",
-      age_rating: s?.audience || savedSettings.age_rating || prev.age_rating,
-      language: s?.language || savedSettings.language || prev.language,
-      tags: Array.isArray(s?.tags) ? s.tags.join(", ") : (savedSettings.tags || ""),
-    }));
-
     if (!ch.length) {
-      try {
-        const created = await createChapter(id, {
-          title: "Chapter 1",
-          content: "",
-          chapter_number: 1,
-          submission_status: "draft",
-        });
-        const res2 = await getWriteStory(id);
-        ch = res2?.chapters || res2?.items || [];
-        if (!ch.length && (created?.id || created?.chapter_id)) {
-          ch = [{
-            id: created.id || created.chapter_id,
-            title: "Chapter 1",
-            content: "",
-            notes: "",
-            submission_status: "draft",
-            chapter_number: 1,
-          }];
-        }
-      } catch (ce) {
-        setMsg(String(ce.message || ce));
-      }
+      ch = [{
+        id: null,
+        title: "Chapter 1",
+        content: "",
+        notes: "",
+        submission_status: "draft",
+        chapter_number: 1,
+      }];
     }
 
     ch = (Array.isArray(ch) ? ch : []).map((c) => ({
@@ -189,19 +183,169 @@ export default function StoryEditorPage({ user }) {
       submission_status: c.submission_status || "draft",
     }));
     setChapters(ch);
-    const prefer = activeId && ch.find((c) => String(c.id) === String(activeId));
-    const pick = prefer || ch[0];
+    const prefer = preferredChapterId
+      ? ch.find((c) => String(c.id) === String(preferredChapterId))
+      : activeId && ch.find((c) => String(c.id) === String(activeId));
+    const pick = prefer || (preferLatestChapter ? ch.at(-1) : ch[0]);
     if (pick) {
       setActiveId(pick.id);
       setTitle(pick.title || "Chapter 1");
       setContent(pick.content || "");
       setNotes(pick.notes || "");
+      setDraftDirty(false);
     } else {
       setActiveId(null);
       setTitle("");
       setContent("");
+      setDraftDirty(false);
     }
   }
+
+  function saveDraft(snapshot, manual = false, asDraft = false) {
+    if (!snapshot) return Promise.resolve(null);
+    if (!String(snapshot.title || "").trim()) {
+      const error = new Error("Add a chapter title before saving.");
+      setMsg(error.message);
+      return Promise.reject(error);
+    }
+    const savedContent = sanitizeRichTextHtml(snapshot.content);
+    if (!richTextToPlainText(savedContent).trim()) {
+      const error = new Error("You can't save an empty chapter.");
+      setMsg(error.message);
+      return Promise.reject(error);
+    }
+    clearTimeout(autoSaveTimer.current);
+    pendingSaves.current += 1;
+    setSaving(true);
+    setMsg(manual ? "Saving…" : "Saving draft…");
+    let savedChapterId = snapshot.id || null;
+    const chapterNumber = Number(snapshot.chapter_number || active?.chapter_number)
+      || chapters.reduce((highest, chapter) => Math.max(highest, Number(chapter.chapter_number) || 0), 0) + 1;
+    const submissionStatus = asDraft
+      ? "draft"
+      : snapshot.submission_status || active?.submission_status || "draft";
+    const scheduledFor = (
+      Object.prototype.hasOwnProperty.call(snapshot, "scheduled_for")
+        ? snapshot.scheduled_for
+        : active?.scheduled_for
+    ) ?? null;
+
+    const save = saveQueue.current
+      .catch(() => {})
+      .then(() => {
+        const normalizedTitle = String(snapshot.title || "").trim().toLocaleLowerCase();
+        const duplicate = normalizedTitle && chapters.find((chapter) =>
+          String(chapter.id) !== String(snapshot.id)
+          && String(chapter.title || "").trim().toLocaleLowerCase() === normalizedTitle,
+        );
+        if (duplicate) throw new Error(`Another chapter is already named “${duplicate.title}”. Give this chapter a different title before saving.`);
+        if (savedChapterId) {
+          return updateChapter(savedChapterId, {
+            story_id: Number(storyId),
+            title: String(snapshot.title || "").trim(),
+            content: savedContent,
+            notes: snapshot.notes,
+            chapter_number: chapterNumber,
+            submission_status: submissionStatus,
+            scheduled_for: scheduledFor,
+          });
+        }
+        return createChapter(storyId, {
+          title: String(snapshot.title || "").trim(),
+          content: savedContent,
+          notes: snapshot.notes,
+          chapter_number: chapterNumber,
+          story_id: Number(storyId),
+          submission_status: submissionStatus,
+          scheduled_for: scheduledFor,
+        }).then((result) => {
+          savedChapterId = result?.id || result?.chapter_id || result?.item?.id;
+          if (!savedChapterId) throw new Error("The chapter could not be saved because the server returned no chapter ID.");
+          if (String(draftRef.current.id) === String(snapshot.id)) {
+            draftRef.current = { ...draftRef.current, id: savedChapterId };
+            setActiveId(savedChapterId);
+          }
+          setChapters((items) => items.map((item) => (
+            String(item.id) === String(snapshot.id)
+            && Number(item.chapter_number || 1) === chapterNumber
+          ) ? { ...item, id: savedChapterId } : item));
+        });
+      })
+      .then(async () => {
+        if (asDraft) {
+          setChapters((items) => items.map((item) => String(item.id) === String(savedChapterId)
+            ? { ...item, submission_status: "draft" }
+            : item));
+          const hasPublishedSibling = chapters.some((chapter) =>
+            String(chapter.id) !== String(savedChapterId) && isPublishedChapter(chapter),
+          );
+          const storyStatus = hasPublishedSibling ? "Ongoing" : "Draft";
+          await updateStory(storyId, { status_text: storyStatus });
+          setStory((current) => current ? { ...current, status_text: storyStatus } : current);
+        }
+      })
+      .then(() => {
+        const current = draftRef.current;
+        if (String(current.id) === String(savedChapterId)) {
+          setLastSaved(new Date().toLocaleString());
+          const unchanged = current.title === snapshot.title
+            && current.content === snapshot.content
+            && current.notes === snapshot.notes;
+          if (unchanged) {
+            setDraftDirty(false);
+            setMsg(manual ? "Saved" : "All changes saved");
+          }
+          setChapters((items) => items.map((item) => String(item.id) === String(savedChapterId)
+            ? { ...item, title: snapshot.title, content: snapshot.content, notes: snapshot.notes, submission_status: submissionStatus, scheduled_for: scheduledFor }
+            : item));
+        }
+        return savedChapterId;
+      })
+      .catch((err) => {
+        if (String(draftRef.current.id) === String(savedChapterId) || String(draftRef.current.id) === String(snapshot.id)) {
+          setMsg(`${manual ? "Save failed" : "Auto-save failed"}: ${err.message || "Please try saving again."}`);
+        }
+        throw err;
+      })
+      .finally(() => {
+        pendingSaves.current -= 1;
+        setSaving(pendingSaves.current > 0);
+      });
+
+    saveQueue.current = save;
+    return save;
+  }
+
+  useEffect(() => {
+    if (!draftDirty || !active || !title.trim() || !hasChapterText(content)) return undefined;
+    const snapshot = {
+      id: active.id,
+      title,
+      content,
+      notes,
+      chapter_number: active.chapter_number,
+      submission_status: active.submission_status,
+      scheduled_for: active.scheduled_for,
+    };
+    autoSaveTimer.current = window.setTimeout(() => {
+      saveDraft(snapshot).catch((err) => {
+        showToast(`Auto-save failed: ${err.message || "Please try saving again."}`, "error");
+      });
+    }, 2000);
+    return () => clearTimeout(autoSaveTimer.current);
+  }, [draftDirty, active, title, content, notes]);
+
+  useEffect(() => () => clearTimeout(autoSaveTimer.current), []);
+
+  useEffect(() => {
+    if (!draftDirty) return undefined;
+    const warnBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [draftDirty]);
 
   useEffect(() => {
     if (guest) return;
@@ -220,7 +364,7 @@ export default function StoryEditorPage({ user }) {
           if (id && !cancelled) navigate(`/write/${id}`, { replace: true });
           return;
         }
-        await load(storyId);
+        await load(storyId, search.get("chapter"));
       } catch (e) {
         if (!cancelled) setError(String(e.message || e));
       }
@@ -229,90 +373,162 @@ export default function StoryEditorPage({ user }) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storyId, guest]);
+  }, [storyId, guest, search]);
 
-  function selectChapter(c) {
+  async function selectChapter(c) {
+    if (!c?.id) return;
+    if (String(c.id) === String(active?.id)) {
+      // An explicit click on the selected row should restore its saved text if
+      // the editor state was cleared or not hydrated yet.
+      if (!draftDirty) {
+        draftRef.current = { id: c.id, title: c.title || "", content: c.content || "", notes: c.notes || "" };
+        setTitle(c.title || "");
+        setContent(c.content || "");
+        setNotes(c.notes || "");
+      }
+      return;
+    }
+    clearTimeout(autoSaveTimer.current);
+    const previous = active?.id ? { id: active.id, title, content, notes } : null;
+    if (draftDirty && previous) {
+      // Preserve the latest text in the list and switch immediately; a slow save
+      // should never make the editor appear stuck on the previous chapter.
+      setChapters((items) => items.map((item) => String(item.id) === String(previous.id)
+        ? { ...item, title: previous.title, content: previous.content, notes: previous.notes }
+        : item));
+    }
+    draftRef.current = { id: c.id, title: c.title || "", content: c.content || "", notes: c.notes || "" };
     setActiveId(c.id);
+    setLastSaved("");
     setTitle(c.title || "");
     setContent(c.content || "");
     setNotes(c.notes || "");
-    setRenameId(null);
+    setDraftDirty(false);
     setMsg("");
+    if (draftDirty && previous) {
+      saveDraft(previous).catch((error) => {
+        const message = `Previous chapter is still unsaved: ${error.message || "Please retry."}`;
+        setMsg(message);
+        showToast(message, "error");
+      });
+    }
   }
 
   async function saveChapter() {
-    if (!active?.id) {
-      setMsg("Create a chapter first");
+    if (!active) {
+      const message = "Create a chapter first.";
+      setMsg(message);
+      showToast(message, "warning");
       return;
     }
-    setSaving(true);
-    setMsg("");
+    if (!title.trim()) {
+      const message = "Add a chapter title before saving.";
+      setMsg(message);
+      showToast(message, "warning");
+      return;
+    }
+    if (!richTextToPlainText(content).trim()) {
+      const message = "You can't save an empty chapter.";
+      setMsg(message);
+      showToast(message, "warning");
+      return;
+    }
     try {
-      await updateChapter(active.id, { title, content, notes });
-      setLastSaved(new Date().toLocaleString());
-      setMsg("Saved");
-      await load(storyId);
+      await saveDraft({ id: active.id, title, content, notes, chapter_number: active.chapter_number }, true, true);
+      showToast("Draft saved.", "success");
+      navigate("/manage-stories?tab=drafts");
     } catch (e) {
-      setMsg(String(e.message || e));
-    } finally {
-      setSaving(false);
+      setMsg(`Save failed: ${e.message || "Please try again."}`);
+      showToast(`Save failed: ${e.message || "Please try again."}`, "error");
     }
   }
 
-  async function removeStory() {
-    const confirmed = window.confirm(`Delete “${storyTitle || "Untitled Story"}” and all of its chapters permanently?`);
-    if (!confirmed || deletingStory) return;
+  function requestEditorNavigation(destination) {
+    navigate(destination);
+  }
+
+  function discardAndLeave() {
+    clearTimeout(autoSaveTimer.current);
+    setDraftDirty(false);
+    blocker.proceed();
+  }
+
+  async function saveDraftAndLeave() {
+    if (!active) {
+      const message = "Create a chapter before saving your changes as a draft.";
+      setMsg(message);
+      showToast(message, "warning");
+      return;
+    }
+    if (!title.trim() || !hasChapterText(content)) {
+      const message = "Add a chapter title and content before saving as a draft.";
+      setMsg(message);
+      showToast(message, "warning");
+      return;
+    }
+    try {
+      await saveDraft({ id: active.id, title, content, notes, chapter_number: active.chapter_number }, true, true);
+      showToast("Draft saved.", "success");
+      blocker.proceed();
+    } catch (err) {
+      setMsg(`Save failed: ${err.message || "Please try again."}`);
+      showToast(`Save failed: ${err.message || "Please try again."}`, "error");
+    }
+  }
+
+  async function removeChapter() {
+    const chapter = chapters.find((item) => String(item.id) === String(activeId)) || active;
+    if (!chapter || deletingStory) return;
+    const chapterStatus = String(chapter.submission_status || "draft").toLowerCase();
+    if (chapterStatus === "scheduled") {
+      const message = "Clear the chapter schedule before deleting it.";
+      setMsg(message);
+      showToast(message, "warning");
+      return;
+    }
+    if (chapterStatus !== "draft") {
+      const message = "Only draft chapters can be deleted.";
+      setMsg(message);
+      showToast(message, "warning");
+      return;
+    }
+    const isLastChapter = chapters.length === 1;
+    const confirmed = window.confirm(
+      isLastChapter
+        ? "This is the last chapter. Deleting it will keep the story details page. You can delete the story from Manage Stories after all chapters are removed."
+        : "Are you sure you want to delete this chapter? This action cannot be undone."
+    );
+    if (!confirmed) return;
     setDeletingStory(true);
     setError("");
     try {
-      await deleteStory(storyId);
-      navigate("/manage-stories", { replace: true });
+      if (draftDirty && String(activeId) === String(chapter.id)) {
+        await saveDraft({ id: activeId, title, content, notes });
+      }
+      await deleteChapter(chapter.id);
+      showToast("Chapter deleted.", "success");
+      if (isLastChapter) {
+        navigate("/manage-stories?tab=drafts", { replace: true });
+      } else {
+        await load(storyId);
+        setMsg("Chapter deleted");
+      }
     } catch (err) {
-      setError(String(err.message || err));
+      setMsg(String(err.message || err));
+      showToast(String(err.message || err), "error");
     } finally {
       setDeletingStory(false);
     }
   }
 
-  async function importManuscript(event) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      setError("Text files must be smaller than 2 MB.");
-      return;
-    }
-    try {
-      const text = await file.text();
-      if (!text.trim()) {
-        setError("That file is empty. Choose a text or Markdown file with chapter content.");
-        return;
-      }
-      if (content.trim() && !window.confirm("Replace the current chapter text with this file? Save any changes you want to keep first.")) return;
-      setContent(text);
-      setError("");
-      setMsg(`Imported ${file.name}. Save the chapter to keep these changes.`);
-    } catch {
-      setError("This file could not be read. Try a .txt or .md file.");
-    }
-  }
-
-  async function saveStoryTitleModal() {
-    if (!storyId) return;
-    try {
-      await updateStory(storyId, { title: (titleDraft || "Untitled Story").trim() });
-      setStoryTitle(titleDraft.trim() || "Untitled Story");
-      setTitleModal(false);
-      setMsg("Title updated");
-      await load(storyId);
-    } catch (e) {
-      setMsg(String(e.message || e));
-    }
-  }
-
   async function onCoverFile(e) {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
+    setCoverCropFile(file);
+  }
+
+  async function uploadAdjustedCover(file) {
     setMsg("Uploading cover…");
     try {
       const up = await uploadWriteImage(file);
@@ -324,522 +540,842 @@ export default function StoryEditorPage({ user }) {
       await updateStory(storyId, { cover_path: path });
       setStory((s) => (s ? { ...s, cover_path: path } : s));
       setMsg("Cover updated");
+      showToast("Story cover updated.", "success");
       await load(storyId);
     } catch (err) {
-      setMsg(String(err.message || err));
+      const message = String(err.message || err);
+      setMsg(message);
+      showToast(message, "error");
     } finally {
       if (coverInputRef.current) coverInputRef.current.value = "";
     }
   }
 
   async function addChapter() {
-    const name = (newChapterName || `Chapter ${chapters.length + 1}`).trim();
-    try {
-      const res = await createChapter(storyId, {
-        title: name,
-        content: "",
-        chapter_number: chapters.length + 1,
-        submission_status: "draft",
-      });
-      setNewChapterName("");
-      const id = res?.id || res?.chapter_id || res?.item?.id;
-      // Optimistic list update so UI shows immediately
-      if (id) {
-        setChapters((prev) => [
-          ...prev,
-          {
-            id,
-            title: name,
-            content: "",
-            notes: "",
-            submission_status: "draft",
-            chapter_number: chapters.length + 1,
-          },
-        ]);
-        setActiveId(id);
-        setTitle(name);
-        setContent("");
-        setNotes("");
-      }
-      await load(storyId);
-      if (id) setActiveId(id);
-      setMsg("Chapter created");
-    } catch (e) {
-      setMsg(String(e.message || e));
-    }
-  }
-
-  async function applyRename(c) {
-    const next = (renameVal || "").trim();
-    if (!next) {
-      setRenameId(null);
+    if (addingChapter || reordering) return;
+    if (!active || !title.trim() || !hasChapterText(content)) {
+      const message = "Add a chapter title and content, then save it before starting another chapter.";
+      setMsg(message);
+      showToast(message, "warning");
       return;
     }
+    setAddingChapter(true);
     try {
-      await updateChapter(c.id, { title: next });
-      setRenameId(null);
-      if (String(c.id) === String(active?.id)) setTitle(next);
-      await load(storyId);
-    } catch (e) {
-      setMsg(String(e.message || e));
-    }
-  }
-
-    async function removeChapter(c) {
-    if (!window.confirm(`Delete "${c.title || "chapter"}"?`)) return;
-    try {
-      await deleteChapter(c.id);
-      if (String(activeId) === String(c.id)) {
-        setActiveId(null);
-        setTitle("");
-        setContent("");
+      if (draftDirty || !active.id) {
+        await saveDraft({ id: active.id, title, content, notes, chapter_number: active.chapter_number }, true);
       }
-      await load(storyId);
-      setMsg("Chapter deleted");
+      const nextChapterNumber = Math.max(
+        Number(active.chapter_number) || 0,
+        ...chapters.map((chapter) => Number(chapter.chapter_number) || 0),
+      ) + 1;
+      const name = `Chapter ${nextChapterNumber}`;
+      setChapters((items) => [...items, {
+        id: null,
+        title: name,
+        content: "",
+        notes: "",
+        submission_status: "draft",
+        chapter_number: nextChapterNumber,
+      }]);
+      setActiveId(null);
+      draftRef.current = { id: null, title: name, content: "", notes: "" };
+      setLastSaved("");
+      setTitle(name);
+      setContent("");
+      setNotes("");
+      setDraftDirty(false);
+      setMsg("Chapter ready — it will be created when you save your writing.");
+      showToast(`${name} is ready. It will be created when you save your writing.`, "success");
     } catch (e) {
       setMsg(String(e.message || e));
+      showToast(String(e.message || e), "error");
+    } finally {
+      setAddingChapter(false);
     }
   }
 
-  function canPublish(text) {
-    return String(text || "").replace(/\s+/g, " ").trim().length >= MIN_PUBLISH_CHARS;
+  async function moveChapter(chapter, direction) {
+    if (reordering || !chapter?.id) return;
+    if (chapters.some((item) => !item.id)) {
+      const message = "Save the current chapter before changing chapter order.";
+      setMsg(message);
+      showToast(message, "warning");
+      return;
+    }
+    const currentIndex = chapters.findIndex((item) => String(item.id) === String(chapter.id));
+    const nextIndex = currentIndex + direction;
+    if (currentIndex < 0 || nextIndex < 0 || nextIndex >= chapters.length) return;
+    if (draftDirty && active?.id) {
+      try {
+        await saveDraft({ id: active.id, title, content, notes });
+      } catch (err) {
+        const message = `Could not save the current chapter before reordering: ${err.message || "Please retry."}`;
+        setMsg(message);
+        showToast(message, "error");
+        return;
+      }
+    }
+
+    const ordered = [...chapters];
+    const [moved] = ordered.splice(currentIndex, 1);
+    ordered.splice(nextIndex, 0, moved);
+    const chapterIds = ordered.map((item) => Number(item.id));
+    if (chapterIds.some((id) => !Number.isInteger(id) || id <= 0)) {
+      const message = "Could not reorder chapters because a chapter has an invalid ID.";
+      setMsg(message);
+      showToast(message, "error");
+      return;
+    }
+
+    setReordering(true);
+    setChapters(ordered);
+    setMsg("Saving chapter order…");
+    try {
+      await reorderStoryChapters(storyId, chapterIds);
+      await load(storyId, active?.id);
+      setMsg("Chapter order saved");
+      showToast("Chapter order saved.", "success");
+    } catch (err) {
+      try {
+        await load(storyId, active?.id);
+      } catch (reloadError) {
+        setError(`Chapter order could not be saved, and the editor could not reload: ${reloadError.message || "Please refresh."}`);
+      }
+      setMsg(`Could not reorder chapters: ${err.message || "Please try again."}`);
+      showToast(`Could not reorder chapters: ${err.message || "Please try again."}`, "error");
+    } finally {
+      setReordering(false);
+    }
+  }
+
+  function wordCount(text) {
+    return richTextToPlainText(text).trim().split(/\s+/).filter(Boolean).length;
+  }
+
+  function hasChapterText(text) {
+    return Boolean(richTextToPlainText(text).trim());
+  }
+
+  function firstUnpublishedChapterNumber(chapterNumber = Number(active?.chapter_number || 1), chapterList = chapters) {
+    const publishedStatuses = new Set(["published", "ongoing", "completed"]);
+    for (let number = 1; number < chapterNumber; number += 1) {
+      const previousChapter = chapterList.find((chapter) => Number(chapter.chapter_number) === number);
+      const status = String(previousChapter?.submission_status || "draft").trim().toLowerCase();
+      if (!previousChapter || !publishedStatuses.has(status)) return number;
+    }
+    return null;
+  }
+
+  async function saveActiveChapterAsDraft() {
+    if (savingChapterDraft) return;
+    if (!active) {
+      const message = "Select a chapter before saving it as a draft.";
+      setMsg(message);
+      showToast(message, "warning");
+      return;
+    }
+    if (!title.trim() || !hasChapterText(content)) {
+      const message = "Add a chapter title and content before saving it as a draft.";
+      setMsg(message);
+      showToast(message, "warning");
+      return;
+    }
+
+    setSavingChapterDraft(true);
+    try {
+      const savedChapterId = await saveDraft({
+        id: active.id,
+        title,
+        content,
+        notes,
+        chapter_number: active.chapter_number,
+        submission_status: "draft",
+        scheduled_for: null,
+      }, true, true);
+      if (!savedChapterId) throw new Error("The selected chapter could not be saved as a draft.");
+      await load(storyId, savedChapterId);
+      setMsg("Selected chapter saved as a draft.");
+      showToast("Selected chapter saved as a draft.", "success");
+    } catch (err) {
+      const message = `Could not save this chapter as a draft: ${err.message || "Please try again."}`;
+      setMsg(message);
+      showToast(message, "error");
+    } finally {
+      setSavingChapterDraft(false);
+    }
   }
 
   async function submitChapter(mode) {
     setSubmitOpen(false);
+    let returnToDesk = false;
+    if (mode === "withdraw" && !window.confirm("Unpublish every chapter in this story? Readers will no longer be able to open them.")) {
+      return;
+    }
     try {
-      if (mode === "one") {
-        if (!active?.id) {
-          setMsg("Select a chapter");
+      if (mode === "one" && active) {
+        const firstUnpublished = firstUnpublishedChapterNumber();
+        if (firstUnpublished != null) {
+          const validationMessage = `Publish Chapter ${firstUnpublished} before Chapter ${active.chapter_number}.`;
+          setMsg(validationMessage);
+          showToast(validationMessage, "warning");
           return;
         }
-        if (!canPublish(content)) {
-          await updateChapter(active.id, { title, content, submission_status: "draft" });
-          await updateStory(storyId, { status_text: "Draft" });
-          setMsg(`Need at least ${MIN_PUBLISH_CHARS} characters — kept as draft`);
-        } else {
-          await updateChapter(active.id, {
-            title,
-            content,
-            submission_status: "published",
-          });
-          await updateStory(storyId, { status_text: "Published" });
-          setMsg("Chapter submitted");
+      }
+      if (mode === "one" || mode === "all") {
+        const storyTitleValue = String(story?.title || storyTitle || "").trim();
+        const summary = String(story?.description || "").trim();
+        const genre = String(story?.genre || story?.primary_genre || "").trim();
+        if (!storyTitleValue || !summary || !genre) {
+          const returnPath = encodeURIComponent(`/write/${storyId}`);
+          requestEditorNavigation(`/write/new?story=${storyId}&returnTo=${returnPath}`);
+          showToast("Complete the story title, summary, and genre before publishing.", "warning");
+          return;
         }
+      }
+      if (mode === "one" && (!active || !title.trim() || !hasChapterText(content))) {
+        const message = !active ? "Select a chapter" : !title.trim() ? "Add a chapter title before publishing." : "You can't publish an empty chapter.";
+        setMsg(message);
+        showToast(message, "warning");
+        return;
+      }
+      if (mode === "one") {
+        const words = wordCount(content);
+        if (words > MAX_PUBLISH_WORDS) {
+          const message = `Chapters must be ${MAX_PUBLISH_WORDS.toLocaleString()} words or fewer.`;
+          setMsg(message);
+          showToast(message, "warning");
+          return;
+        }
+        if (words < MIN_PUBLISH_WORDS) {
+          const message = `Minimum ${MIN_PUBLISH_WORDS} words required before publishing.`;
+          setMsg(message);
+          showToast(message, "warning");
+          return;
+        }
+      }
+      let targetChapterId = active?.id || null;
+      if (draftDirty && active && title.trim() && hasChapterText(content)) {
+        targetChapterId = await saveDraft({
+          id: active.id,
+          title,
+          content,
+          notes,
+          chapter_number: active.chapter_number,
+          submission_status: active.submission_status,
+          scheduled_for: active.scheduled_for,
+        });
+      } else if (mode === "one" && active && !targetChapterId) {
+        targetChapterId = await saveDraft({
+          id: null,
+          title,
+          content,
+          notes,
+          chapter_number: active.chapter_number,
+          submission_status: active.submission_status,
+          scheduled_for: active.scheduled_for,
+        });
+      }
+      if (mode === "one") {
+        if (!targetChapterId) {
+          const message = "Select a chapter";
+          setMsg(message);
+          showToast(message, "warning");
+          return;
+        }
+        if (!title.trim()) {
+          const message = "Add a chapter title before publishing.";
+          setMsg(message);
+          showToast(message, "warning");
+          return;
+        }
+        await updateChapter(targetChapterId, {
+          story_id: Number(storyId),
+          title: title.trim(),
+          content: sanitizeRichTextHtml(content),
+          chapter_number: Number(active.chapter_number || 1),
+          notes,
+          submission_status: "published",
+          scheduled_for: null,
+        });
+        await updateStory(storyId, { status_text: "Ongoing" });
+        setMsg("Chapter published");
+        showToast("Chapter published.", "success");
+        returnToDesk = true;
       } else if (mode === "all") {
-        let any = false;
-        for (const c of chapters) {
-          const body = String(c.id === active?.id ? content : c.content || "");
-          if (canPublish(body)) {
-            await updateChapter(c.id, {
-              title: c.id === active?.id ? title : c.title,
-              content: body,
-              submission_status: "published",
-            });
-            any = true;
-          } else {
-            await updateChapter(c.id, {
-              title: c.id === active?.id ? title : c.title,
-              content: body,
-              submission_status: "draft",
-            });
-          }
+        if (targetChapterId && (title.trim() || hasChapterText(content))) {
+          await updateChapter(targetChapterId, { title, content: sanitizeRichTextHtml(content), notes });
         }
-        await updateStory(storyId, { status_text: any ? "Published" : "Draft" });
-        setMsg(any ? "Submitted eligible chapters" : "No chapter met 50-char rule");
+        const eligibleIds = chapters
+          .filter((chapter) => {
+            const status = String(chapter.submission_status || chapter.status_text || "").toLowerCase();
+            if (isPublishedChapter(chapter) || status === "scheduled" || chapter.scheduled_for) return false;
+            const body = String(chapter.id) === String(targetChapterId) ? content : chapter.content;
+            const words = wordCount(body);
+            return words >= MIN_PUBLISH_WORDS && words <= MAX_PUBLISH_WORDS;
+          })
+          .map((chapter) => Number(chapter.id))
+          .filter((chapterId) => chapterId > 0);
+        if (!eligibleIds.length) {
+          const message = `No draft chapter meets the ${MIN_PUBLISH_WORDS}–${MAX_PUBLISH_WORDS.toLocaleString()} word publish limits.`;
+          setMsg(message);
+          showToast(message, "warning");
+        } else {
+          const result = await submitAllChapters(storyId, {
+            chapter_ids: eligibleIds,
+            min_words: MIN_PUBLISH_WORDS,
+          });
+          const resultMessage = result?.message || `${result?.submitted_count || 0} chapter(s) published.`;
+          setMsg(resultMessage);
+          showToast(resultMessage, Number(result?.submitted_count ?? eligibleIds.length) > 0 ? "success" : "warning");
+        }
       } else if (mode === "withdraw") {
-        for (const c of chapters) {
-          await updateChapter(c.id, { submission_status: "draft" });
+        const chaptersToUpdate = chapters
+          .filter(isPublishedChapter)
+          .sort((a, b) => Number(b.chapter_number || 0) - Number(a.chapter_number || 0));
+        if (!chaptersToUpdate.length) {
+          const message = "There are no published chapters to unpublish.";
+          setMsg(message);
+          showToast(message, "warning");
+          return;
+        }
+        for (const chapter of chaptersToUpdate) {
+          await updateChapter(chapter.id, { submission_status: "draft", scheduled_for: null });
         }
         await updateStory(storyId, { status_text: "Draft" });
+        setStory((current) => current ? { ...current, status_text: "Draft" } : current);
         setMsg("All chapters withdrawn to draft");
+        showToast("All chapters unpublished.", "success");
       }
       await load(storyId);
+      if (returnToDesk) navigate("/manage-stories");
     } catch (e) {
       setMsg(String(e.message || e));
+      showToast(String(e.message || e), "error");
     }
   }
 
-  function openNewSchedule() {
-    setEditScheduleId(null);
-    setScheduleForm({
-      name: "",
-      interval: "Weekly",
-      days: [],
-      timezone: "Asia/Colombo",
-      time: new Date().toTimeString().slice(0, 5),
-      start: new Date().toISOString().slice(0, 10),
-      chapters: "1",
-    });
-    setScheduleOpen(false);
-    setNewScheduleOpen(true);
-  }
-
-  function openEditSchedule(s) {
-    setEditScheduleId(s.id);
-    setScheduleForm({
-      name: s.name || "",
-      interval: s.interval || "Weekly",
-      days: s.days || [],
-      timezone: s.timezone || "Asia/Colombo",
-      time: s.time || "05:00",
-      start: s.start || new Date().toISOString().slice(0, 10),
-      chapters: s.chapters || "1",
-    });
-    setScheduleOpen(false);
-    setNewScheduleOpen(true);
-  }
-
-  async function saveSchedule() {
-    if (!(scheduleForm.name || "").trim()) {
-      setMsg("Schedule name required");
+  async function unpublishActiveChapter() {
+    if (!active?.id || deletingStory) return;
+    const live = chapters
+      .filter(isPublishedChapter)
+      .sort((a, b) => Number(b.chapter_number || 0) - Number(a.chapter_number || 0));
+    const latest = live[0];
+    if (latest && String(latest.id) !== String(active.id)) {
+      setMsg(`Please unpublish the latest chapter (Chapter ${latest.chapter_number}) first.`);
+      showToast(`Unpublish the latest chapter (Chapter ${latest.chapter_number}) first.`, "warning");
       return;
     }
-    const item = {
-      id: editScheduleId || Date.now(),
-      ...scheduleForm,
-      name: scheduleForm.name.trim(),
-    };
-    const next = editScheduleId
-      ? schedules.map((s) => (s.id === editScheduleId ? item : s))
-      : [...schedules, item];
+    if (!window.confirm("This chapter will be hidden from readers and moved to Draft.")) return;
     try {
-      await persistSchedules(next);
-    } catch (e) {
-      setMsg(e.message || "Could not save the schedule.");
-      return;
+      await updateChapter(active.id, { submission_status: "draft" });
+      await load(storyId, active.id);
+      setMsg("Chapter unpublished");
+      showToast("Chapter unpublished.", "success");
+    } catch (err) {
+      setMsg(`Could not unpublish chapter: ${err.message || "Please try again."}`);
+      showToast(`Could not unpublish chapter: ${err.message || "Please try again."}`, "error");
     }
-    setNewScheduleOpen(false);
-    setScheduleOpen(true);
-    setMsg("Schedule saved");
   }
 
-  function formatScheduleLine(s) {
-    const days =
-      s.days?.length > 0
-        ? `on ${s.days.map((d) => d + "s").join(", ")}`
-        : "";
-    return `${s.chapters || 1} chapters ${(s.interval || "weekly").toLowerCase()} ${days} @ ${s.time || ""} ${s.timezone || ""} - Free for everyone`;
+  function localDateTimeValue(date) {
+    const pad = (value) => String(value).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   }
 
   function isPublishedChapter(c) {
     const st = String(c.submission_status || c.status_text || "").toLowerCase();
-    return st.includes("publish") || st === "submitted";
+    return ["published", "ongoing", "submitted", "completed"].includes(st);
   }
 
-
-  async function saveSettings() {
-    if (!storyId) return;
+  async function scheduleActiveChapter(event) {
+    event.preventDefault();
+    if (!active || !title.trim() || !hasChapterText(content)) {
+      const message = "Add a chapter title and content before scheduling.";
+      setMsg(message);
+      showToast(message, "warning");
+      return;
+    }
+    if (!scheduleDate || new Date(scheduleDate).getTime() <= Date.now()) {
+      const message = "Choose a future date and time.";
+      setMsg(message);
+      showToast(message, "warning");
+      return;
+    }
+    setScheduling(true);
     try {
-      await updateStory(storyId, {
-        description: (settings.summary || "").slice(0, 1400),
-        genre: settings.genre || "Romance",
-        content_warnings: settings.content_warnings || "",
-        status_text: settings.work_status || undefined,
-        audience: settings.age_rating || "All Ages",
-        language: settings.language || "English",
-        writer_settings: { ...(story?.writer_settings || {}), ...settings, schedules },
-        tags: settings.tags
-          ? String(settings.tags)
-              .split(",")
-              .map((t) => t.trim())
-              .filter(Boolean)
-          : [],
-      });
-      setMsg("Story settings saved");
-      setSettingsOpen(false);
-      await load(storyId);
-    } catch (e) {
-      setMsg(String(e.message || e));
+      const latest = await getWriteStory(storyId);
+      if (latest?.chaptersError) throw latest.chaptersError;
+      const chapterNumber = Number(active.chapter_number || 1);
+      const firstUnpublished = firstUnpublishedChapterNumber(chapterNumber, Array.isArray(latest?.chapters) ? latest.chapters : []);
+      if (firstUnpublished != null) {
+        const validationMessage = `Publish Chapter ${firstUnpublished} before Chapter ${chapterNumber}.`;
+        setMsg(validationMessage);
+        showToast(validationMessage, "warning");
+        return;
+      }
+      const scheduledFor = `${scheduleDate}:00`;
+      const savedChapterId = await saveDraft({
+        id: active.id,
+        title,
+        content,
+        notes,
+        chapter_number: chapterNumber,
+        submission_status: "scheduled",
+        scheduled_for: scheduledFor,
+      }, true);
+      if (!savedChapterId) throw new Error("The chapter was not saved, so it could not be scheduled.");
+      const storyStatus = (latest?.chapters || []).some(isPublishedChapter) ? "Ongoing" : "Draft";
+      await updateStory(storyId, { status_text: storyStatus });
+      setStory((current) => current ? { ...current, status_text: storyStatus } : current);
+      setScheduleOpen(false);
+      setMsg("Chapter scheduled for publishing.");
+      showToast("Chapter scheduled for publishing.", "success");
+      await load(storyId, savedChapterId);
+    } catch (err) {
+      setMsg(`Could not schedule chapter: ${err.message || "Please try again."}`);
+      showToast(`Could not schedule chapter: ${err.message || "Please try again."}`, "error");
+    } finally {
+      setScheduling(false);
     }
   }
 
+  async function openRevisions() {
+    if (!active?.id) {
+      const message = "Save this chapter first to view revisions.";
+      setMsg(message);
+      showToast(message, "warning");
+      return;
+    }
+    setLoadingRevisions(true);
+    setRevisionsOpen(true);
+    try {
+      const response = await getStoryChapterRevisions(active.id);
+      setRevisions(Array.isArray(response) ? response : response?.items || []);
+    } catch (err) {
+      const message = `Could not load revisions: ${err.message || "Please try again."}`;
+      setMsg(message);
+      showToast(message, "error");
+      setRevisionsOpen(false);
+    } finally {
+      setLoadingRevisions(false);
+    }
+  }
+
+  async function restoreRevision(revision) {
+    if (!active?.id || restoringRevision) return;
+    if (!window.confirm("Restore this earlier version? Your current chapter text will be replaced.")) return;
+    setRestoringRevision(true);
+    try {
+      await restoreStoryChapterRevision(active.id, revision.id);
+      await load(storyId, active.id);
+      setRevisionsOpen(false);
+      setMsg("Revision restored. Other chapters were not changed.");
+      showToast("Chapter revision restored.", "success");
+    } catch (err) {
+      const message = `Could not restore revision: ${err.message || "Please try again."}`;
+      setMsg(message);
+      showToast(message, "error");
+    } finally {
+      setRestoringRevision(false);
+    }
+  }
+
+  async function changeStoryStatus(status) {
+    const summary = String(story?.description || story?.summary || "").trim();
+    const genre = String(story?.genre || story?.primary_genre || "").trim();
+    if (!summary || !genre) {
+      const message = "Complete the story summary and genre in Story details before changing its status.";
+      setMsg(message);
+      showToast(message, "warning");
+      return;
+    }
+    const prompts = {
+      Ongoing: "Readers will see this story. Continue?",
+      Completed: "Mark as finished? Chapters stay available.",
+    };
+    if (!prompts[status] || !window.confirm(prompts[status])) return;
+    try {
+      await updateStory(storyId, { status_text: status });
+      setStory((current) => current ? { ...current, status_text: status } : current);
+      setMsg(`Status updated to ${status}`);
+      showToast(`Story status updated to ${status}.`, "success");
+    } catch (err) {
+      const message = `Could not update status: ${err.message || "Please try again."}`;
+      setMsg(message);
+      showToast(message, "error");
+    }
+  }
+
+
   if (guest) {
     return (
-      <div className="container page">
-        <div className="guest-lock">
-          <h3>Sign in to write</h3>
-          <Link className="btn btn-primary" to="/login">
-            Sign in
-          </Link>
+      <>
+        <nav className="writer-workspace-bar" aria-label="Writer access">
+          <Link to="/" className="writer-workspace-back">← Wingsaga</Link>
+          <span className="writer-workspace-status">Writing desk</span>
+        </nav>
+        <div className="container page">
+          <div className="guest-lock">
+            <h3>Sign in to write</h3>
+            <Link className="btn btn-primary" to="/login" state={{ returnTo: `/write/${storyId}` }}>
+              Sign in
+            </Link>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
-  if (error) return <div className="container page error-banner">{error}</div>;
+  if (error) return <main className="container page writer-load-error" role="alert">
+    <p>{error}</p>
+    <button type="button" className="btn btn-primary" onClick={() => {
+      setError("");
+      load(storyId, search.get("chapter")).catch((err) => {
+        const message = String(err.message || err);
+        setError(message);
+        showToast(message, "error");
+      });
+    }}>Try again</button>
+  </main>;
   if (!story && storyId && storyId !== "new") {
     return <div className="container page">Loading editor…</div>;
   }
 
-  if (audioView) {
-    const published = chapters.filter(isPublishedChapter);
-    return (
-      <div className="audio-entry-page">
-        <h1>No published chapters yet</h1>
-        <p className="meta">
-          Audiobooks are only generated for published chapters. Publish a chapter first to create its
-          audiobook.
-        </p>
-        {published.length > 0 ? (
-          <>
-            <p className="meta">Published chapters ready:</p>
-            <ul style={{ textAlign: "left", maxWidth: 360, margin: "12px auto" }}>
-              {published.map((c) => (
-                <li key={c.id}>{c.title}</li>
-              ))}
-            </ul>
-          </>
-        ) : null}
-        <button type="button" className="btn btn-primary" onClick={() => setAudioView(false)}>
-          Back to story editor
-        </button>
-      </div>
-    );
-  }
-
   const cover = resolveAssetUrl(story?.cover_path || "");
   const chapterStatus = (c) => {
-    if (isPublishedChapter(c)) return { label: "Submitted", cls: "ok" };
-    return { label: "Not Submitted", cls: "warn" };
+    if (!c.id) return { label: "Not saved", cls: "warn" };
+    const status = String(c.submission_status || c.status_text || "").toLowerCase();
+    if (status === "scheduled" || c.scheduled_for) return { label: "Scheduled", cls: "scheduled" };
+    if (isPublishedChapter(c)) return { label: "Published", cls: "ok" };
+    return { label: "Draft", cls: "warn" };
   };
 
   return (
-    <div className="editor-inkitt">
-      <div className="editor-grid">
-        <aside className="editor-left">
-          <div className="editor-cover-wrap">
-            <div className="editor-cover-box">
-              {cover ? (
-                <img src={cover} alt="Cover" />
-              ) : (
-                <div className="editor-cover-empty" aria-hidden="true" />
-              )}
+    <div className="editor-inkitt editor-chapter-mock">
+      <div className="editor-app-top">
+        <nav className="writer-workspace-bar" aria-label="Story editor">
+          <button type="button" className="writer-workspace-back editor-mock-back" onClick={() => requestEditorNavigation("/manage-stories?tab=drafts")} aria-label="Back">←</button>
+          <div className="writer-workspace-context">
+            <span>Edit Chapter</span>
+            <strong>{storyTitle || "Untitled Story"} · {title || "Chapter"}</strong>
+          </div>
+          <div className="editor-mock-header-actions">
+            <button type="button" className="editor-mock-icon" onClick={addChapter} disabled={addingChapter} title="Add new chapter" aria-label="Add new chapter">＋</button>
+            <button type="button" className="editor-mock-icon" onClick={saveChapter} disabled={saving} title="Save and continue" aria-label="Save and continue">✓</button>
+            <div className="menu-wrap" ref={moreMenuRef}>
+              <button type="button" className="editor-mock-icon" onClick={() => setMoreOptionsOpen((value) => !value)} aria-label="More options" aria-haspopup="menu" aria-expanded={moreOptionsOpen} aria-controls="chapter-more-menu">⋯</button>
+              {moreOptionsOpen ? (
+                <div id="chapter-more-menu" className="menu open editor-mock-menu" role="menu" aria-label="Chapter options">
+                  <div className="editor-mock-menu-heading">
+                    <span>CHAPTER WORKSPACE</span>
+                    <strong>More options</strong>
+                  </div>
+                  <button type="button" className="menu-item" role="menuitem" onClick={() => { setMoreOptionsOpen(false); setScheduleDate(active?.scheduled_for ? localDateTimeValue(new Date(active.scheduled_for)) : localDateTimeValue(new Date(Date.now() + 60 * 60 * 1000))); setScheduleOpen(true); }}><span className="editor-menu-icon" aria-hidden="true">◷</span><span><strong>Schedule publishing</strong><small>Choose when readers can see it</small></span></button>
+                  <button type="button" className="menu-item" role="menuitem" onClick={() => { setMoreOptionsOpen(false); openRevisions(); }}><span className="editor-menu-icon" aria-hidden="true">↺</span><span><strong>Chapter revisions</strong><small>Review or restore an earlier draft</small></span></button>
+                  <button type="button" className="menu-item" role="menuitem" onClick={() => { setMoreOptionsOpen(false); requestEditorNavigation(`/write/new?story=${storyId}&returnTo=${encodeURIComponent(`/write/${storyId}`)}`); }}><span className="editor-menu-icon" aria-hidden="true">✎</span><span><strong>Story details</strong><small>Edit title, description, and tags</small></span></button>
+                  <button type="button" className="menu-item" role="menuitem" onClick={() => { setMoreOptionsOpen(false); saveActiveChapterAsDraft(); }} disabled={savingChapterDraft || deletingStory || !active}><span className="editor-menu-icon" aria-hidden="true">▣</span><span><strong>{savingChapterDraft ? "Saving as draft…" : "Save selected chapter as draft"}</strong><small>Move only this chapter to drafts</small></span></button>
+                  <div className="editor-mock-menu-divider" />
+                  <button type="button" className="menu-item danger" role="menuitem" onClick={() => { setMoreOptionsOpen(false); removeChapter(); }} disabled={deletingStory || !active?.id}><span className="editor-menu-icon" aria-hidden="true">⌫</span><span><strong>{deletingStory ? "Deleting chapter…" : "Delete chapter"}</strong><small>This action cannot be undone</small></span></button>
+                </div>
+              ) : null}
             </div>
+          </div>
+        </nav>
+        <div className="editor-mock-status-row">
+          <div>
+            <span className={`editor-mock-status-badge ${active && isPublishedChapter(active) ? "published" : active?.scheduled_for ? "scheduled" : "draft"}`}>
+              <i /> {active && isPublishedChapter(active) ? "Published" : active?.scheduled_for ? "Scheduled" : "Draft"}
+            </span>
+            <span className="editor-mock-autosave">
+              {saving ? "Saving…" : draftDirty ? "Unsaved changes" : lastSaved ? `Saved ${lastSaved}` : "Saved"}
+            </span>
+          </div>
+          <button type="button" className={`editor-mock-schedule ${active?.scheduled_for ? "scheduled" : ""}`} onClick={() => { setScheduleDate(active?.scheduled_for ? localDateTimeValue(new Date(active.scheduled_for)) : localDateTimeValue(new Date(Date.now() + 60 * 60 * 1000))); setScheduleOpen(true); }}>
+            ◷ {active?.scheduled_for ? new Date(active.scheduled_for).toLocaleString() : "Not scheduled"}
+          </button>
+        </div>
+        <div className="editor-mock-toolbar" aria-label="Chapter editor toolbar">
+          <div className="editor-mock-word-info">
+            <span>Word count: <strong>{wordCount(content).toLocaleString()}</strong></span>
+            <span>· goal</span>
+            <span className="editor-mock-goal-input">60</span>
+            <div className="editor-mock-goal"><i style={{ width: `${Math.min(100, wordCount(content) / 60 * 100)}%` }} /></div>
+          </div>
+          <div className="editor-mock-format-tools">
+            <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => applyEditorFormat("bold")} title="Bold (Ctrl+B)" aria-label="Bold (Ctrl+B)"><strong>B</strong></button>
+            <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => applyEditorFormat("italic")} title="Italic (Ctrl+I)" aria-label="Italic (Ctrl+I)"><em>I</em></button>
+            <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => applyEditorFormat("underline")} title="Underline (Ctrl+U)" aria-label="Underline (Ctrl+U)"><u>U</u></button>
+          </div>
+          <div className="editor-mock-actions">
+            <button type="button" className="editor-mock-save" onClick={saveChapter} disabled={saving}>Save Draft</button>
             <button
               type="button"
-              className="cover-edit-btn"
-              onClick={() => coverInputRef.current?.click()}
+              className="editor-mock-publish"
+              onClick={() => active && isPublishedChapter(active) ? unpublishActiveChapter() : submitChapter("one")}
+              disabled={saving || deletingStory || scheduling}
+              title={firstUnpublishedChapterNumber() != null ? `Publish Chapter ${firstUnpublishedChapterNumber()} first` : undefined}
             >
-              Edit Story Cover
+              {active && isPublishedChapter(active) ? "Unpublish ✓" : "Publish Chapter"}
             </button>
-            <input
-              ref={coverInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/jpg"
-              style={{ display: "none" }}
-              onChange={onCoverFile}
-            />
           </div>
+        </div>
+      </div>
+      <div className="editor-grid">
+        <aside className="editor-left">
           <div className="editor-left-links">
-            <button type="button" className="linkish" onClick={() => setSettingsOpen(true)}>
-              Settings
+            <button type="button" className="linkish" onClick={() => requestEditorNavigation(`/write/new?story=${storyId}&returnTo=${encodeURIComponent(`/write/${storyId}`)}`)}>
+              Story details
             </button>
-            <Link className="linkish" to={`/stories/${storyId}`}>
+            <button type="button" className="linkish" onClick={() => requestEditorNavigation(`/stories/${storyId}`)}>
               Preview
-            </Link>
+            </button>
           </div>
           <button type="button" className="btn editor-save" onClick={saveChapter} disabled={saving}>
-            💾 Save
-          </button>
-          {lastSaved ? <p className="meta last-saved">Last saved: {lastSaved}</p> : null}
-          <button type="button" className="btn editor-delete-story" onClick={removeStory} disabled={deletingStory || !storyId || storyId === "new"}>
-            {deletingStory ? "Deleting story…" : "Delete story"}
-          </button>
-          <button type="button" className="btn editor-audio" onClick={() => setAudioView(true)}>
-            Create Audiobook
+            Save draft
           </button>
           <div className="submit-wrap">
             <button
               type="button"
               className="btn btn-primary submit-main"
-              onClick={() => submitChapter("one")}
+              onClick={() => active && isPublishedChapter(active) ? unpublishActiveChapter() : submitChapter("one")}
+              disabled={saving || deletingStory || scheduling}
+              title={firstUnpublishedChapterNumber() != null ? `Publish Chapter ${firstUnpublishedChapterNumber()} first` : undefined}
             >
-              {schedules.length ? "Add to schedules" : "Submit Chapter"}
+              {active && isPublishedChapter(active) ? "Unpublish chapter" : "Publish chapter"}
             </button>
             <button
               type="button"
               className="btn btn-primary submit-caret"
               onClick={() => setSubmitOpen((v) => !v)}
+              aria-label="More chapter options"
+              aria-expanded={submitOpen}
             >
-              ▾
+              ⋯
             </button>
             {submitOpen && (
               <div className="submit-menu">
-                <button type="button" onClick={() => submitChapter("all")}>
-                  Submit All Chapters
+                <button type="button" onClick={() => { setSubmitOpen(false); setScheduleDate(active?.scheduled_for ? localDateTimeValue(new Date(active.scheduled_for)) : localDateTimeValue(new Date(Date.now() + 60 * 60 * 1000))); setScheduleOpen(true); }}>
+                  Schedule publishing
                 </button>
-                <button type="button" onClick={() => submitChapter("withdraw")}>
-                  Withdraw All Chapters
+                <button type="button" onClick={() => { setSubmitOpen(false); openRevisions(); }}>
+                  Revisions
                 </button>
+                {!active || !isPublishedChapter(active) ? <button type="button" onClick={() => { setSubmitOpen(false); removeChapter(); }} disabled={deletingStory || !active?.id}>{deletingStory ? "Deleting chapter…" : "Delete chapter"}</button> : null}
               </div>
             )}
           </div>
-          <button type="button" className="linkish schedule-link" onClick={() => setScheduleOpen(true)}>
-            Schedule Manager
-          </button>
           {msg ? <p className="meta editor-msg">{msg}</p> : null}
         </aside>
 
         <main className="editor-center">
+          <div className="editor-writing-intro">
+            <span>YOUR WRITING STUDIO</span>
+            <p>A calm space to shape the next chapter of your story.</p>
+          </div>
           <div className="story-title-row">
-            <span className="story-title-display">{(storyTitle || "UNTITLED STORY").toUpperCase()}</span>
-            <button
-              type="button"
-              className="edit-title-chip"
-              onClick={() => {
-                setTitleDraft(storyTitle || "Untitled Story");
-                setTitleModal(true);
-              }}
-            >
-              Edit Title
-            </button>
+            <span className="story-title-display">{storyTitle || "Untitled Story"}</span>
           </div>
           <div className="chapter-title-row">
-            <h1 className="chapter-display-title">{title || "Chapter"}</h1>
+            <input
+              className="chapter-title-input"
+              aria-label="Chapter title"
+              value={title}
+              maxLength={160}
+              onChange={(event) => {
+                setTitle(event.target.value);
+                setDraftDirty(true);
+              }}
+              placeholder="Chapter title"
+            />
             <button type="button" className="linkish" onClick={() => setNotesOpen(true)}>
-              📝 Chapter Notes
+              📝 Chapter notes
             </button>
           </div>
           <div className="editor-toolbar">
-            <button type="button" title="Select text, then apply bold" onMouseDown={(e) => e.preventDefault()} onClick={() => applyInlineFormat("bold")}>
+            <button type="button" title="Select text, then apply bold" onMouseDown={(e) => e.preventDefault()} onClick={() => applyEditorFormat("bold")}>
               B
             </button>
-            <button type="button" title="Select text, then apply italic" onMouseDown={(e) => e.preventDefault()} onClick={() => applyInlineFormat("italic")}>
+            <button type="button" title="Select text, then apply italic" onMouseDown={(e) => e.preventDefault()} onClick={() => applyEditorFormat("italic")}>
               <em>I</em>
             </button>
-            <button type="button" title="Insert a list item" onClick={() => {
-              const input = editorTextareaRef.current;
-              const pos = input?.selectionStart ?? content.length;
-              const next = `${content.slice(0, pos)}\n- ${content.slice(pos)}`;
-              setContent(next);
-              requestAnimationFrame(() => { input?.focus(); input?.setSelectionRange(pos + 3, pos + 3); });
-            }}>
-              ≡
-            </button>
+            <button type="button" title="Select text, then underline" onMouseDown={(e) => e.preventDefault()} onClick={() => applyEditorFormat("underline")}><u>U</u></button>
           </div>
-          <textarea
-            ref={editorTextareaRef}
+          <div
+            ref={editorSurfaceRef}
             className="editor-textarea"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Start writing here…"
+            role="textbox"
+            aria-label="Chapter text"
+            aria-multiline="true"
+            contentEditable
+            suppressContentEditableWarning
+            spellCheck
+            data-placeholder="Start writing here…"
+            onInput={syncEditorContent}
+            onPaste={(event) => {
+              event.preventDefault();
+              const plainText = event.clipboardData.getData("text/plain");
+              document.execCommand("insertText", false, plainText);
+              syncEditorContent();
+            }}
+            onKeyDown={(event) => {
+              if (!(event.ctrlKey || event.metaKey)) return;
+              const shortcut = { b: "bold", i: "italic", u: "underline" }[event.key.toLowerCase()];
+              if (!shortcut) return;
+              event.preventDefault();
+              applyEditorFormat(shortcut);
+            }}
           />
+          <div className="editor-draft-meta">
+            <span>{wordCount(content).toLocaleString()} words</span>
+            <span>{richTextToPlainText(content).length.toLocaleString()} characters</span>
+            <span>{active && isPublishedChapter(active) ? "Published chapter" : "Private draft"}</span>
+            <span>Publish range: {MIN_PUBLISH_WORDS}–{MAX_PUBLISH_WORDS.toLocaleString()} words</span>
+          </div>
         </main>
 
-        <aside className="editor-right">
-          <h3 className="chapters-heading">CHAPTERS</h3>
+        <aside className={`editor-right chapter-panel${chapterPanelOpen ? " open" : " collapsed"}`} aria-label="Story chapters and details">
+          <section className="writer-cover-card chapter-cover-card" aria-labelledby="writer-cover-heading">
+            <div className="writer-cover-card-heading">
+              <div>
+                <span>YOUR STORY</span>
+                <h2 id="writer-cover-heading">Cover & details</h2>
+              </div>
+              <span className="writer-cover-state">{cover ? "COVER ADDED" : "DRAFT STORY"}</span>
+            </div>
+            <div className={`writer-cover-preview${cover ? " has-cover" : ""}`}>
+              {cover ? <img src={cover} alt={`${storyTitle || "Story"} cover preview`} /> : (
+                <div className="writer-cover-placeholder"><span aria-hidden="true">N</span><small>Add a cover when you are ready</small></div>
+              )}
+            </div>
+            <strong className="writer-story-sidebar-title">{storyTitle || "Untitled Story"}</strong>
+            <div className="writer-story-sidebar-facts">
+              <span><small>Genre</small>{story?.genre || story?.primary_genre || "Not set"}</span>
+              <span><small>Status</small>{story?.status_text || "Draft"}</span>
+            </div>
+            <div className="writer-story-sidebar-actions">
+              <button type="button" className="cover-edit-btn" onClick={() => coverInputRef.current?.click()}>
+                {cover ? "Change cover" : "Add cover"}
+              </button>
+              <button type="button" className="linkish" onClick={() => requestEditorNavigation(`/write/new?story=${storyId}`)}>Edit story details</button>
+              {String(story?.status_text || "").toLowerCase().includes("complete")
+                ? <button type="button" className="linkish" onClick={() => changeStoryStatus("Ongoing")}>Mark as ongoing</button>
+                : Number(story?.published_chapter_count || chapters.filter(isPublishedChapter).length) > 0
+                  ? <button type="button" className="linkish" onClick={() => changeStoryStatus("Completed")}>Mark as complete</button>
+                  : null}
+              {chapters.some(isPublishedChapter) ? <button type="button" className="linkish" onClick={() => submitChapter("withdraw")}>Unpublish all chapters</button> : null}
+              {chapters.some((chapter) => chapter.id && !isPublishedChapter(chapter)) ? <button type="button" className="linkish" onClick={() => submitChapter("all")}>Publish all drafts</button> : null}
+            </div>
+            <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/jpg" className="visually-hidden" onChange={onCoverFile} />
+          </section>
+          <div className="editor-parts-heading">
+            <div>
+              <h3 className="chapters-heading">Story chapters</h3>
+              <span className="chapter-list-count">
+                {chapters.filter((chapter) => chapter.id).length} saved chapters
+                {chapters.some((chapter) => !chapter.id) ? " · current chapter is not saved yet" : ""}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="chapter-panel-toggle"
+              onClick={() => setChapterPanelOpen((value) => !value)}
+              aria-expanded={chapterPanelOpen}
+              aria-label={chapterPanelOpen ? "Collapse chapter panel" : "Expand chapter panel"}
+            >
+              {chapterPanelOpen ? "‹" : "›"}
+            </button>
+          </div>
+          <button type="button" className="btn create-ch-btn chapter-panel-new" onClick={addChapter} disabled={reordering || addingChapter}>
+            {addingChapter ? "Adding…" : "+ New chapter"}
+          </button>
+          <p className="chapter-list-hint">Select a chapter to continue writing.</p>
           <ul className="editor-chapter-list">
             {chapters.map((c) => {
               const st = chapterStatus(c);
               const selected = String(c.id) === String(active?.id);
-              const renaming = String(renameId) === String(c.id);
               return (
-                <li key={c.id} className={selected ? "selected" : ""}>
-                  {renaming ? (
-                    <div className="ch-rename-box">
-                      <input
-                        value={renameVal}
-                        onChange={(e) => setRenameVal(e.target.value)}
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") applyRename(c);
-                          if (e.key === "Escape") setRenameId(null);
-                        }}
-                      />
-                      <button type="button" className="btn btn-primary btn-sm" onClick={() => applyRename(c)}>
-                        + Rename
+                <li key={c.id || `new-${c.chapter_number}`} className={selected ? "selected" : ""}>
+                  <button type="button" className="ch-select" title={`Open ${c.title || `Chapter ${c.chapter_number || ""}`} in the writing area`} onClick={() => selectChapter(c)} disabled={!c.id}>
+                    <strong>{c.title || "Chapter"}</strong>
+                    <span className="meta">
+                      Chapter {c.chapter_number != null ? c.chapter_number : ""}
+                    </span>
+                    <span className="meta chapter-list-word-count">
+                      {wordCount(c.content || (String(c.id) === String(active?.id) ? content : "")).toLocaleString()} words
+                    </span>
+                    <span className={`ch-status ${st.cls}`}>{st.label}</span>
+                  </button>
+                  {c.id ? (
+                    <div className="ch-actions">
+                      <button
+                        type="button"
+                        aria-label={`Move ${c.title || "chapter"} up`}
+                        title="Move chapter up"
+                        className="chapter-order-button"
+                        disabled={reordering || chapters.indexOf(c) === 0}
+                        onClick={() => moveChapter(c, -1)}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Move ${c.title || "chapter"} down`}
+                        title="Move chapter down"
+                        className="chapter-order-button"
+                        disabled={reordering || chapters.indexOf(c) === chapters.length - 1}
+                        onClick={() => moveChapter(c, 1)}
+                      >
+                        ↓
                       </button>
                     </div>
-                  ) : (
-                    <>
-                      <button type="button" className="ch-select" onClick={() => selectChapter(c)}>
-                        <strong>{c.title || "Chapter"}</strong>
-                        <span className="meta">
-                          Chapter {c.chapter_number != null ? c.chapter_number : ""}
-                        </span>
-                        <span className={`ch-status ${st.cls}`}>{st.label}</span>
-                      </button>
-                      <div className="ch-actions">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRenameId(c.id);
-                            setRenameVal(c.title || "");
-                          }}
-                        >
-                          Rename
-                        </button>
-                        <button type="button" className="danger" onClick={() => removeChapter(c)}>
-                          Delete
-                        </button>
-                      </div>
-                    </>
-                  )}
+                  ) : null}
                 </li>
               );
             })}
+            {chapters.length === 0 ? (
+              <li className="chapter-empty-state">
+                No chapters yet. Add a chapter to start writing.
+              </li>
+            ) : null}
           </ul>
           <div className="create-chapter-box">
-            <label>Create New Chapter:</label>
-            <input
-              value={newChapterName}
-              onChange={(e) => setNewChapterName(e.target.value)}
-              placeholder="Enter Chapter Name"
-            />
-            <button type="button" className="btn create-ch-btn" onClick={addChapter}>
-              + Create Chapter
+            <button type="button" className="btn create-ch-btn" onClick={addChapter} disabled={reordering || addingChapter}>
+              {addingChapter ? "Adding…" : "+ Add chapter"}
             </button>
           </div>
-                    <input ref={manuscriptInputRef} type="file" accept=".txt,.md,text/plain,text/markdown" className="visually-hidden" onChange={importManuscript} />
-          <button type="button" className="btn btn-primary upload-ms" onClick={() => manuscriptInputRef.current?.click()}>
-            Import text manuscript
-          </button>
-                    <p className="meta upload-hint">Import .txt or .md files up to 2 MB. For Word documents, paste the chapter text into the editor.</p>
         </aside>
       </div>
 
-      {/* Change Story Title */}
-      {titleModal && (
-        <div className="modal-backdrop" onClick={() => setTitleModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+      {blocker.state === "blocked" ? (
+        <div className="modal-backdrop" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) blocker.reset();
+        }}>
+          <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="leave-editor-title">
             <div className="modal-head">
-              <h2>Change Story Title</h2>
-              <button type="button" className="auth-close" onClick={() => setTitleModal(false)}>
-                ×
-              </button>
+              <h2 id="leave-editor-title">Leave the chapter editor?</h2>
             </div>
-            <p className="meta">Enter a new title for your story:</p>
-            <input
-              className="title-modal-input"
-              value={titleDraft}
-              onChange={(e) => setTitleDraft(e.target.value)}
-              autoFocus
-            />
+            <p className="meta">You have unsaved changes. Save them as a private draft, discard them, or keep editing.</p>
             <div className="modal-actions">
-              <button type="button" className="btn" onClick={() => setTitleModal(false)}>
-                Close
-              </button>
-              <button type="button" className="btn btn-primary" onClick={saveStoryTitleModal}>
-                Save
-              </button>
+              <button type="button" className="btn" onClick={() => blocker.reset()}>Keep editing</button>
+              <button type="button" className="btn" onClick={discardAndLeave}>Discard</button>
+              <button type="button" className="btn btn-primary" onClick={saveDraftAndLeave} disabled={saving}>Save as draft</button>
             </div>
-          </div>
+          </section>
         </div>
-      )}
+      ) : null}
 
       {notesOpen && (
         <div className="modal-backdrop" onClick={() => setNotesOpen(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h2>Chapter Notes</h2>
+              <h2>Chapter notes</h2>
               <button type="button" className="auth-close" onClick={() => setNotesOpen(false)}>
                 ×
               </button>
             </div>
             <div className="editor-toolbar" style={{ borderRadius: 6, marginBottom: 0 }}>
-              <button type="button" title="Select text, then apply bold" onMouseDown={(e) => e.preventDefault()} onClick={() => applyInlineFormat("bold", "notes")}>B</button>
-              <button type="button" title="Select text, then apply italic" onMouseDown={(e) => e.preventDefault()} onClick={() => applyInlineFormat("italic", "notes")}>
+              <button type="button" title="Select text, then apply bold" onMouseDown={(e) => e.preventDefault()} onClick={() => applyInlineFormat("bold")}>B</button>
+              <button type="button" title="Select text, then apply italic" onMouseDown={(e) => e.preventDefault()} onClick={() => applyInlineFormat("italic")}>
                 <em>I</em>
               </button>
             </div>
@@ -847,7 +1383,10 @@ export default function StoryEditorPage({ user }) {
               ref={notesTextareaRef}
               className="notes-area"
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e) => {
+                setNotes(e.target.value);
+                setDraftDirty(true);
+              }}
               rows={6}
             />
             <div className="modal-actions">
@@ -860,14 +1399,16 @@ export default function StoryEditorPage({ user }) {
                 onClick={async () => {
                   if (active?.id) {
                     try {
-                      await updateChapter(active.id, { notes });
+                      await saveDraft({ id: active.id, title, content, notes }, true);
                     } catch (e) {
-                      setMsg(e.message || "Could not save chapter notes.");
+                      const message = `Save failed: ${e.message || "Could not save chapter notes."}`;
+                      setMsg(message);
+                      showToast(message, "error");
                       return;
                     }
                   }
+                  showToast("Chapter notes saved.", "success");
                   setNotesOpen(false);
-                  setMsg("Notes saved");
                 }}
               >
                 Save
@@ -878,260 +1419,73 @@ export default function StoryEditorPage({ user }) {
       )}
 
       {scheduleOpen && (
-        <div className="modal-backdrop" onClick={() => setScheduleOpen(false)}>
-          <div className="modal-card modal-wide" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-backdrop" onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !scheduling) setScheduleOpen(false);
+        }}>
+          <form className="modal-card chapter-schedule-dialog" onSubmit={scheduleActiveChapter}>
             <div className="modal-head">
-              <h2>Schedule Manager</h2>
-              <button type="button" className="auth-close" onClick={() => setScheduleOpen(false)}>
+              <h2>Schedule this chapter</h2>
+              <button type="button" className="auth-close" onClick={() => setScheduleOpen(false)} disabled={scheduling}>
                 ×
               </button>
             </div>
-            {schedules.length === 0 ? (
-              <p className="meta center-pad">No schedules for this story yet.</p>
-            ) : (
-              <ul className="schedule-list">
-                {schedules.map((s) => (
-                  <li key={s.id} className="schedule-row">
-                    <div>
-                      <strong>{s.name}</strong>
-                      <p className="meta">{formatScheduleLine(s)}</p>
-                    </div>
-                    <button type="button" className="btn schedule-edit" onClick={() => openEditSchedule(s)}>
-                      Edit
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <p className="meta">Choose when “{title || active?.title || "this chapter"}” should be published. You can change the schedule from this chapter’s options.</p>
+            <label className="form-label" htmlFor="chapter-scheduled-for">Publish date and time</label>
+            <input
+              id="chapter-scheduled-for"
+              type="datetime-local"
+              required
+              min={localDateTimeValue(new Date())}
+              value={scheduleDate}
+              onChange={(event) => setScheduleDate(event.target.value)}
+            />
             <div className="modal-actions">
-              <button type="button" className="btn" onClick={() => setScheduleOpen(false)}>
+              <button type="button" className="btn" onClick={() => setScheduleOpen(false)} disabled={scheduling}>
                 Close
               </button>
-              <button type="button" className="btn btn-primary" onClick={openNewSchedule}>
-                Create New Schedule
+              <button type="submit" className="btn btn-primary" disabled={scheduling}>
+                {scheduling ? "Saving schedule…" : "Schedule chapter"}
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
 
-      {newScheduleOpen && (
-        <div className="modal-backdrop" onClick={() => setNewScheduleOpen(false)}>
-          <div className="modal-card modal-wide" onClick={(e) => e.stopPropagation()}>
+      {revisionsOpen && (
+        <div className="modal-backdrop" onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !restoringRevision) setRevisionsOpen(false);
+        }}>
+          <section className="modal-card revisions-dialog" role="dialog" aria-modal="true" aria-labelledby="chapter-revisions-title">
             <div className="modal-head">
-              <h2>{editScheduleId ? "Edit Schedule" : "New Schedule"}</h2>
-              <button type="button" className="auth-close" onClick={() => setNewScheduleOpen(false)}>
-                ×
-              </button>
+              <h2 id="chapter-revisions-title">Chapter revisions</h2>
+              <button type="button" className="auth-close" onClick={() => setRevisionsOpen(false)} disabled={restoringRevision}>×</button>
             </div>
-            <label className="form-label">
-              Schedule name
-              <input
-                value={scheduleForm.name}
-                onChange={(e) => setScheduleForm({ ...scheduleForm, name: e.target.value })}
-              />
-            </label>
-            <label className="form-label">
-              Interval
-              <select
-                value={scheduleForm.interval}
-                onChange={(e) => setScheduleForm({ ...scheduleForm, interval: e.target.value })}
-              >
-                <option>Weekly</option>
-                <option>Daily</option>
-                <option>Monthly</option>
-              </select>
-            </label>
-            <div className="form-label">Days of week</div>
-            <div className="days-grid">
-              {DAYS.map((d) => (
-                <label key={d} className="day-check">
-                  <input
-                    type="checkbox"
-                    checked={scheduleForm.days.includes(d)}
-                    onChange={(e) => {
-                      const days = e.target.checked
-                        ? [...scheduleForm.days, d]
-                        : scheduleForm.days.filter((x) => x !== d);
-                      setScheduleForm({ ...scheduleForm, days });
-                    }}
-                  />
-                  {d}
-                </label>
+            {loadingRevisions ? <p className="meta">Loading saved versions…</p> : null}
+            {!loadingRevisions && !revisions.length ? <p className="meta">No earlier versions are available yet.</p> : null}
+            {!loadingRevisions && revisions.length ? <ul className="revision-list">
+              {revisions.map((revision) => (
+                <li key={revision.id}>
+                  <div><strong>{revision.title || "Untitled chapter"}</strong><small>{revision.created_at ? new Date(revision.created_at).toLocaleString() : "Previous version"}</small></div>
+                  <button type="button" className="btn btn-secondary" onClick={() => restoreRevision(revision)} disabled={restoringRevision}>{restoringRevision ? "Restoring…" : "Restore"}</button>
+                </li>
               ))}
-            </div>
-            <label className="form-label">
-              Timezone
-              <select
-                value={scheduleForm.timezone}
-                onChange={(e) => setScheduleForm({ ...scheduleForm, timezone: e.target.value })}
-              >
-                <option>Asia/Colombo</option>
-                <option>UTC</option>
-                <option>America/New_York</option>
-                <option>Europe/London</option>
-              </select>
-            </label>
-            <label className="form-label">
-              Time
-              <input
-                type="time"
-                value={scheduleForm.time}
-                onChange={(e) => setScheduleForm({ ...scheduleForm, time: e.target.value })}
-              />
-            </label>
-            <label className="form-label">
-              Start date
-              <input
-                type="date"
-                value={scheduleForm.start}
-                onChange={(e) => setScheduleForm({ ...scheduleForm, start: e.target.value })}
-              />
-            </label>
-            <label className="form-label">
-              Chapters to publish
-              <input
-                value={scheduleForm.chapters}
-                onChange={(e) => setScheduleForm({ ...scheduleForm, chapters: e.target.value })}
-              />
-            </label>
-            <div className="modal-actions">
-              <button type="button" className="btn" onClick={() => setNewScheduleOpen(false)}>
-                Cancel
-              </button>
-              <button type="button" className="btn btn-primary" onClick={saveSchedule}>
-                {editScheduleId ? "Save" : "Create"}
-              </button>
-            </div>
-          </div>
+            </ul> : null}
+          </section>
         </div>
       )}
 
-      {settingsOpen && (
-        <div className="settings-drawer-backdrop" onClick={() => setSettingsOpen(false)}>
-          <div className="settings-drawer" onClick={(e) => e.stopPropagation()}>
-            <div className="settings-drawer-head">
-              <h2>Story Settings</h2>
-              <button type="button" className="auth-close" onClick={() => setSettingsOpen(false)}>×</button>
-            </div>
-            <div className="settings-drawer-body">
-              <nav className="settings-nav">
-                {[
-                  ["details", "Story Details"],
-                  ["genres", "Genres and Tags"],
-                  ["warnings", "Content Warnings"],
-                  ["publish", "Publishing and Contests"],
-                ].map(([id, label]) => (
-                  <button key={id} type="button" className={settingsTab === id ? "active" : ""} onClick={() => setSettingsTab(id)}>
-                    {label}
-                  </button>
-                ))}
-              </nav>
-              <div className="settings-panel">
-                {settingsTab === "details" && (
-                  <section>
-                    <h3>Story Details</h3>
-                    <div className="settings-toggle-row">
-                      <button type="button" className={settings.work_type === "original" ? "on" : ""} onClick={() => setSettings({ ...settings, work_type: "original" })}>Original</button>
-                      <button type="button" className={settings.work_type === "fanfiction" ? "on" : ""} onClick={() => setSettings({ ...settings, work_type: "fanfiction" })}>Fanfiction</button>
-                    </div>
-                    <label className="form-label">Work Status
-                      <select value={settings.work_status} onChange={(e) => setSettings({ ...settings, work_status: e.target.value })}>
-                        <option value="">Nothing selected</option>
-                        <option value="Ongoing">Ongoing</option>
-                        <option value="Complete">Complete</option>
-                        <option value="Hiatus">Hiatus</option>
-                        <option value="Draft">Draft</option>
-                      </select>
-                    </label>
-                    <div className="form-label">Series Placement</div>
-                    <label className="radio-row"><input type="radio" checked={settings.series === "standalone"} onChange={() => setSettings({ ...settings, series: "standalone" })} /> Standalone story</label>
-                    <label className="radio-row"><input type="radio" checked={settings.series === "series"} onChange={() => setSettings({ ...settings, series: "series" })} /> Part of a series</label>
-                    <label className="form-label">Summary (max. 1400 characters)
-                      <textarea value={settings.summary} maxLength={1400} rows={4} placeholder="Hook readers with a teaser that captures your story's vibe—short, punchy, and impossible to ignore." onChange={(e) => setSettings({ ...settings, summary: e.target.value })} />
-                    </label>
-                    <label className="form-label">Story Notes
-                      <textarea value={settings.story_notes} rows={3} placeholder="Share a note to set the tone..." onChange={(e) => setSettings({ ...settings, story_notes: e.target.value })} />
-                    </label>
-                  </section>
-                )}
-                {settingsTab === "genres" && (
-                  <section>
-                    <h3>Genres and Tags</h3>
-                    <label className="form-label">Genre
-                      <select value={settings.genre} onChange={(e) => setSettings({ ...settings, genre: e.target.value })}>
-                        <option value="">Nothing selected</option>
-                        {["Romance","Fantasy","Thriller","Young Adult","Sci-Fi","Drama","Adventure","Mystery","Horror","Werewolves","Contemporary Romance","Other"].map((g) => (
-                          <option key={g} value={g}>{g}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <p className="meta">0/4 sub-genres selected — choose up to 4 across all genres.</p>
-                    <label className="form-label">Tags (comma-separated)
-                      <input value={settings.tags} placeholder="Alpha, Boss, Second Chance" onChange={(e) => setSettings({ ...settings, tags: e.target.value })} />
-                    </label>
-                    <div className="form-label">Age Rating</div>
-                    {[
-                      ["All Ages", "All Ages", "Suitable for a general audience."],
-                      ["Teen (13+)", "Teen (13+)", "May contain some violence, minor coarse language, or suggestive themes."],
-                      ["Mature (18+)", "Mature (18+)", "May contain explicit language and adult themes."],
-                    ].map(([val, label, hint]) => (
-                      <label key={val} className="radio-card">
-                        <input type="radio" checked={settings.age_rating === val} onChange={() => setSettings({ ...settings, age_rating: val })} />
-                        <span><strong>{label}</strong><span className="meta">{hint}</span></span>
-                      </label>
-                    ))}
-                  </section>
-                )}
-                {settingsTab === "warnings" && (
-                  <section>
-                    <h3>Content Warnings</h3>
-                    <label className="form-label">Trigger Warnings
-                      <select value={settings.content_warnings} onChange={(e) => setSettings({ ...settings, content_warnings: e.target.value })}>
-                        <option value="">No warnings selected</option>
-                        <option value="Violence">Violence</option>
-                        <option value="Abuse">Abuse</option>
-                        <option value="Sexual content">Sexual content</option>
-                        <option value="Death">Death</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </label>
-                    <div className="form-label">AI Assisted</div>
-                    <label className="radio-row"><input type="radio" checked={settings.ai_assisted === "ai"} onChange={() => setSettings({ ...settings, ai_assisted: "ai" })} /> AI participated in the storytelling</label>
-                    <label className="radio-row"><input type="radio" checked={settings.ai_assisted === "original"} onChange={() => setSettings({ ...settings, ai_assisted: "original" })} /> This is fully original content</label>
-                  </section>
-                )}
-                {settingsTab === "publish" && (
-                  <section>
-                    <h3>Publishing and Contests</h3>
-                    <div className="form-label">Story Availability</div>
-                    <label className="radio-row"><input type="radio" checked={settings.availability === "web_app"} onChange={() => setSettings({ ...settings, availability: "web_app" })} /> Website and App</label>
-                    <label className="radio-row"><input type="radio" checked={settings.availability === "app"} onChange={() => setSettings({ ...settings, availability: "app" })} /> App only</label>
-                    <label className="form-label">Story Language
-                      <select value={settings.language} onChange={(e) => setSettings({ ...settings, language: e.target.value })}>
-                        <option>English</option><option>Spanish</option><option>French</option><option>German</option>
-                      </select>
-                    </label>
-                    <div className="form-label">Inline Commenting</div>
-                    <label className="radio-row"><input type="radio" checked={!settings.inline_comments} onChange={() => setSettings({ ...settings, inline_comments: false })} /> Turn off paragraph-level comments and reactions</label>
-                    <label className="radio-row"><input type="radio" checked={!!settings.inline_comments} onChange={() => setSettings({ ...settings, inline_comments: true })} /> Turn on paragraph-level reactions and feedback</label>
-                    <label className="form-label">Participate in contest
-                      <select disabled><option>You must publish your story before you can participate!</option></select>
-                    </label>
-                    <div className="form-label">Expand my readership in other languages</div>
-                    <label className="radio-row"><input type="radio" checked={!!settings.expand_languages} onChange={() => setSettings({ ...settings, expand_languages: true })} /> Yes</label>
-                    <label className="radio-row"><input type="radio" checked={!settings.expand_languages} onChange={() => setSettings({ ...settings, expand_languages: false })} /> No</label>
-                  </section>
-                )}
-              </div>
-            </div>
-            <div className="settings-drawer-foot">
-              <button type="button" className="btn" onClick={() => setSettingsOpen(false)}>Close</button>
-              <button type="button" className="btn btn-primary" onClick={saveSettings}>Save</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {coverCropFile ? (
+        <ImageAdjustModal
+          file={coverCropFile}
+          aspectRatio="2 / 3"
+          title="Adjust story cover"
+          onCancel={() => setCoverCropFile(null)}
+          onSave={async (croppedFile) => {
+            setCoverCropFile(null);
+            await uploadAdjustedCover(croppedFile);
+          }}
+        />
+      ) : null}
 
     </div>
   );

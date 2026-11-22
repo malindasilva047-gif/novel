@@ -23,7 +23,7 @@ class _ExpandableDescriptionState extends State<_ExpandableDescription> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
- Text(
+        Text(
           text,
           maxLines: _expanded || !needsToggle ? null : 4,
           overflow: _expanded || !needsToggle
@@ -35,7 +35,7 @@ class _ExpandableDescriptionState extends State<_ExpandableDescription> {
           ),
         ),
         if (needsToggle)
- Padding(
+          Padding(
             padding: const EdgeInsets.only(top: 4, bottom: 8),
             child: TextButton(
               onPressed: () {
@@ -72,6 +72,9 @@ Color _hexToColor(String hex) {
   return Color(int.parse('FF$normalized', radix: 16));
 }
 
+double _storyRailActiveWidth(BuildContext context) =>
+    (MediaQuery.sizeOf(context).width * 0.34).clamp(120.0, 240.0).toDouble();
+
 class _ExploreStoriesSection extends StatefulWidget {
   const _ExploreStoriesSection({
     required this.books,
@@ -96,7 +99,7 @@ class _ExploreStoriesSectionState extends State<_ExploreStoriesSection> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: 0.42, initialPage: 0);
+    _pageController = PageController(viewportFraction: 0.40, initialPage: 0);
   }
 
   @override
@@ -152,14 +155,15 @@ class _ExploreStoriesSectionState extends State<_ExploreStoriesSection> {
   Widget build(BuildContext context) {
     if (widget.books.isEmpty) return const SizedBox.shrink();
     final lead = _activeBook;
+    final cardWidth = _storyRailActiveWidth(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
- Row(
+        Row(
           children: [
- Expanded(
+            Expanded(
               child: Text(
                 lead.primaryGenre.isEmpty
                     ? 'Portal Fantasy'
@@ -169,7 +173,7 @@ class _ExploreStoriesSectionState extends State<_ExploreStoriesSection> {
                 ),
               ),
             ),
- TextButton(
+            TextButton(
               onPressed: _openSeeAll,
               style: TextButton.styleFrom(
                 foregroundColor: AppTheme.brand,
@@ -185,8 +189,8 @@ class _ExploreStoriesSectionState extends State<_ExploreStoriesSection> {
           ],
         ),
         const SizedBox(height: 8),
- SizedBox(
-          height: 248,
+        SizedBox(
+          height: cardWidth * 1.42 + 16,
           child: PageView.builder(
             controller: _pageController,
             padEnds: false,
@@ -200,17 +204,16 @@ class _ExploreStoriesSectionState extends State<_ExploreStoriesSection> {
                 return const SizedBox.shrink();
               }
               final item = _validBooks[index];
-              final isActive = index == _activeIndex;
               return AnimatedScale(
-                scale: isActive ? 1.14 : 0.88,
+                scale: index == _activeIndex ? 1 : .93,
                 duration: const Duration(milliseconds: 340),
                 curve: Curves.easeOutBack,
                 child: AnimatedOpacity(
-                  opacity: isActive ? 1.0 : 0.55,
+                  opacity: index == _activeIndex ? 1 : .82,
                   duration: const Duration(milliseconds: 280),
                   child: GestureDetector(
                     onTap: () {
-                      if (!isActive) {
+                      if (index != _activeIndex) {
                         _pageController.animateToPage(
                           index,
                           duration: const Duration(milliseconds: 320),
@@ -223,7 +226,7 @@ class _ExploreStoriesSectionState extends State<_ExploreStoriesSection> {
                     child: Center(
                       child: _StoryCard(
                         book: item,
-                        width: isActive ? 148 : 118,
+                        width: cardWidth,
                         apiService: widget.apiService,
                       ),
                     ),
@@ -271,7 +274,7 @@ class _DynamicStoryRailState extends State<_DynamicStoryRail> {
   void initState() {
     super.initState();
     // Match the first Discover slider format (no leading blank gap)
-    _pageController = PageController(viewportFraction: 0.42, initialPage: 0);
+    _pageController = PageController(viewportFraction: 0.40, initialPage: 0);
   }
 
   @override
@@ -291,13 +294,14 @@ class _DynamicStoryRailState extends State<_DynamicStoryRail> {
         .toList();
     if (valid.isEmpty) return const SizedBox.shrink();
     final book = valid[_activeIndex.clamp(0, valid.length - 1)];
+    final cardWidth = _storyRailActiveWidth(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
- Row(
+        Row(
           children: [
- Expanded(
+            Expanded(
               child: Text(
                 widget.section.title,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -307,7 +311,7 @@ class _DynamicStoryRailState extends State<_DynamicStoryRail> {
                 ),
               ),
             ),
- TextButton(
+            TextButton(
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -333,8 +337,8 @@ class _DynamicStoryRailState extends State<_DynamicStoryRail> {
           ],
         ),
         const SizedBox(height: 8),
- SizedBox(
-          height: 210,
+        SizedBox(
+          height: cardWidth * 1.42 + 16,
           child: PageView.builder(
             controller: _pageController,
             // Same as first slider — no large leading blank space
@@ -350,17 +354,16 @@ class _DynamicStoryRailState extends State<_DynamicStoryRail> {
                 return const SizedBox.shrink();
               }
               final item = valid[index];
-              final isActive = index == _activeIndex;
               return AnimatedScale(
-                scale: isActive ? 1.14 : 0.88,
+                scale: index == _activeIndex ? 1 : .93,
                 duration: const Duration(milliseconds: 340),
                 curve: Curves.easeOutBack,
                 child: AnimatedOpacity(
-                  opacity: isActive ? 1.0 : 0.55,
+                  opacity: index == _activeIndex ? 1 : .82,
                   duration: const Duration(milliseconds: 280),
                   child: GestureDetector(
                     onTap: () {
-                      if (!isActive) {
+                      if (index != _activeIndex) {
                         _pageController.animateToPage(
                           index,
                           duration: const Duration(milliseconds: 320),
@@ -390,7 +393,7 @@ class _DynamicStoryRailState extends State<_DynamicStoryRail> {
                     child: Center(
                       child: _StoryCard(
                         book: item,
-                        width: isActive ? 148 : 118,
+                        width: cardWidth,
                         apiService: widget.apiService,
                       ),
                     ),
@@ -442,7 +445,7 @@ class _ActiveStoryDetail extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
- Text(
+        Text(
           book.title,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -481,21 +484,21 @@ class _ActiveStoryDetail extends StatelessWidget {
           },
         ),
         const SizedBox(height: 10),
- Wrap(
+        Wrap(
           spacing: 10,
           runSpacing: 4,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
- Row(
+            Row(
               mainAxisSize: MainAxisSize.min,
               children: [
- Icon(
+                Icon(
                   Icons.schedule_rounded,
                   size: 14,
                   color: AppTheme.mutedOf(context),
                 ),
                 const SizedBox(width: 4),
- Text(
+                Text(
                   book.statusText.isEmpty
                       ? 'Updated recently'
                       : book.statusText,
@@ -503,23 +506,23 @@ class _ActiveStoryDetail extends StatelessWidget {
                 ),
               ],
             ),
- Row(
+            Row(
               mainAxisSize: MainAxisSize.min,
               children: [
- Icon(
+                Icon(
                   Icons.visibility_outlined,
                   size: 14,
                   color: AppTheme.mutedOf(context),
                 ),
                 const SizedBox(width: 4),
- Text(
+                Text(
                   '${book.viewCount}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
             ),
             if (book.rating > 0)
- Row(
+              Row(
                 mainAxisSize: MainAxisSize.min,
                 children: List.generate(
                   book.rating.round().clamp(0, 5),
@@ -528,7 +531,7 @@ class _ActiveStoryDetail extends StatelessWidget {
                     child: Icon(
                       Icons.star_rounded,
                       size: 15,
-                      color: Color(0xFFF3C623),
+                      color: Color(0xFFF4CC2F),
                     ),
                   ),
                 ),
@@ -536,7 +539,7 @@ class _ActiveStoryDetail extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 10),
- Wrap(
+        Wrap(
           spacing: 8,
           runSpacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
@@ -547,7 +550,7 @@ class _ActiveStoryDetail extends StatelessWidget {
                 size: 14,
                 color: AppTheme.brand,
               ),
- Text(
+              Text(
                 'Completed',
                 style: Theme.of(
                   context,
@@ -560,11 +563,11 @@ class _ActiveStoryDetail extends StatelessWidget {
             ),
             if (book.secondaryGenre.isNotEmpty)
               _GenreTag(label: book.secondaryGenre, apiService: apiService),
- DecoratedBox(
+            DecoratedBox(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
- BoxShadow(
+                  BoxShadow(
                     color: AppTheme.brand.withValues(alpha: 0.35),
                     blurRadius: 14,
                     offset: const Offset(0, 6),
@@ -587,10 +590,8 @@ class _ActiveStoryDetail extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  book.cta,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelMedium?.copyWith(
+                  'Read Now',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
                   ),
@@ -623,7 +624,7 @@ class _GenreTag extends StatelessWidget {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) =>
- HashtagDetailScreen(tag: text, apiService: apiService!),
+                        HashtagDetailScreen(tag: text, apiService: apiService!),
                   ),
                 );
               },
@@ -638,7 +639,7 @@ class _GenreTag extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             color: Theme.of(context).brightness == Brightness.dark
                 ? const Color(0xFF1A1A1A)
-                : const Color(0xFFF7F5FC),
+                : const Color(0xFFF6F5FA),
           ),
           child: Text(
             text.startsWith('#') ? text : '#$text',
@@ -717,17 +718,97 @@ class _StoryCardState extends State<_StoryCard> {
     final color = _hexToColor(widget.book.accentHex);
     // Rails render the title and metadata in the detail panel below the card.
     // Keep the card cover-only so the scaled card fits the rail's fixed height.
-    final compact = widget.width <= 150;
+    final compact = widget.width <= 190;
 
     if (compact) {
       return GestureDetector(
         onTap: _openDetail,
         child: SizedBox(
           width: widget.width,
-          height: 148,
+          height: widget.width * 1.42,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(10),
-            child: _coverImage(width: widget.width, height: 148),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                _coverImage(width: widget.width, height: widget.width * 1.42),
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0x00000000),
+                        Color(0x16000000),
+                        Color(0xE8000000),
+                      ],
+                      stops: [0.36, 0.6, 1],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xD914765B),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      widget.book.statusText.toLowerCase().contains('complete')
+                          ? 'COMPLETED'
+                          : 'ONGOING',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: .35,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 9,
+                  right: 9,
+                  bottom: 9,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.book.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          height: 1.15,
+                          fontWeight: FontWeight.w800,
+                          shadows: [
+                            Shadow(color: Colors.black54, blurRadius: 5),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'by ${widget.book.author}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFFF6F5FA),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -740,10 +821,10 @@ class _StoryCardState extends State<_StoryCard> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           color: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFF1A1625)
+              ? const Color(0xFF17211D)
               : Colors.white,
           boxShadow: [
- BoxShadow(
+            BoxShadow(
               color: color.withValues(alpha: 0.18),
               blurRadius: 12,
               offset: const Offset(0, 4),
@@ -754,7 +835,7 @@ class _StoryCardState extends State<_StoryCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
- ClipRRect(
+            ClipRRect(
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(16),
               ),
@@ -766,12 +847,12 @@ class _StoryCardState extends State<_StoryCard> {
                 ),
               ),
             ),
- Padding(
+            Padding(
               padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
- Text(
+                  Text(
                     widget.book.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -780,13 +861,13 @@ class _StoryCardState extends State<_StoryCard> {
                     ),
                   ),
                   const SizedBox(height: 4),
- Text(
+                  Text(
                     'by ${widget.book.author}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: AppTheme.mutedOf(context)),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.mutedOf(context),
+                    ),
                   ),
                 ],
               ),
@@ -882,9 +963,9 @@ class _AuthorsStripState extends State<_AuthorsStrip> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
- Row(
+        Row(
           children: [
- Expanded(
+            Expanded(
               child: Text(
                 'New Authors',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -895,7 +976,7 @@ class _AuthorsStripState extends State<_AuthorsStrip> {
                 ),
               ),
             ),
- TextButton(
+            TextButton(
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
@@ -920,14 +1001,14 @@ class _AuthorsStripState extends State<_AuthorsStrip> {
           ],
         ),
         const SizedBox(height: 10),
- SizedBox(
+        SizedBox(
           height: 124,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             // Extra trailing space so last author is fully tappable
             padding: const EdgeInsets.only(right: 24),
             itemCount: authors.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 14),
+            separatorBuilder: (_, _) => const SizedBox(width: 9),
             itemBuilder: (context, index) {
               final author = authors[index].key;
               final book = authors[index].value;
@@ -942,7 +1023,7 @@ class _AuthorsStripState extends State<_AuthorsStrip> {
                   : false;
               return Column(
                 children: [
- GestureDetector(
+                  GestureDetector(
                     onTap: authorId != null
                         ? () {
                             Navigator.of(context).push(
@@ -979,12 +1060,12 @@ class _AuthorsStripState extends State<_AuthorsStrip> {
                     child: Stack(
                       clipBehavior: Clip.none,
                       children: [
- CircleAvatar(
+                        CircleAvatar(
                           radius: 28,
                           backgroundColor:
                               Theme.of(context).brightness == Brightness.dark
                               ? const Color(0xFF2A3344)
-                              : const Color(0xFFE8EEF9),
+                              : const Color(0xFFF6F5FA),
                           backgroundImage: photoUrl.isNotEmpty
                               ? NetworkImage(photoUrl)
                               : null,
@@ -1003,7 +1084,7 @@ class _AuthorsStripState extends State<_AuthorsStrip> {
                               : null,
                         ),
                         if (authorId != null)
- Positioned(
+                          Positioned(
                             right: -4,
                             bottom: -2,
                             child: Container(
@@ -1039,11 +1120,11 @@ class _AuthorsStripState extends State<_AuthorsStrip> {
                     ),
                   ),
                   const SizedBox(height: 8),
- SizedBox(
+                  SizedBox(
                     width: 72,
                     child: Column(
                       children: [
- Text(
+                        Text(
                           author,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1054,13 +1135,16 @@ class _AuthorsStripState extends State<_AuthorsStrip> {
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
- Text(
+                        Text(
                           book.title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(fontSize: 9, color: AppTheme.mutedOf(context)),
+                              ?.copyWith(
+                                fontSize: 9,
+                                color: AppTheme.mutedOf(context),
+                              ),
                         ),
                       ],
                     ),
@@ -1102,7 +1186,7 @@ class _GenrePillRow extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: items.length + (onOpenExplore != null ? 1 : 0),
-        separatorBuilder: (context, index) => const SizedBox(width: 12),
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           if (onOpenExplore != null && index == items.length) {
             return ActionChip(
@@ -1115,7 +1199,7 @@ class _GenrePillRow extends StatelessWidget {
               ),
               backgroundColor: isDark
                   ? const Color(0xFF2A3344)
-                  : const Color(0xFFE8EEF9),
+                  : const Color(0xFFF6F5FA),
               onPressed: onOpenExplore,
             );
           }
@@ -1156,7 +1240,7 @@ class _GenrePillRow extends StatelessWidget {
               if (!context.mounted) return;
               await Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => _GenreBooksScreen(
+                  builder: (_) => GenreBooksScreen(
                     genre: label,
                     books: tagged,
                     apiService: apiService,
@@ -1247,7 +1331,6 @@ class _ContinueReadingSectionState extends State<_ContinueReadingSection> {
   }
 
   Future<void> _refresh() async {
-
     final merged = <int, LibraryEntryModel>{};
 
     // 1) Bootstrap seed
@@ -1255,13 +1338,14 @@ class _ContinueReadingSectionState extends State<_ContinueReadingSection> {
       if (e.book.id > 0) merged[e.book.id] = e;
     }
 
-        // 2) Local cache (always works offline / even if API 401)
+    // 2) Local cache (always works offline / even if API 401)
     try {
       final prefs = await SharedPreferences.getInstance();
       final key = await _continueReadingKey();
       var raw = prefs.getString(key) ?? '{}';
       // One-time migrate from legacy unscoped cache
-      if ((raw == '{}' || raw.isEmpty) && prefs.containsKey('continue_reading_v1')) {
+      if ((raw == '{}' || raw.isEmpty) &&
+          prefs.containsKey('continue_reading_v1')) {
         final legacy = prefs.getString('continue_reading_v1') ?? '{}';
         if (legacy != '{}' && legacy.isNotEmpty) {
           await prefs.setString(key, legacy);
@@ -1407,9 +1491,9 @@ class _ContinueReadingSectionState extends State<_ContinueReadingSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
- Row(
+        Row(
           children: [
- Expanded(
+            Expanded(
               child: Text(
                 'Continue Reading',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -1427,7 +1511,7 @@ class _ContinueReadingSectionState extends State<_ContinueReadingSection> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             else
- IconButton(
+              IconButton(
                 tooltip: 'Refresh',
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 onPressed: _refresh,
@@ -1437,7 +1521,7 @@ class _ContinueReadingSectionState extends State<_ContinueReadingSection> {
           ],
         ),
         const SizedBox(height: 12),
- SizedBox(
+        SizedBox(
           height: 120,
           child: books.isEmpty
               ? Container(
@@ -1459,7 +1543,7 @@ class _ContinueReadingSectionState extends State<_ContinueReadingSection> {
                   scrollDirection: Axis.horizontal,
                   children: [
                     for (final entry in books)
- Padding(
+                      Padding(
                         padding: const EdgeInsets.only(right: 12),
                         child: GestureDetector(
                           onTap: () => _openResume(context, entry),
@@ -1468,20 +1552,20 @@ class _ContinueReadingSectionState extends State<_ContinueReadingSection> {
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
                               color: isDark
-                                  ? const Color(0xFF1A1625)
+                                  ? const Color(0xFF17211D)
                                   : Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: isDark
-                                    ? const Color(0xFF221C30)
-                                    : const Color(0xFFEDE9FE),
+                                    ? const Color(0xFF2B3832)
+                                    : const Color(0xFFDDE2DF),
                               ),
                               boxShadow: isDark
                                   ? const []
                                   : [
- BoxShadow(
+                                      BoxShadow(
                                         color: const Color(
-                                          0xFF8B5CF6,
+                                          0xFF16856A,
                                         ).withValues(alpha: 0.06),
                                         blurRadius: 12,
                                         offset: const Offset(0, 4),
@@ -1490,7 +1574,7 @@ class _ContinueReadingSectionState extends State<_ContinueReadingSection> {
                             ),
                             child: Row(
                               children: [
- ClipRRect(
+                                ClipRRect(
                                   borderRadius: BorderRadius.circular(10),
                                   child: SizedBox(
                                     width: 64,
@@ -1503,13 +1587,13 @@ class _ContinueReadingSectionState extends State<_ContinueReadingSection> {
                                   ),
                                 ),
                                 const SizedBox(width: 12),
- Expanded(
+                                Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
- Text(
+                                      Text(
                                         entry.book.title,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
@@ -1523,7 +1607,7 @@ class _ContinueReadingSectionState extends State<_ContinueReadingSection> {
                                         ),
                                       ),
                                       const SizedBox(height: 4),
- Text(
+                                      Text(
                                         entry.updatedText.isNotEmpty
                                             ? entry.updatedText
                                             : 'Chapter ${entry.lastChapterNumber}',
@@ -1537,7 +1621,7 @@ class _ContinueReadingSectionState extends State<_ContinueReadingSection> {
                                         ),
                                       ),
                                       const SizedBox(height: 10),
- ClipRRect(
+                                      ClipRRect(
                                         borderRadius: BorderRadius.circular(4),
                                         child: LinearProgressIndicator(
                                           value: entry.progressFraction.clamp(
@@ -1547,19 +1631,19 @@ class _ContinueReadingSectionState extends State<_ContinueReadingSection> {
                                           minHeight: 6,
                                           backgroundColor: isDark
                                               ? Colors.white12
-                                              : const Color(0xFFEDE9FE),
-                                          color: const Color(0xFF8B5CF6),
+                                              : const Color(0xFFDDE2DF),
+                                          color: const Color(0xFF16856A),
                                         ),
                                       ),
                                       const SizedBox(height: 4),
- Align(
+                                      Align(
                                         alignment: Alignment.centerRight,
                                         child: Text(
                                           '${(entry.progressFraction.clamp(0.0, 1.0) * 100).round()}%',
                                           style: const TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,
-                                            color: Color(0xFF8B5CF6),
+                                            color: Color(0xFF16856A),
                                           ),
                                         ),
                                       ),
@@ -1571,27 +1655,27 @@ class _ContinueReadingSectionState extends State<_ContinueReadingSection> {
                           ),
                         ),
                       ),
- Padding(
+                    Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: Container(
                         width: 160,
                         height: 108,
                         decoration: BoxDecoration(
                           color: isDark
-                              ? const Color(0xFF1A1625)
-                              : const Color(0xFFF7F5FC),
+                              ? const Color(0xFF17211D)
+                              : const Color(0xFFF6F5FA),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: isDark
-                                ? const Color(0xFF221C30)
-                                : const Color(0xFFEDE9FE),
+                                ? const Color(0xFF2B3832)
+                                : const Color(0xFFDDE2DF),
                           ),
                         ),
                         padding: const EdgeInsets.all(12),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
- Text(
+                            Text(
                               books.isEmpty
                                   ? "Stories you're reading will appear here"
                                   : 'Find more stories',
@@ -1644,14 +1728,14 @@ class _BrowseGenresSection extends StatelessWidget {
   final VoidCallback? onOpenExplore;
 
   static const _palette = <Color>[
- Color(0xFFE14FA0),
- Color(0xFF8B5CF6),
- Color(0xFF8B5CF6),
- Color(0xFFF0B357),
- Color(0xFF5B9BD5),
- Color(0xFFE85D4C),
- Color(0xFF9B59B6),
- Color(0xFF2ECC71),
+    Color(0xFFE14FA0),
+    Color(0xFF16856A),
+    Color(0xFF16856A),
+    Color(0xFFF4CC2F),
+    Color(0xFF5B9BD5),
+    Color(0xFFE85D4C),
+    Color(0xFF16856A),
+    Color(0xFF2ECC71),
   ];
 
   @override
@@ -1686,9 +1770,9 @@ class _BrowseGenresSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
- Row(
+        Row(
           children: [
- Expanded(
+            Expanded(
               child: Text(
                 'Browse genres',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -1700,7 +1784,7 @@ class _BrowseGenresSection extends StatelessWidget {
               ),
             ),
             if (onOpenExplore != null)
- TextButton(
+              TextButton(
                 onPressed: onOpenExplore,
                 style: TextButton.styleFrom(
                   foregroundColor: AppTheme.brand,
@@ -1716,7 +1800,7 @@ class _BrowseGenresSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
- SizedBox(
+        SizedBox(
           height: 120,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
@@ -1787,7 +1871,7 @@ class _BrowseGenresSection extends StatelessWidget {
                   if (!context.mounted) return;
                   await Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => _GenreBooksScreen(
+                      builder: (_) => GenreBooksScreen(
                         genre: label,
                         books: tagged,
                         apiService: apiService,
@@ -1801,7 +1885,7 @@ class _BrowseGenresSection extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
- BoxShadow(
+                      BoxShadow(
                         color: Colors.black.withValues(alpha: 0.12),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
@@ -1819,7 +1903,7 @@ class _BrowseGenresSection extends StatelessWidget {
                           errorBuilder: (_, _, _) => Container(color: color),
                         )
                       else
- Container(
+                        Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topLeft,
@@ -1828,7 +1912,7 @@ class _BrowseGenresSection extends StatelessWidget {
                             ),
                           ),
                         ),
- Container(
+                      Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
@@ -1840,7 +1924,7 @@ class _BrowseGenresSection extends StatelessWidget {
                           ),
                         ),
                       ),
- Padding(
+                      Padding(
                         padding: const EdgeInsets.all(12),
                         child: Align(
                           alignment: Alignment.bottomLeft,
@@ -1854,7 +1938,7 @@ class _BrowseGenresSection extends StatelessWidget {
                               fontSize: 16,
                               height: 1.2,
                               shadows: [
- Shadow(blurRadius: 6, color: Colors.black54),
+                                Shadow(blurRadius: 6, color: Colors.black54),
                               ],
                             ),
                           ),
@@ -1895,7 +1979,7 @@ class _CategoryTabs extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,
               children: [
- Text(
+                Text(
                   labels[index],
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: isSelected
@@ -1907,7 +1991,7 @@ class _CategoryTabs extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
- AnimatedContainer(
+                AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
                   height: 3,
                   width: isSelected
@@ -1963,13 +2047,13 @@ class _SectionBooksScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0A12) : null,
+      backgroundColor: isDark ? const Color(0xFF0D1914) : null,
       appBar: AppBar(
         title: Text(
           title,
           style: TextStyle(color: isDark ? Colors.white : null),
         ),
-        backgroundColor: isDark ? const Color(0xFF0B0A12) : null,
+        backgroundColor: isDark ? const Color(0xFF0D1914) : null,
         iconTheme: IconThemeData(color: isDark ? Colors.white : null),
       ),
       body: books.isEmpty
@@ -2046,512 +2130,6 @@ class _SectionBooksScreen extends StatelessWidget {
                 );
               },
             ),
-    );
-  }
-}
-
-class _GenreBooksScreen extends StatefulWidget {
-  const _GenreBooksScreen({
-    required this.genre,
-    required this.books,
-    required this.apiService,
-    this.onExploreMore,
-  });
-
-  final String genre;
-  final List<Map<String, dynamic>> books;
-  final ApiService apiService;
-  final VoidCallback? onExploreMore;
-
-  @override
-  State<_GenreBooksScreen> createState() => _GenreBooksScreenState();
-}
-
-class _GenreBooksScreenState extends State<_GenreBooksScreen> {
-  late List<Map<String, dynamic>> _books;
-  List<Map<String, dynamic>> _sourceBooks = const [];
-  bool _loading = false;
-  String _sort = 'Popular';
-  String _period = 'All time';
-
-  static const _sortOptions = [
-    'Popular',
-    'Completed',
-    'Unexplored',
-    'Recently Updated',
-  ];
-  static const _periodOptions = ['All time', 'Last 30 days'];
-
-  @override
-  void initState() {
-    super.initState();
-    _books = List<Map<String, dynamic>>.from(widget.books);
-    _loadFromApi();
-  }
-
-  Future<void> _loadFromApi() async {
-    setState(() => _loading = true);
-    try {
-      final remote = await widget.apiService.searchStories(
-        query: '',
-        genre: widget.genre,
-        minRating: 0,
-      );
-      if (!mounted) return;
-      final base = remote.isNotEmpty
-          ? remote
-          : List<Map<String, dynamic>>.from(widget.books);
-      setState(() {
-        _sourceBooks = base;
-        _applyFiltersLocal();
-        _loading = false;
-      });
-    } catch (_) {
-      if (mounted) {
-        setState(() {
-          _applyFiltersLocal();
-          _loading = false;
-        });
-      }
-    }
-  }
-
-  void _applyFiltersLocal() {
-    final g = widget.genre.toLowerCase().trim();
-    var list = List<Map<String, dynamic>>.from(
-      _sourceBooks.isNotEmpty
-          ? _sourceBooks
-          : (_books.isNotEmpty ? _books : widget.books),
-    );
-    // Exact genre only (primary or secondary)
-    list = list.where((b) {
-      final pg = (b['primary_genre'] ?? b['genre'] ?? '')
-          .toString()
-          .toLowerCase()
-          .trim();
-      final sg = (b['secondary_genre'] ?? '').toString().toLowerCase().trim();
-      if (g.isEmpty) return true;
-      return pg == g || sg == g;
-    }).toList();
-
-    if (_period == 'Last 30 days') {
-      final cutoff = DateTime.now().subtract(const Duration(days: 30));
-      list = list.where((b) {
-        final raw =
-            (b['updated_at'] ?? b['created_at'] ?? b['last_updated'] ?? '')
-                .toString();
-        if (raw.isEmpty) return true; // keep if unknown date
-        try {
-          final dt = DateTime.parse(raw);
-          return dt.isAfter(cutoff);
-        } catch (_) {
-          return true;
-        }
-      }).toList();
-    }
-
-    if (_sort == 'Completed') {
-      list = list.where((b) {
-        final st = (b['status_text'] ?? '').toString().toLowerCase();
-        final done = b['is_completed'] == true || b['is_completed'] == 1;
-        return done || st.contains('complete') || st.contains('published');
-      }).toList();
-    } else if (_sort == 'Unexplored') {
-      list = list.where((b) {
-        final st = (b['status_text'] ?? '').toString().toLowerCase();
-        final done = b['is_completed'] == true || b['is_completed'] == 1;
-        return !done && !st.contains('complete');
-      }).toList();
-    } else if (_sort == 'Recently Updated') {
-      list.sort((a, b) {
-        final ar = (a['updated_at'] ?? a['created_at'] ?? '').toString();
-        final br = (b['updated_at'] ?? b['created_at'] ?? '').toString();
-        return br.compareTo(ar);
-      });
-    } else {
-      // Popular
-      list.sort((a, b) {
-        final ar = (a['rating'] as num?)?.toDouble() ?? 0;
-        final br = (b['rating'] as num?)?.toDouble() ?? 0;
-        final al = (a['likes_count'] as num?)?.toInt() ?? 0;
-        final bl = (b['likes_count'] as num?)?.toInt() ?? 0;
-        final c = br.compareTo(ar);
-        return c != 0 ? c : bl.compareTo(al);
-      });
-    }
-    _books = list;
-  }
-
-  BookDetailModel _toBook(Map<String, dynamic> m) {
-    return BookDetailModel.fromMap({
-      'id': m['id'],
-      'title': m['title'] ?? '',
-      'author': m['author'] ?? '',
-      'description': m['description'] ?? '',
-      'cover_path': m['cover_path'] ?? '',
-      'genre': m['genre'] ?? m['primary_genre'] ?? '',
-      'primary_genre': m['primary_genre'] ?? m['genre'] ?? '',
-      'secondary_genre': m['secondary_genre'] ?? '',
-      'status_text': m['status_text'] ?? '',
-      'rating': m['rating'] ?? 0,
-      'tags': m['tags'] ?? [],
-      'author_user_id': m['author_user_id'] ?? m['user_id'],
-      'user_id': m['user_id'] ?? m['author_user_id'],
-      'likes_count': m['likes_count'] ?? 0,
-      'is_completed': m['is_completed'] ?? false,
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final genre = widget.genre;
-    final scheme = Theme.of(context).colorScheme;
-    return Scaffold(
-      backgroundColor: scheme.surface,
-      body: NestedScrollView(
-        headerSliverBuilder: (context, inner) {
-          return [
- SliverAppBar(
-              expandedHeight: 180,
-              pinned: true,
-              backgroundColor: const Color(0xFF1A1A2E),
-              iconTheme: const IconThemeData(color: Colors.white),
-              flexibleSpace: FlexibleSpaceBar(
-                centerTitle: true,
-                title: Text(
-                  genre,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 20,
-                    shadows: [Shadow(blurRadius: 8, color: Colors.black54)],
-                  ),
-                ),
-                background: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Soft gradient hero (Inkitt-style)
- Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Color(0xFF2D4A6F), Color(0xFF1A1A2E)],
-                        ),
-                      ),
-                    ),
-                    // Decorative book covers from list if any
-                    if (_books.isNotEmpty)
- Opacity(
-                        opacity: 0.35,
-                        child: Image.network(
-                          widget.apiService.resolveAssetUrl(
-                            (_books.first['cover_path'] ?? '').toString(),
-                          ),
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                        ),
-                      ),
- Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.15),
-                            Colors.black.withValues(alpha: 0.55),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
- SliverToBoxAdapter(
-              child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-                child: Row(
-                  children: [
-                    _FilterChipBtn(
-                      label: _sort,
-                      options: _sortOptions,
-                      onSelected: (v) {
-                        setState(() {
-                          _sort = v;
-                          _applyFiltersLocal();
-                        });
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    _FilterChipBtn(
-                      label: _period,
-                      options: _periodOptions,
-                      onSelected: (v) {
-                        setState(() {
-                          _period = v;
-                          _applyFiltersLocal();
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ];
-        },
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : _books.isEmpty
-            ? Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('No stories in this genre yet'),
-                    if (widget.onExploreMore != null)
- TextButton(
-                        onPressed: widget.onExploreMore,
-                        child: const Text('Explore more'),
-                      ),
-                  ],
-                ),
-              )
-            : ListView.separated(
-                padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
-                itemCount: _books.length,
-                separatorBuilder: (_, _) => const Divider(height: 20),
-                itemBuilder: (context, index) {
-                  final item = _books[index];
-                  final title = (item['title'] ?? 'Untitled').toString();
-                  final author = (item['author'] ?? '').toString();
-                  final desc = (item['description'] ?? '').toString();
-                  final cover = (item['cover_path'] ?? '').toString();
-                  final rating = (item['rating'] as num?)?.toDouble() ?? 0.0;
-                  final genreLabel =
-                      (item['primary_genre'] ?? item['genre'] ?? '')
-                          .toString()
-                          .isEmpty
-                      ? widget.genre
-                      : (item['primary_genre'] ?? item['genre'] ?? '')
-                            .toString();
-                  final status = (item['status_text'] ?? '').toString();
-                  final completed =
-                      item['is_completed'] == true ||
-                      item['is_completed'] == 1 ||
-                      status.toLowerCase().contains('complete') ||
-                      status.toLowerCase().contains('published');
-                  final chapters =
-                      (item['chapters_count'] as num?)?.toInt() ??
-                      (item['chapter_count'] as num?)?.toInt();
-
-                  return InkWell(
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => StoryDetailScreen(
-                            book: _toBook(item),
-                            apiService: widget.apiService,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
- ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: SizedBox(
-                            width: 78,
-                            height: 110,
-                            child: cover.isNotEmpty
-                                ? Image.network(
-                                    widget.apiService.resolveAssetUrl(cover),
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) => Container(
-                                      color: const Color(0xFFE8E8E8),
-                                      child: const Icon(
-                                        Icons.menu_book_rounded,
-                                      ),
-                                    ),
-                                  )
-                                : Container(
-                                    color: const Color(0xFFE8E8E8),
-                                    child: const Icon(Icons.menu_book_rounded),
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
- Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
- Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
- Expanded(
-                                    child: Text(
-                                      title,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 15,
-                                        height: 1.25,
-                                      ),
-                                    ),
-                                  ),
-                                  const Icon(
-                                    Icons.bookmark_border_rounded,
-                                    size: 20,
-                                    color: Colors.black45,
-                                  ),
-                                ],
-                              ),
-                              if (desc.isNotEmpty) ...[
-                                const SizedBox(height: 4),
- Text(
-                                  desc,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 12.5,
-                                    color: Color(0xFF666666),
-                                    height: 1.35,
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(height: 6),
- Row(
-                                children: [
-                                  const Icon(
-                                    Icons.star_rounded,
-                                    size: 16,
-                                    color: Color(0xFFFFC107),
-                                  ),
-                                  const SizedBox(width: 2),
- Text(
-                                    rating > 0
-                                        ? rating.toStringAsFixed(1)
-                                        : '—',
-                                    style: const TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
- Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: const Color(0xFFDDDDDD),
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      genreLabel,
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        color: Color(0xFF555555),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
- Row(
-                                children: [
-                                  if (completed) ...[
-                                    const Icon(
-                                      Icons.check_circle,
-                                      size: 14,
-                                      color: Color(0xFF8B5CF6),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Text(
-                                      'Completed',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Color(0xFF8B5CF6),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                  if (chapters != null) ...[
- Text(
-                                      completed
-                                          ? ' · $chapters Chapters'
-                                          : '$chapters Chapters',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Color(0xFF888888),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              if (author.isNotEmpty) ...[
-                                const SizedBox(height: 2),
- Text(
-                                  'By $author',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF999999),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-      ),
-    );
-  }
-}
-
-class _FilterChipBtn extends StatelessWidget {
-  const _FilterChipBtn({
-    required this.label,
-    required this.options,
-    required this.onSelected,
-  });
-
-  final String label;
-  final List<String> options;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      onSelected: onSelected,
-      itemBuilder: (ctx) => options
-          .map((o) => PopupMenuItem<String>(value: o, child: Text(o)))
-          .toList(),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE0E0E0)),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
- Text(
-              label,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(width: 4),
-            const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -2649,7 +2227,7 @@ class _HomeSectionHeader extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Row(
       children: [
- Container(
+        Container(
           width: 4,
           height: 18,
           margin: const EdgeInsets.only(right: 10),
@@ -2658,7 +2236,7 @@ class _HomeSectionHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
           ),
         ),
- Expanded(
+        Expanded(
           child: Text(
             title,
             style: TextStyle(
@@ -2670,7 +2248,7 @@ class _HomeSectionHeader extends StatelessWidget {
           ),
         ),
         if (onSeeAll != null)
- TextButton(
+          TextButton(
             onPressed: onSeeAll,
             style: TextButton.styleFrom(
               foregroundColor: AppTheme.brand,
@@ -2688,47 +2266,68 @@ class _HomeSectionHeader extends StatelessWidget {
   }
 }
 
-class _HomeFeaturedBanner extends StatelessWidget {
-  const _HomeFeaturedBanner({
-    required this.book,
-    required this.fallbackBooks,
-    required this.apiService,
-  });
+class _HomeFeaturedBanner extends StatefulWidget {
+  const _HomeFeaturedBanner({required this.books, required this.apiService});
 
-  final BookDetailModel book;
-  final List<BookCardModel> fallbackBooks;
+  final List<BookCardModel> books;
   final ApiService apiService;
 
-  void _open(BuildContext context) {
-    final id = book.id > 0
-        ? book.id
-        : (fallbackBooks.isNotEmpty ? fallbackBooks.first.id : 0);
-    if (id <= 0) return;
-    final title = book.id > 0 ? book.title : fallbackBooks.first.title;
-    final author = book.id > 0 ? book.author : fallbackBooks.first.author;
-    final desc = book.id > 0
-        ? book.description
-        : fallbackBooks.first.description;
-    final cover = book.id > 0 ? book.coverPath : fallbackBooks.first.coverPath;
-    final genre = book.id > 0 ? book.genre : fallbackBooks.first.primaryGenre;
-    final rating = book.id > 0 ? book.rating : fallbackBooks.first.rating;
-    final status = book.id > 0
-        ? book.statusText
-        : fallbackBooks.first.statusText;
+  @override
+  State<_HomeFeaturedBanner> createState() => _HomeFeaturedBannerState();
+}
+
+class _HomeFeaturedBannerState extends State<_HomeFeaturedBanner> {
+  Timer? _rotationTimer;
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _startRotation();
+  }
+
+  @override
+  void didUpdateWidget(covariant _HomeFeaturedBanner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.books != widget.books) {
+      _currentIndex = 0;
+      _startRotation();
+    }
+  }
+
+  void _startRotation() {
+    _rotationTimer?.cancel();
+    if (widget.books.length > 1) {
+      _rotationTimer = Timer.periodic(const Duration(seconds: 6), (_) {
+        if (!mounted || widget.books.length < 2) return;
+        final next = (_currentIndex + 1) % widget.books.length;
+        setState(() => _currentIndex = next);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _rotationTimer?.cancel();
+    super.dispose();
+  }
+
+  void _open(BuildContext context, BookCardModel book) {
+    if (book.id <= 0) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => StoryDetailScreen(
-          apiService: apiService,
+          apiService: widget.apiService,
           book: BookDetailModel(
-            id: id,
-            title: title,
-            author: author,
-            description: desc,
-            statusText: status,
-            rating: rating,
-            genre: genre,
+            id: book.id,
+            title: book.title,
+            author: book.author,
+            description: book.description,
+            statusText: book.statusText,
+            rating: book.rating,
+            genre: book.primaryGenre,
             cta: 'Read Now',
-            coverPath: cover,
+            coverPath: book.coverPath,
           ),
         ),
       ),
@@ -2737,35 +2336,40 @@ class _HomeFeaturedBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final books = widget.books;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final hasBook = book.id > 0 || fallbackBooks.isNotEmpty;
-    if (!hasBook) return const SizedBox.shrink();
+    if (books.isEmpty) return const SizedBox.shrink();
+    final book = books[_currentIndex.clamp(0, books.length - 1)];
 
-    final title = book.id > 0 ? book.title : fallbackBooks.first.title;
-    final desc = book.id > 0
-        ? book.description
-        : fallbackBooks.first.description;
-    final cover = book.id > 0 ? book.coverPath : fallbackBooks.first.coverPath;
-    final genre = book.id > 0 ? book.genre : fallbackBooks.first.primaryGenre;
-    final coverUrl = cover.isEmpty ? null : apiService.resolveAssetUrl(cover);
+    final title = book.title;
+    final desc = book.description;
+    final cover = book.coverPath;
+    final genre = book.primaryGenre;
+    final coverUrl = cover.isEmpty
+        ? null
+        : widget.apiService.resolveAssetUrl(cover);
+
+    final colors = AppStyles.colors(context);
 
     return Container(
-      constraints: const BoxConstraints(minHeight: 176),
+      constraints: const BoxConstraints(minHeight: 192),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colors.border),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
-              ? const [Color(0xFF2A1F4D), Color(0xFF15101F)]
-              : const [Color(0xFF7C3AED), Color(0xFF8B5CF6), Color(0xFFC4B5FD)],
-          stops: isDark ? null : const [0.0, 0.55, 1.0],
+              ? const [Color(0xFF192A23), Color(0xFF0D1914)]
+              : const [Color(0xFFFFFFFF), Color(0xFFF6F5FA)],
         ),
         boxShadow: [
- BoxShadow(
-            color: const Color(0xFF8B5CF6).withValues(alpha: 0.22),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+          BoxShadow(
+            color: const Color(
+              0xFF16856A,
+            ).withValues(alpha: isDark ? 0.2 : 0.08),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -2773,13 +2377,13 @@ class _HomeFeaturedBanner extends StatelessWidget {
       child: Stack(
         children: [
           if (coverUrl != null)
- Positioned(
+            Positioned(
               right: -20,
               top: -10,
               bottom: -10,
-              width: 180,
+              width: 160,
               child: Opacity(
-                opacity: 0.9,
+                opacity: isDark ? 0.68 : 0.24,
                 child: Image.network(
                   coverUrl,
                   fit: BoxFit.cover,
@@ -2795,113 +2399,113 @@ class _HomeFeaturedBanner extends StatelessWidget {
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                   colors: [
-                    (isDark ? const Color(0xFF1A1228) : const Color(0xFFF3EEFF))
-                        .withValues(alpha: 0.95),
-                    (isDark ? const Color(0xFF1A1228) : const Color(0xFFF3EEFF))
-                        .withValues(alpha: 0.55),
+                    colors.card.withValues(alpha: 0.98),
+                    colors.card.withValues(alpha: 0.82),
                     Colors.transparent,
                   ],
                 ),
               ),
             ),
           ),
- Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
- Text(
-                  'FEATURED',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.9),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 19),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 450),
+              child: Column(
+                key: ValueKey<int>(book.id),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'PICKED FOR YOU',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2,
+                      color: colors.brand,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
- Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    height: 1.15,
-                    color: isDark ? Colors.white : const Color(0xFF1A1A1A),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                if (desc.trim().isNotEmpty)
- Text(
-                    desc,
+                  const SizedBox(height: 6),
+                  Text(
+                    title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 13,
-                      height: 1.3,
-                      color: isDark ? Colors.white70 : Colors.black54,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      height: 1.15,
+                      color: colors.textPrimary,
                     ),
                   ),
-                const SizedBox(height: 12),
-                if (genre.trim().isNotEmpty) ...[
- Wrap(
-                    spacing: 6,
-                    children: [
-                      for (final g in genre.split(RegExp(r'[,/|]')))
-                        if (g.trim().isNotEmpty)
- Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.white12
-                                  : Colors.white.withValues(alpha: 0.7),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              g.trim(),
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white70,
+                  const SizedBox(height: 6),
+                  if (desc.trim().isNotEmpty)
+                    Text(
+                      desc,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.3,
+                        color: colors.textMuted,
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+                  if (genre.trim().isNotEmpty) ...[
+                    Wrap(
+                      spacing: 6,
+                      children: [
+                        for (final g in genre.split(RegExp(r'[,/|]')))
+                          if (g.trim().isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colors.brandSoft,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                g.trim(),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: colors.brand,
+                                ),
                               ),
                             ),
-                          ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                ],
- FilledButton(
-                  onPressed: () => _open(context),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF8B5CF6),
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(0, 40),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 10,
+                      ],
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
- Text(
-                        'Read Now',
-                        style: TextStyle(fontWeight: FontWeight.w700),
+                    const SizedBox(height: 10),
+                  ],
+                  FilledButton(
+                    onPressed: () => _open(context, book),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: colors.brand,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(0, 40),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 10,
                       ),
- SizedBox(width: 4),
- Icon(Icons.arrow_forward_rounded, size: 16),
-                    ],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Read Now',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(Icons.arrow_forward_rounded, size: 16),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -2927,7 +2531,7 @@ class _HomeRecommendedRailState extends State<_HomeRecommendedRail> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: 0.42, initialPage: 0);
+    _pageController = PageController(viewportFraction: 0.40, initialPage: 0);
   }
 
   @override
@@ -2969,14 +2573,15 @@ class _HomeRecommendedRailState extends State<_HomeRecommendedRail> {
       );
     }
     final book = valid[_activeIndex.clamp(0, valid.length - 1)];
+    final cardWidth = _storyRailActiveWidth(context);
 
     // Cover-only scale-up (like other section sliders).
     // Title, summary, genres, CTA live in _ActiveStoryDetail below — not on the card.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
- SizedBox(
-          height: 172,
+        SizedBox(
+          height: cardWidth * 1.42 + 16,
           child: PageView.builder(
             controller: _pageController,
             padEnds: false,
@@ -2988,26 +2593,22 @@ class _HomeRecommendedRailState extends State<_HomeRecommendedRail> {
             itemBuilder: (context, index) {
               if (index >= valid.length) return const SizedBox.shrink();
               final item = valid[index];
-              final isActive = index == _activeIndex;
               return AnimatedScale(
-                scale: isActive ? 1.14 : 0.88,
+                scale: index == _activeIndex ? 1 : .93,
                 duration: const Duration(milliseconds: 340),
                 curve: Curves.easeOutBack,
                 child: AnimatedOpacity(
-                  opacity: isActive ? 1 : 0.72,
+                  opacity: index == _activeIndex ? 1 : .82,
                   duration: const Duration(milliseconds: 280),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeOutCubic,
-                    margin: EdgeInsets.symmetric(
-                      vertical: isActive ? 0 : 10,
-                      horizontal: 4,
-                    ),
+                    margin: EdgeInsets.symmetric(vertical: 0, horizontal: 4),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
-                      boxShadow: isActive
+                      boxShadow: index == _activeIndex
                           ? [
- BoxShadow(
+                              BoxShadow(
                                 color: AppTheme.brand.withValues(alpha: 0.28),
                                 blurRadius: 22,
                                 offset: const Offset(0, 10),
@@ -3017,7 +2618,7 @@ class _HomeRecommendedRailState extends State<_HomeRecommendedRail> {
                     ),
                     child: GestureDetector(
                       onTap: () {
-                        if (!isActive) {
+                        if (index != _activeIndex) {
                           _pageController.animateToPage(
                             index,
                             duration: const Duration(milliseconds: 320),
@@ -3030,8 +2631,7 @@ class _HomeRecommendedRailState extends State<_HomeRecommendedRail> {
                       child: Center(
                         child: _StoryCard(
                           book: item,
-                          // width <= 140 → compact cover-only
-                          width: isActive ? 148 : 118,
+                          width: cardWidth,
                           apiService: widget.apiService,
                         ),
                       ),
@@ -3163,7 +2763,7 @@ class _HomeTopGenresRow extends StatelessWidget {
                         .toList();
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (_) => _GenreBooksScreen(
+                        builder: (_) => GenreBooksScreen(
                           genre: name,
                           books: filtered,
                           apiService: apiService,
@@ -3179,21 +2779,21 @@ class _HomeTopGenresRow extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? const Color(0xFF1A1625)
-                          : const Color(0xFFF7F5FC),
+                          ? const Color(0xFF17211D)
+                          : const Color(0xFFF6F5FA),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isDark
-                            ? const Color(0xFF221C30)
-                            : const Color(0xFFEDE9FE),
+                            ? const Color(0xFF2B3832)
+                            : const Color(0xFFDDE2DF),
                       ),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
- Icon(icon, color: const Color(0xFF8B5CF6), size: 24),
+                        Icon(icon, color: const Color(0xFF16856A), size: 24),
                         const SizedBox(height: 8),
- Text(
+                        Text(
                           name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -3321,7 +2921,7 @@ class _HomeCategoryGrid extends StatelessWidget {
                 : books.where((book) => book.primaryGenre.isNotEmpty).toList();
             Navigator.of(context).push(
               MaterialPageRoute<void>(
-                builder: (_) => _GenreBooksScreen(
+                builder: (_) => GenreBooksScreen(
                   genre: name,
                   books: booksForGenre
                       .map(
@@ -3348,27 +2948,27 @@ class _HomeCategoryGrid extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF7F5FC),
+              color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF6F5FA),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: isDark
-                    ? const Color(0xFF221C30)
-                    : const Color(0xFFE9E1FF),
+                    ? const Color(0xFF2B3832)
+                    : const Color(0xFFF6F5FA),
               ),
             ),
             child: Row(
               children: [
- Container(
+                Container(
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
+                    color: const Color(0xFF16856A).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, size: 18, color: const Color(0xFF8B5CF6)),
+                  child: Icon(icon, size: 18, color: const Color(0xFF16856A)),
                 ),
                 const SizedBox(width: 10),
- Expanded(
+                Expanded(
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
@@ -3376,7 +2976,7 @@ class _HomeCategoryGrid extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
- Text(
+                        Text(
                           name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -3388,7 +2988,7 @@ class _HomeCategoryGrid extends StatelessWidget {
                                 : const Color(0xFF1A1A1A),
                           ),
                         ),
- Text(
+                        Text(
                           '${genreBooks.length} stories',
                           style: TextStyle(
                             fontSize: 11,
@@ -3428,7 +3028,7 @@ class _HomeTrendingList extends StatelessWidget {
       children: [
         for (var i = 0; i < valid.length && i < 5; i++) ...[
           if (i > 0) const SizedBox(height: 10),
- GestureDetector(
+          GestureDetector(
             onTap: () {
               final b = valid[i];
               Navigator.of(context).push(
@@ -3458,19 +3058,19 @@ class _HomeTrendingList extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: isDark
-                      ? const Color(0xFF221C30)
-                      : const Color(0xFFEDE9FE),
+                      ? const Color(0xFF2B3832)
+                      : const Color(0xFFDDE2DF),
                 ),
               ),
               child: Row(
                 children: [
                   // Rank badge
- Container(
+                  Container(
                     width: 28,
                     height: 28,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF8B5CF6),
+                      color: const Color(0xFF16856A),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -3483,7 +3083,7 @@ class _HomeTrendingList extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
- ClipRRect(
+                  ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: SizedBox(
                       width: 48,
@@ -3493,22 +3093,22 @@ class _HomeTrendingList extends StatelessWidget {
                               apiService.resolveAssetUrl(valid[i].coverPath),
                               fit: BoxFit.cover,
                               errorBuilder: (_, _, _) => Container(
-                                color: const Color(0xFFEDE9FE),
+                                color: const Color(0xFFDDE2DF),
                                 child: const Icon(Icons.menu_book, size: 20),
                               ),
                             )
                           : Container(
-                              color: const Color(0xFFEDE9FE),
+                              color: const Color(0xFFDDE2DF),
                               child: const Icon(Icons.menu_book, size: 20),
                             ),
                     ),
                   ),
                   const SizedBox(width: 12),
- Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
- Text(
+                        Text(
                           valid[i].title,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -3522,7 +3122,7 @@ class _HomeTrendingList extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         if (valid[i].primaryGenre.isNotEmpty)
- Text(
+                          Text(
                             valid[i].primaryGenre,
                             style: TextStyle(
                               fontSize: 12,
@@ -3533,7 +3133,7 @@ class _HomeTrendingList extends StatelessWidget {
                           ),
                         const SizedBox(height: 4),
                         if (valid[i].description.trim().isNotEmpty)
- Text(
+                          Text(
                             valid[i].description,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -3548,12 +3148,12 @@ class _HomeTrendingList extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 6),
- Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
- Row(
+                      Row(
                         children: [
- Icon(
+                          Icon(
                             Icons.visibility_outlined,
                             size: 12,
                             color: isDark
@@ -3561,7 +3161,7 @@ class _HomeTrendingList extends StatelessWidget {
                                 : Colors.grey.shade500,
                           ),
                           const SizedBox(width: 3),
- Text(
+                          Text(
                             valid[i].viewCount > 0
                                 ? (valid[i].viewCount >= 1000
                                       ? '${(valid[i].viewCount / 1000).toStringAsFixed(1)}K'
@@ -3577,15 +3177,15 @@ class _HomeTrendingList extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 4),
- Row(
+                      Row(
                         children: [
- Icon(
+                          Icon(
                             Icons.star_rounded,
                             size: 13,
-                            color: Colors.amber.shade600,
+                            color: AppTheme.amber,
                           ),
                           const SizedBox(width: 2),
- Text(
+                          Text(
                             valid[i].rating > 0
                                 ? valid[i].rating.toStringAsFixed(1)
                                 : '—',
@@ -3741,7 +3341,7 @@ class _AllGenresScreenState extends State<_AllGenresScreen> {
 
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => _GenreBooksScreen(
+        builder: (_) => GenreBooksScreen(
           genre: genre,
           books: filtered,
           apiService: widget.apiService,
@@ -3762,13 +3362,13 @@ class _AllGenresScreenState extends State<_AllGenresScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0B0A12) : Colors.white,
+      backgroundColor: isDark ? const Color(0xFF0D1914) : Colors.white,
       appBar: AppBar(
         title: const Text(
           'Genres',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
-        backgroundColor: isDark ? const Color(0xFF0B0A12) : Colors.white,
+        backgroundColor: isDark ? const Color(0xFF0D1914) : Colors.white,
         foregroundColor: isDark ? Colors.white : Colors.black87,
         elevation: 0,
       ),
@@ -3780,7 +3380,7 @@ class _AllGenresScreenState extends State<_AllGenresScreen> {
               separatorBuilder: (_, _) => Divider(
                 height: 1,
                 color: isDark
-                    ? const Color(0xFF221C30)
+                    ? const Color(0xFF2B3832)
                     : const Color(0xFFEEEEEE),
               ),
               itemBuilder: (context, index) {
@@ -3793,13 +3393,13 @@ class _AllGenresScreenState extends State<_AllGenresScreen> {
                     height: 44,
                     decoration: BoxDecoration(
                       color: isDark
-                          ? const Color(0xFF1A1625)
-                          : const Color(0xFFF3EEFF),
+                          ? const Color(0xFF17211D)
+                          : const Color(0xFFF6F5FA),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       _iconFor(name),
-                      color: const Color(0xFF8B5CF6),
+                      color: const Color(0xFF16856A),
                       size: 22,
                     ),
                   ),

@@ -5,6 +5,7 @@ class AppBreakpoints {
   static const double phone = 480;
   static const double largePhone = 600;
   static const double tablet = 840;
+  static const double maxAppContentWidth = 1200;
 
   static bool isPhone(BuildContext context) =>
       MediaQuery.sizeOf(context).width < phone;
@@ -28,9 +29,9 @@ class AppBreakpoints {
   /// Story card width for horizontal rails.
   static double storyCardWidth(BuildContext context) {
     final w = MediaQuery.sizeOf(context).width;
-    if (w >= tablet) return 140;
-    if (w >= largePhone) return 120;
-    return 110;
+    if (w >= tablet) return 180;
+    if (w >= largePhone) return 160;
+    return 150;
   }
 
   /// Cover height on hashtag / story detail heroes.

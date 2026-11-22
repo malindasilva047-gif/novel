@@ -7,8 +7,22 @@ import 'package:http/http.dart' as http;
 import '../models/app_bootstrap.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+class ApiRequestException implements Exception {
+  const ApiRequestException(this.statusCode, this.message);
+
+  final int statusCode;
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 class ApiService {
   ApiService();
+
+  // Keep one client for the lifetime of the app so API calls reuse TLS and
+  // TCP connections instead of paying a new handshake for every request.
+  static final http.Client _httpClient = http.Client();
 
   String? _authToken;
   Future<void> Function(String message)? onSessionRejected;
@@ -23,9 +37,33 @@ class ApiService {
   static DateTime? _tagsMemoryCacheAt;
   static const _tagsMemoryTtl = Duration(minutes: 10);
 
+  Map<String, dynamic>? _meMemoryCache;
+  DateTime? _meMemoryCacheAt;
+  Future<Map<String, dynamic>>? _meInFlight;
+  final Map<int, Map<String, dynamic>> _profileMemoryCache = {};
+  final Map<int, DateTime> _profileMemoryCacheAt = {};
+  final Map<int, Future<Map<String, dynamic>>> _profileInFlight = {};
+  static const _profileMemoryTtl = Duration(seconds: 30);
+  Map<String, dynamic>? _preferencesMemoryCache;
+  DateTime? _preferencesMemoryCacheAt;
+  Future<Map<String, dynamic>>? _preferencesInFlight;
+  static const _preferencesMemoryTtl = Duration(minutes: 2);
+
   static String? _versionMemoryCache;
   static DateTime? _versionMemoryCacheAt;
-  static const _versionMemoryTtl = Duration(seconds: 20);
+  static const _versionMemoryTtl = Duration(seconds: 2);
+
+  // The shell badge and the notifications screen ask for the same payloads.
+  // Share recent/in-flight responses so they do not multiply backend queries.
+  static const _notificationsMemoryTtl = Duration(seconds: 10);
+  Future<List<Map<String, dynamic>>>? _notificationsInFlight;
+  Future<List<Map<String, dynamic>>>? _adminNotificationsInFlight;
+  List<Map<String, dynamic>>? _notificationsMemoryCache;
+  List<Map<String, dynamic>>? _adminNotificationsMemoryCache;
+  DateTime? _notificationsMemoryCacheAt;
+  DateTime? _adminNotificationsMemoryCacheAt;
+  String? _notificationsCacheToken;
+  String? _adminNotificationsCacheToken;
 
   Future<AppBootstrap?> loadDiskBootstrap() async {
     try {
@@ -53,12 +91,32 @@ class ApiService {
   }
 
   void setAuthToken(String? token) {
+    if (_authToken != token) {
+      _notificationsInFlight = null;
+      _adminNotificationsInFlight = null;
+      _notificationsMemoryCache = null;
+      _adminNotificationsMemoryCache = null;
+      _notificationsMemoryCacheAt = null;
+      _adminNotificationsMemoryCacheAt = null;
+      _notificationsCacheToken = null;
+      _adminNotificationsCacheToken = null;
+      _meMemoryCache = null;
+      _meMemoryCacheAt = null;
+      _meInFlight = null;
+      _profileMemoryCache.clear();
+      _profileMemoryCacheAt.clear();
+      _profileInFlight.clear();
+      _preferencesMemoryCache = null;
+      _preferencesMemoryCacheAt = null;
+      _preferencesInFlight = null;
+    }
     _authToken = token;
   }
 
-  /// Production backend (Vercel). Override anytime with:
+  /// Primary production backend hosted on Contabo. Override anytime with:
   ///   --dart-define=API_BASE_URL=https://other-host.example
-  static const String _productionApiBaseUrl = 'https://novel-v7.vercel.app';
+  static const String _productionApiBaseUrl = 'https://wingsaga.com';
+  static const String _fallbackApiBaseUrl = 'https://novel-v7.vercel.app';
 
   static const String _overrideApiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
@@ -76,14 +134,14 @@ class ApiService {
         debugPrint(
           'ApiService: Android debug default base URL is $emulatorUrl.\n'
           'Physical device? pass --dart-define=API_BASE_URL=http://<PC_IP>:8000\n'
-          'To hit production from debug: --dart-define=API_BASE_URL=https://novel-v7.vercel.app',
+          'To hit production from debug: --dart-define=API_BASE_URL=https://wingsaga.com',
         );
         return emulatorUrl;
       }
       return 'http://127.0.0.1:8000';
     }
 
-    // Release APK → Vercel backend
+    // Release APK → Contabo backend
     return _productionApiBaseUrl.replaceAll(RegExp(r'/+$'), '');
   }
 
@@ -106,13 +164,17 @@ class ApiService {
       await _handleSessionRejection(response);
       return response;
     } on http.ClientException {
-      if (kDebugMode || _baseUrl == _productionApiBaseUrl) rethrow;
-      final response = await request(_productionApiBaseUrl).timeout(timeout);
+      if (kDebugMode || _overrideApiBaseUrl.isNotEmpty) {
+        rethrow;
+      }
+      final response = await request(_fallbackApiBaseUrl).timeout(timeout);
       await _handleSessionRejection(response);
       return response;
     } on TimeoutException {
-      if (kDebugMode || _baseUrl == _productionApiBaseUrl) rethrow;
-      final response = await request(_productionApiBaseUrl).timeout(timeout);
+      if (kDebugMode || _overrideApiBaseUrl.isNotEmpty) {
+        rethrow;
+      }
+      final response = await request(_fallbackApiBaseUrl).timeout(timeout);
       await _handleSessionRejection(response);
       return response;
     }
@@ -121,7 +183,8 @@ class ApiService {
   Future<void> _handleSessionRejection(http.Response response) async {
     if (_authToken == null || _authToken!.isEmpty) return;
     final body = response.body.toLowerCase();
-    final rejected = response.statusCode == 401 ||
+    final rejected =
+        response.statusCode == 401 ||
         (response.statusCode == 403 &&
             (body.contains('banned') ||
                 body.contains('suspended') ||
@@ -141,43 +204,55 @@ class ApiService {
     Duration timeout = const Duration(seconds: 30),
   }) {
     return _requestWithHostFallback(
-      (baseUrl) => http.get(Uri.parse('$baseUrl$path'), headers: _authHeaders),
+      (baseUrl) =>
+          _httpClient.get(Uri.parse('$baseUrl$path'), headers: _authHeaders),
       timeout,
     );
   }
 
   String resolveAssetUrl(String path) {
-    if (path.isEmpty) return path;
     final trimmed = path.trim();
     if (trimmed.isEmpty) return trimmed;
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      return trimmed;
+    final normalized = trimmed.replaceAll('\\', '/');
+    if (normalized.startsWith('data:')) return normalized;
+
+    if (normalized.startsWith('//')) {
+      return _resolveAbsoluteAsset(Uri.parse('https:$normalized'));
     }
-    // Durable DB-backed media (survives Vercel cold starts)
-    if (trimmed.startsWith('/api/media/')) {
-      return '$_baseUrl$trimmed';
+    if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+      return _resolveAbsoluteAsset(Uri.tryParse(normalized));
     }
-    // Strip query/hash noise if present
-    final clean = trimmed.split('?').first.split('#').first;
-    if (clean.contains('story_card_images/') ||
-        clean.contains('/uploads/') ||
-        clean.contains('\\uploads\\')) {
-      final filename = clean.split('/').last.split('\\').last;
-      if (filename.isNotEmpty) {
-        return '$_baseUrl/uploads/$filename';
-      }
+
+    final clean = normalized.split('?').first.split('#').first;
+    if (clean.contains('story_card_images/')) {
+      final filename = clean.split('/').last;
+      return filename.isEmpty ? '' : '$_baseUrl/uploads/$filename';
     }
-    if (!clean.startsWith('/')) {
-      if (clean.startsWith('uploads/')) return '$_baseUrl/$clean';
-      return '$_baseUrl/uploads/$clean';
-    }
-    // Absolute path like /uploads/foo.jpg
+    if (clean.startsWith('/api/')) return '$_baseUrl$clean';
     if (clean.startsWith('/uploads/')) return '$_baseUrl$clean';
-    final filename = clean.split('/').last;
-    if (filename.contains('.') && !clean.contains('/api/')) {
-      return '$_baseUrl/uploads/$filename';
+    if (clean.startsWith('uploads/')) return '$_baseUrl/$clean';
+
+    final isWindowsPath = RegExp(r'^[A-Za-z]:/').hasMatch(clean);
+    final isBareFilename =
+        !clean.contains('/') &&
+        RegExp(r'\.[a-z0-9]{2,5}$', caseSensitive: false).hasMatch(clean);
+    if (isWindowsPath || isBareFilename) {
+      final filename = clean.split('/').last;
+      return filename.isEmpty ? '' : '$_baseUrl/uploads/$filename';
     }
-    return '$_baseUrl$clean';
+    return '$_baseUrl${clean.startsWith('/') ? clean : '/$clean'}';
+  }
+
+  String _resolveAbsoluteAsset(Uri? uri) {
+    if (uri == null) return '';
+    if (const {
+      'localhost',
+      '127.0.0.1',
+      '0.0.0.0',
+    }.contains(uri.host.toLowerCase())) {
+      return '$_baseUrl${uri.path}${uri.hasQuery ? '?${uri.query}' : ''}${uri.hasFragment ? '#${uri.fragment}' : ''}';
+    }
+    return uri.toString();
   }
 
   Future<http.Response> _post(
@@ -186,7 +261,7 @@ class ApiService {
     Duration timeout = const Duration(seconds: 45),
   }) {
     return _requestWithHostFallback(
-      (baseUrl) => http.post(
+      (baseUrl) => _httpClient.post(
         Uri.parse('$baseUrl$path'),
         headers: {'Content-Type': 'application/json', ..._authHeaders},
         body: jsonEncode(body),
@@ -201,7 +276,7 @@ class ApiService {
     Duration timeout = const Duration(seconds: 45),
   }) {
     return _requestWithHostFallback(
-      (baseUrl) => http.put(
+      (baseUrl) => _httpClient.put(
         Uri.parse('$baseUrl$path'),
         headers: {'Content-Type': 'application/json', ..._authHeaders},
         body: jsonEncode(body),
@@ -216,27 +291,53 @@ class ApiService {
   }) {
     return _requestWithHostFallback(
       (baseUrl) =>
-          http.delete(Uri.parse('$baseUrl$path'), headers: _authHeaders),
+          _httpClient.delete(Uri.parse('$baseUrl$path'), headers: _authHeaders),
       timeout,
     );
   }
 
   void _ensureSuccessResponse(http.Response response) {
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception(
-        'Backend request failed (${response.statusCode}): ${response.body}',
+      throw ApiRequestException(
+        response.statusCode,
+        _responseErrorMessage(response),
       );
     }
   }
 
-  Future<AppBootstrap> fetchBootstrap() async {
-    // Vercel cold start can exceed 45s once; retry once after warm-up.
+  String _responseErrorMessage(http.Response response) {
+    try {
+      final payload = jsonDecode(response.body);
+      if (payload is Map && payload['detail'] != null) {
+        return payload['detail'].toString();
+      }
+      if (payload is Map && payload['message'] != null) {
+        return payload['message'].toString();
+      }
+    } on FormatException {
+      // Some proxies return a plain-text error body.
+    }
+    final body = response.body.trim();
+    return body.isEmpty ? 'Request failed. Please try again.' : body;
+  }
+
+  Future<AppBootstrap> fetchBootstrap() {
+    return _bootstrapInFlight ??= _fetchBootstrapNetwork().whenComplete(() {
+      _bootstrapInFlight = null;
+    });
+  }
+
+  Future<AppBootstrap>? _bootstrapInFlight;
+
+  Future<AppBootstrap> _fetchBootstrapNetwork() async {
+    // Allow for a cold serverless start, but don't leave the first screen
+    // blocked for multiple minutes when the database is unhealthy.
     Object? lastError;
     for (var attempt = 1; attempt <= 2; attempt++) {
       try {
         final response = await _get(
           '/api/bootstrap',
-          timeout: const Duration(seconds: 90),
+          timeout: const Duration(seconds: 20),
         );
         if (response.statusCode >= 200 && response.statusCode < 300) {
           final decoded = jsonDecode(response.body);
@@ -266,7 +367,7 @@ class ApiService {
         debugPrint('bootstrap error (attempt $attempt) from $_baseUrl: $e');
         if (attempt == 1) {
           debugPrint('retrying bootstrap after cold-start...');
-          await Future<void>.delayed(const Duration(seconds: 3));
+          await Future<void>.delayed(const Duration(milliseconds: 500));
           continue;
         }
         debugPrint('$st');
@@ -304,14 +405,77 @@ class ApiService {
     return _versionMemoryCache ?? '';
   }
 
-  Future<Map<String, dynamic>> fetchMe() async {
+  Future<List<BookCardModel>> fetchRecommendations() async {
+    try {
+      final response = await _get(
+        '/api/recommendations',
+        timeout: const Duration(seconds: 12),
+      );
+      if (response.statusCode != 200) return const [];
+      final payload = jsonDecode(response.body) as Map<String, dynamic>;
+      final items = payload['items'];
+      if (items is! List) return const [];
+      return items
+          .whereType<Map>()
+          .map((item) => BookCardModel.fromMap(Map<String, dynamic>.from(item)))
+          .where((book) => book.id > 0 && book.title.trim().isNotEmpty)
+          .toList();
+    } catch (error) {
+      debugPrint('fetchRecommendations: $error');
+      return const [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchRelatedRecommendations(
+    int bookId,
+  ) async {
+    try {
+      final response = await _get(
+        '/api/recommendations?book_id=$bookId&limit=12',
+        timeout: const Duration(seconds: 12),
+      );
+      if (response.statusCode != 200) return const [];
+      final payload = jsonDecode(response.body) as Map<String, dynamic>;
+      final items = payload['items'];
+      if (items is! List) return const [];
+      return items
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .where((book) => (book['id'] as num?)?.toInt() != bookId)
+          .toList();
+    } catch (error) {
+      debugPrint('fetchRelatedRecommendations: $error');
+      return const [];
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchMe() {
+    final now = DateTime.now();
+    if (_meMemoryCache != null &&
+        _meMemoryCacheAt != null &&
+        now.difference(_meMemoryCacheAt!) < const Duration(seconds: 30)) {
+      return Future.value(Map<String, dynamic>.from(_meMemoryCache!));
+    }
+    return _meInFlight ??= _fetchMeNetwork().whenComplete(() {
+      _meInFlight = null;
+    });
+  }
+
+  Future<Map<String, dynamic>> refreshMe() => _fetchMeNetwork();
+
+  Future<Map<String, dynamic>> _fetchMeNetwork() async {
     try {
       final response = await _get(
         '/api/me',
-        timeout: const Duration(seconds: 60),
+        timeout: const Duration(seconds: 12),
       );
       if (response.statusCode == 200) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
+        final result = Map<String, dynamic>.from(
+          jsonDecode(response.body) as Map,
+        );
+        _meMemoryCache = result;
+        _meMemoryCacheAt = DateTime.now();
+        return result;
       }
     } catch (_) {}
     return const <String, dynamic>{};
@@ -321,7 +485,7 @@ class ApiService {
   Future<Map<String, dynamic>> fetchMeStrict() async {
     final response = await _get(
       '/api/me',
-      timeout: const Duration(seconds: 90),
+      timeout: const Duration(seconds: 30),
     );
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
@@ -330,10 +494,37 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> fetchProfile(int userId) async {
+    final now = DateTime.now();
+    final cached = _profileMemoryCache[userId];
+    final cachedAt = _profileMemoryCacheAt[userId];
+    if (cached != null &&
+        cachedAt != null &&
+        now.difference(cachedAt) < _profileMemoryTtl) {
+      return Map<String, dynamic>.from(cached);
+    }
+    final existing = _profileInFlight[userId];
+    if (existing != null) return existing;
+    final request = _fetchProfileNetwork(userId);
+    _profileInFlight[userId] = request;
+    return request.whenComplete(() => _profileInFlight.remove(userId));
+  }
+
+  Future<Map<String, dynamic>> refreshProfile(int userId) =>
+      _fetchProfileNetwork(userId);
+
+  Future<Map<String, dynamic>> _fetchProfileNetwork(int userId) async {
     try {
-      final response = await _get('/api/users/$userId');
+      final response = await _get(
+        '/api/users/$userId',
+        timeout: const Duration(seconds: 12),
+      );
       if (response.statusCode == 200) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
+        final result = Map<String, dynamic>.from(
+          jsonDecode(response.body) as Map,
+        );
+        _profileMemoryCache[userId] = result;
+        _profileMemoryCacheAt[userId] = DateTime.now();
+        return result;
       }
     } catch (_) {}
     return const <String, dynamic>{};
@@ -391,8 +582,27 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> updateMe(Map<String, dynamic> payload) async {
-    // Prefer resilient path used by onboarding
-    return updateMyProfile(payload);
+    // Editing a profile is a single update; onboarding has its own retry and
+    // completion checks, which can misread an older profile as a saved edit.
+    final response = await _put(
+      '/api/me',
+      payload,
+      timeout: const Duration(seconds: 45),
+    );
+    _ensureSuccessResponse(response);
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map) {
+      throw const FormatException('Invalid response from /api/me');
+    }
+    final result = Map<String, dynamic>.from(decoded);
+    _meMemoryCache = result;
+    _meMemoryCacheAt = DateTime.now();
+    final id = int.tryParse(result['id']?.toString() ?? '');
+    if (id != null) {
+      _profileMemoryCache.remove(id);
+      _profileMemoryCacheAt.remove(id);
+    }
+    return result;
   }
 
   Future<Map<String, dynamic>> uploadSupportAttachment(
@@ -407,58 +617,115 @@ class ApiService {
     request.files.add(
       http.MultipartFile.fromBytes('file', bytes, filename: filename),
     );
-    try {
-      final streamed = await request.send().timeout(
-        const Duration(seconds: 15),
+    final streamed = await request.send().timeout(const Duration(seconds: 45));
+    final response = await http.Response.fromStream(streamed);
+    _ensureSuccessResponse(response);
+    final payload = jsonDecode(response.body);
+    if (payload is! Map) {
+      throw const FormatException(
+        'Invalid response from /api/support/upload-attachment',
       );
-      final response = await http.Response.fromStream(streamed);
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return jsonDecode(response.body) as Map<String, dynamic>;
-      }
-    } catch (_) {}
-    return const <String, dynamic>{};
+    }
+    final result = Map<String, dynamic>.from(payload);
+    if ((result['path'] ?? '').toString().trim().isEmpty) {
+      throw const FormatException(
+        'Support attachment upload returned an empty path',
+      );
+    }
+    return result;
   }
 
-  /// Admin / system announcements (notifications table via bootstrap or dedicated endpoint).
+  /// Admin / system announcements from the dedicated notifications endpoint.
   Future<List<Map<String, dynamic>>> fetchAdminNotifications() async {
+    final now = DateTime.now();
+    final cached = _adminNotificationsMemoryCache;
+    final cachedAt = _adminNotificationsMemoryCacheAt;
+    if (cached != null &&
+        _adminNotificationsCacheToken == _authToken &&
+        cachedAt != null &&
+        now.difference(cachedAt) < _notificationsMemoryTtl) {
+      return _copyNotificationItems(cached);
+    }
+    final pending = _adminNotificationsInFlight;
+    if (pending != null) return _copyNotificationItems(await pending);
+    final requestToken = _authToken;
+    final request = _fetchAdminNotificationsFromApi();
+    _adminNotificationsInFlight = request;
     try {
-      final response = await _get(
-        '/api/notifications/admin',
-        timeout: const Duration(seconds: 12),
-      );
-      if (response.statusCode == 200) {
-        final payload = jsonDecode(response.body);
-        if (payload is Map && payload['items'] is List) {
-          return (payload['items'] as List)
-              .whereType<Map>()
-              .map((e) => Map<String, dynamic>.from(e))
-              .toList();
-        }
+      final items = await request;
+      if (_authToken == requestToken) {
+        _adminNotificationsMemoryCache = _copyNotificationItems(items);
+        _adminNotificationsMemoryCacheAt = DateTime.now();
+        _adminNotificationsCacheToken = requestToken;
       }
-    } catch (_) {}
-    // Fallback: filter bootstrap-style notifications if present
-    try {
-      final response = await _get(
-        '/api/notifications?tab=Admin',
-        timeout: const Duration(seconds: 10),
-      );
-      if (response.statusCode == 200) {
-        final payload = jsonDecode(response.body);
-        if (payload is Map && payload['items'] is List) {
-          final items = (payload['items'] as List)
-              .whereType<Map>()
-              .map((e) => Map<String, dynamic>.from(e))
-              .toList();
-          // Prefer admin/system tabs
-          final admin = items.where((e) {
-            final t = '${e['tab'] ?? ''} ${e['type'] ?? ''}'.toLowerCase();
-            return t.contains('admin') || t.contains('system');
-          }).toList();
-          return admin.isNotEmpty ? admin : items;
-        }
+      return _copyNotificationItems(items);
+    } finally {
+      if (identical(_adminNotificationsInFlight, request)) {
+        _adminNotificationsInFlight = null;
       }
-    } catch (_) {}
-    return const [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchAdminNotificationsFromApi() async {
+    final response = await _get(
+      '/api/notifications/admin',
+      timeout: const Duration(seconds: 12),
+    );
+    _ensureSuccessResponse(response);
+    final payload = jsonDecode(response.body);
+    if (payload is! Map || payload['items'] is! List) {
+      throw const FormatException(
+        'Invalid response from /api/notifications/admin',
+      );
+    }
+    final items = (payload['items'] as List)
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+    return items;
+  }
+
+  static int _compareNotificationsNewestFirst(
+    Map<String, dynamic> left,
+    Map<String, dynamic> right,
+  ) {
+    DateTime? createdAt(Map<String, dynamic> item) {
+      final raw = item['created_at'] ?? item['timestamp'] ?? item['date'];
+      if (raw is num) {
+        final value = raw.abs() < 1000000000000
+            ? raw.toInt() * 1000
+            : raw.toInt();
+        return DateTime.fromMillisecondsSinceEpoch(value, isUtc: true);
+      }
+      return DateTime.tryParse(raw?.toString().trim() ?? '')?.toUtc();
+    }
+
+    final leftDate = createdAt(left);
+    final rightDate = createdAt(right);
+    if (leftDate != null && rightDate != null) {
+      final byDate = rightDate.compareTo(leftDate);
+      if (byDate != 0) return byDate;
+    } else if (leftDate != null) {
+      return -1;
+    } else if (rightDate != null) {
+      return 1;
+    }
+
+    // Keep notifications with equal or missing dates deterministic.
+    final leftId = (left['id'] ?? '').toString();
+    final rightId = (right['id'] ?? '').toString();
+    final leftNumber = int.tryParse(
+      RegExp(r'(\d+)$').firstMatch(leftId)?.group(1) ?? '',
+    );
+    final rightNumber = int.tryParse(
+      RegExp(r'(\d+)$').firstMatch(rightId)?.group(1) ?? '',
+    );
+    if (leftNumber != null &&
+        rightNumber != null &&
+        leftNumber != rightNumber) {
+      return rightNumber.compareTo(leftNumber);
+    }
+    return rightId.compareTo(leftId);
   }
 
   Future<List<Map<String, dynamic>>> fetchMyActivity() async {
@@ -480,50 +747,99 @@ class ApiService {
   }
 
   Future<List<Map<String, dynamic>>> fetchNotifications({String? tab}) async {
-    try {
-      final response = await _get(
-        '/api/notifications${tab != null && tab.trim().isNotEmpty ? '?tab=${Uri.encodeComponent(tab)}' : ''}',
-        timeout: const Duration(seconds: 7),
-      );
-      if (response.statusCode == 200) {
-        final payload = jsonDecode(response.body) as Map<String, dynamic>;
-        return List<Map<String, dynamic>>.from(
-          payload['items'] as List<dynamic>,
-        );
+    final normalizedTab = tab?.trim() ?? '';
+    if (normalizedTab.isEmpty) {
+      final now = DateTime.now();
+      final cached = _notificationsMemoryCache;
+      final cachedAt = _notificationsMemoryCacheAt;
+      if (cached != null &&
+          _notificationsCacheToken == _authToken &&
+          cachedAt != null &&
+          now.difference(cachedAt) < _notificationsMemoryTtl) {
+        return _copyNotificationItems(cached);
       }
-    } catch (_) {}
-    final fallback = (_fallbackData['notifications'] as List<dynamic>)
-        .where((item) {
-          if (tab == null || tab.trim().isEmpty) return true;
-          return (item as Map<String, dynamic>)['tab'] == tab;
-        })
-        .map((item) => Map<String, dynamic>.from(item as Map<String, dynamic>))
-        .toList();
-    return fallback;
+      final pending = _notificationsInFlight;
+      if (pending != null) return _copyNotificationItems(await pending);
+      final requestToken = _authToken;
+      final request = _fetchNotificationsFromApi();
+      _notificationsInFlight = request;
+      try {
+        final items = await request;
+        if (_authToken == requestToken) {
+          _notificationsMemoryCache = _copyNotificationItems(items);
+          _notificationsMemoryCacheAt = DateTime.now();
+          _notificationsCacheToken = requestToken;
+        }
+        return _copyNotificationItems(items);
+      } finally {
+        if (identical(_notificationsInFlight, request)) {
+          _notificationsInFlight = null;
+        }
+      }
+    }
+    return _fetchNotificationsFromApi(tab: normalizedTab);
   }
 
+  Future<void> registerPushToken(String token) async {
+    if (_authToken == null || _authToken!.isEmpty) return;
+    final response = await _post('/api/push-tokens', {'token': token});
+    _ensureSuccessResponse(response);
+  }
+
+  Future<void> unregisterPushToken(String token) async {
+    if (_authToken == null || _authToken!.isEmpty) return;
+    final response = await _post('/api/push-tokens/unregister', {'token': token});
+    _ensureSuccessResponse(response);
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchNotificationsFromApi({
+    String? tab,
+  }) async {
+    final response = await _get(
+      '/api/notifications${tab != null && tab.isNotEmpty ? '?tab=${Uri.encodeComponent(tab)}' : ''}',
+      // The backend currently builds this feed from several DB queries; a
+      // short timeout made valid notifications fail under normal DB latency.
+      timeout: const Duration(seconds: 20),
+    );
+    _ensureSuccessResponse(response);
+    final payload = jsonDecode(response.body);
+    if (payload is! Map || payload['items'] is! List) {
+      throw const FormatException('Invalid response from /api/notifications');
+    }
+    final items = (payload['items'] as List)
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+    items.sort(_compareNotificationsNewestFirst);
+    return items;
+  }
+
+  List<Map<String, dynamic>> _copyNotificationItems(
+    List<Map<String, dynamic>> items,
+  ) => items.map((item) => Map<String, dynamic>.from(item)).toList();
+
   Future<List<Map<String, dynamic>>> fetchMySupportRequests() async {
-    try {
-      final response = await _get(
-        '/api/support/requests',
-        timeout: const Duration(seconds: 45),
-      );
-      if (response.statusCode != 200) return const [];
-      final payload = jsonDecode(response.body);
-      if (payload is Map && payload['items'] is List) {
-        return (payload['items'] as List)
-            .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
-      }
-      if (payload is List) {
-        return payload
-            .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
-      }
-    } catch (_) {}
-    return const [];
+    final response = await _get(
+      '/api/support/requests',
+      timeout: const Duration(seconds: 45),
+    );
+    _ensureSuccessResponse(response);
+    final payload = jsonDecode(response.body);
+    if (payload is Map && payload['items'] is List) {
+      return (payload['items'] as List)
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    if (payload is List) {
+      return payload
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    throw const FormatException(
+      'Support request history has an invalid format',
+    );
   }
 
   Future<Map<String, dynamic>> submitSupportRequest(
@@ -534,31 +850,46 @@ class ApiService {
       payload,
       timeout: const Duration(seconds: 60),
     );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Unable to submit support request');
-    }
-    try {
-      final body = jsonDecode(response.body);
-      if (body is Map) return Map<String, dynamic>.from(body);
-    } catch (_) {}
-    return const {'ok': true};
+    _ensureSuccessResponse(response);
+    final body = jsonDecode(response.body);
+    if (body is Map) return Map<String, dynamic>.from(body);
+    throw const FormatException(
+      'Support request response has an invalid format',
+    );
   }
 
-  Future<Map<String, dynamic>> fetchUserPreferences() async {
-    try {
-      final response = await _get(
-        '/api/me/preferences',
-        timeout: const Duration(seconds: 12),
-      );
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        if (body is Map<String, dynamic>) return body;
-        if (body is Map) return Map<String, dynamic>.from(body);
-      }
-    } catch (e) {
-      debugPrint('fetchUserPreferences: $e');
+  Future<Map<String, dynamic>> fetchUserPreferences({
+    bool forceRefresh = false,
+  }) {
+    final now = DateTime.now();
+    if (!forceRefresh &&
+        _preferencesMemoryCache != null &&
+        _preferencesMemoryCacheAt != null &&
+        now.difference(_preferencesMemoryCacheAt!) < _preferencesMemoryTtl) {
+      return Future.value(Map<String, dynamic>.from(_preferencesMemoryCache!));
     }
-    return {};
+    return _preferencesInFlight ??= _fetchUserPreferencesNetwork().whenComplete(
+      () => _preferencesInFlight = null,
+    );
+  }
+
+  Future<Map<String, dynamic>> _fetchUserPreferencesNetwork() async {
+    final response = await _get(
+      '/api/me/preferences',
+      timeout: const Duration(seconds: 12),
+    );
+    _ensureSuccessResponse(response);
+    final body = jsonDecode(response.body);
+    final result = body is Map<String, dynamic>
+        ? body
+        : body is Map
+        ? Map<String, dynamic>.from(body)
+        : throw const FormatException(
+            'User preferences have an invalid format',
+          );
+    _preferencesMemoryCache = result;
+    _preferencesMemoryCacheAt = DateTime.now();
+    return Map<String, dynamic>.from(result);
   }
 
   Future<void> updateUserPreferences(Map<String, dynamic> patch) async {
@@ -568,6 +899,20 @@ class ApiService {
       timeout: const Duration(seconds: 15),
     );
     _ensureSuccessResponse(response);
+    final cached = _preferencesMemoryCache;
+    if (cached != null) {
+      for (final entry in patch.entries) {
+        final existing = cached[entry.key];
+        final value = entry.value;
+        cached[entry.key] = existing is Map && value is Map
+            ? <String, dynamic>{
+                ...Map<String, dynamic>.from(existing),
+                ...Map<String, dynamic>.from(value),
+              }
+            : value;
+      }
+      _preferencesMemoryCacheAt = DateTime.now();
+    }
   }
 
   Future<Map<String, dynamic>> fetchReadingStats() async {
@@ -594,6 +939,18 @@ class ApiService {
     // Cold start + Google tokeninfo can exceed 12s on Vercel.
     final response = await _post('/api/auth/google', {
       'id_token': idToken,
+      'access_token': accessToken,
+    }, timeout: const Duration(seconds: 45));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(_authErrorBody(response));
+    }
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> verifyFacebookSignIn({
+    required String accessToken,
+  }) async {
+    final response = await _post('/api/auth/facebook', {
       'access_token': accessToken,
     }, timeout: const Duration(seconds: 45));
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -687,8 +1044,29 @@ class ApiService {
   /// best-effort so a temporary network issue never traps the user in a session.
   Future<void> revokeCurrentSession() async {
     try {
-      await _post('/api/auth/logout', const {}, timeout: const Duration(seconds: 5));
+      await _post(
+        '/api/auth/logout',
+        const {},
+        timeout: const Duration(seconds: 5),
+      );
     } catch (_) {}
+  }
+
+  Future<void> deactivateMyAccount({required String password}) async {
+    final response = await _post('/api/me/deactivate', {
+      'password': password,
+    }, timeout: const Duration(seconds: 30));
+    _ensureSuccessResponse(response);
+  }
+
+  Future<Map<String, dynamic>> deleteMyAccount({
+    required String password,
+  }) async {
+    final response = await _post('/api/me/delete', {
+      'password': password,
+    }, timeout: const Duration(seconds: 30));
+    _ensureSuccessResponse(response);
+    return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
   Future<Map<String, dynamic>> verifyEmail({
@@ -905,60 +1283,21 @@ class ApiService {
     }
   }
 
-  /// Profile onboarding / settings save — long timeout + retries for Vercel cold start.
+  /// Profile save on the persistent Contabo backend.
   Future<Map<String, dynamic>> updateMyProfile(
     Map<String, dynamic> payload,
   ) async {
-    Object? lastError;
-    // First attempt warms the function; subsequent retries re-send the body.
-    for (var attempt = 0; attempt < 3; attempt++) {
-      try {
-        if (attempt == 0) {
-          await wakeBackend(timeout: const Duration(seconds: 20));
-        } else {
-          // Give free-tier MySQL / Vercel a moment between attempts
-          await Future<void>.delayed(Duration(seconds: 2 * attempt));
-          await wakeBackend(timeout: const Duration(seconds: 25));
-        }
-        final response = await _put(
-          '/api/me',
-          payload,
-          timeout: const Duration(seconds: 90),
-        );
-        _ensureSuccessResponse(response);
-        try {
-          return Map<String, dynamic>.from(jsonDecode(response.body) as Map);
-        } catch (_) {
-          return <String, dynamic>{'ok': true, 'profile_complete': true};
-        }
-      } catch (e) {
-        lastError = e;
-        final msg = e.toString().toLowerCase();
-        final retriable =
-            msg.contains('timeout') ||
-            msg.contains('timed out') ||
-            msg.contains('connection') ||
-            msg.contains('503') ||
-            msg.contains('502') ||
-            msg.contains('504') ||
-            msg.contains('socket');
-        if (!retriable || attempt == 2) break;
-      }
+    final response = await _put(
+      '/api/me',
+      payload,
+      timeout: const Duration(seconds: 30),
+    );
+    _ensureSuccessResponse(response);
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map) {
+      throw const FormatException('Invalid response from /api/me');
     }
-    // Last chance: if a previous attempt actually wrote, /api/me may already be complete.
-    try {
-      final me = await fetchMe();
-      final pc = me['profile_complete'];
-      final done = pc == true || pc == 1 || pc == '1' || pc == 'true';
-      final hasBirth = (me['birth_date'] ?? me['birthday'] ?? '')
-          .toString()
-          .trim()
-          .isNotEmpty;
-      if (done || hasBirth) {
-        return {...me, 'ok': true, 'profile_complete': true};
-      }
-    } catch (_) {}
-    throw lastError ?? Exception('Could not save profile');
+    return Map<String, dynamic>.from(decoded);
   }
 
   Future<void> addLibraryEntry(Map<String, dynamic> payload) async {
@@ -1030,11 +1369,16 @@ class ApiService {
     return const <Map<String, dynamic>>[];
   }
 
-  Future<void> addReadingListItem(int listId, int bookId) async {
+  Future<int> addReadingListItem(int listId, int bookId) async {
     final response = await _post('/api/reading-lists/$listId/items', {
       'book_id': bookId,
     }, timeout: const Duration(seconds: 45));
     _ensureSuccessResponse(response);
+    try {
+      return ((jsonDecode(response.body) as Map)['id'] as num?)?.toInt() ?? 0;
+    } catch (_) {
+      return 0;
+    }
   }
 
   Future<void> removeReadingListItem(int listId, int itemId) async {
@@ -1061,14 +1405,10 @@ class ApiService {
         timeout: const Duration(seconds: 60),
       );
       if (response.statusCode == 401 || response.statusCode == 403) {
-        debugPrint(
-          'fetchWriterStories: auth required (${response.statusCode})',
-        );
-        return const <Map<String, dynamic>>[];
+        throw Exception(_authErrorBody(response));
       }
       if (response.statusCode != 200) {
-        debugPrint('fetchWriterStories: HTTP ${response.statusCode}');
-        return const <Map<String, dynamic>>[];
+        throw Exception(_authErrorBody(response));
       }
       final decoded = jsonDecode(response.body);
       if (decoded is List) {
@@ -1090,7 +1430,7 @@ class ApiService {
       return const <Map<String, dynamic>>[];
     } catch (e) {
       debugPrint('fetchWriterStories error: $e');
-      return const <Map<String, dynamic>>[];
+      rethrow;
     }
   }
 
@@ -1348,6 +1688,40 @@ class ApiService {
     }
   }
 
+  Future<void> blockUser(int userId) async {
+    final response = await _post(
+      '/api/users/$userId/block',
+      {},
+      timeout: const Duration(seconds: 30),
+    );
+    _ensureSuccessResponse(response);
+  }
+
+  Future<bool> fetchBlockStatus(int userId) async {
+    final response = await _get(
+      '/api/users/$userId/block',
+      timeout: const Duration(seconds: 20),
+    );
+    if (response.statusCode != 200) return false;
+    final payload = jsonDecode(response.body) as Map<String, dynamic>;
+    return payload['blocked'] == true;
+  }
+
+  Future<void> unblockUser(int userId) async {
+    final response = await _delete(
+      '/api/users/$userId/block',
+      timeout: const Duration(seconds: 30),
+    );
+    _ensureSuccessResponse(response);
+  }
+
+  Future<void> reportUser(int userId, {String reason = ''}) async {
+    final response = await _post('/api/users/$userId/report', {
+      'reason': reason,
+    }, timeout: const Duration(seconds: 30));
+    _ensureSuccessResponse(response);
+  }
+
   Future<List<Map<String, dynamic>>> fetchUserReadingLists(int userId) async {
     try {
       final response = await _get('/api/users/$userId/reading-lists');
@@ -1540,14 +1914,34 @@ class ApiService {
   }
 
   Future<bool> fetchAuthorFollowing(int authorId) async {
-    try {
-      final response = await _get('/api/authors/$authorId/follow');
-      if (response.statusCode != 200) return false;
-      final payload = jsonDecode(response.body) as Map<String, dynamic>;
-      return (payload['following'] as bool?) ?? false;
-    } catch (_) {
-      return false;
+    final status = await fetchAuthorFollowStatus(authorId);
+    return status['following'] == true;
+  }
+
+  Future<Map<String, dynamic>> fetchAuthorFollowStatus(int authorId) async {
+    final response = await _get('/api/authors/$authorId/follow');
+    _ensureSuccessResponse(response);
+    final payload = jsonDecode(response.body);
+    if (payload is! Map) {
+      throw const FormatException('Invalid author follow response');
     }
+    return Map<String, dynamic>.from(payload);
+  }
+
+  Future<Map<String, dynamic>> setAuthorNotifications(
+    int authorId, {
+    required bool enabled,
+  }) async {
+    final response = await _put(
+      '/api/authors/$authorId/notifications',
+      <String, dynamic>{'enabled': enabled},
+    );
+    _ensureSuccessResponse(response);
+    final payload = jsonDecode(response.body);
+    if (payload is! Map) {
+      throw const FormatException('Invalid author notification response');
+    }
+    return Map<String, dynamic>.from(payload);
   }
 
   /// Fetch public book detail including tags and author_user_id.
@@ -1656,10 +2050,14 @@ class ApiService {
   }
 
   /// Books that have the given hashtag.
-  Future<List<Map<String, dynamic>>> fetchBooksByTag(String tagName) async {
+  Future<List<Map<String, dynamic>>> fetchBooksByTag(
+    String tagName, {
+    String sort = 'top',
+  }) async {
     try {
       final encoded = Uri.encodeComponent(tagName.trim().replaceFirst('#', ''));
-      final response = await _get('/api/tags/$encoded/books');
+      final encodedSort = Uri.encodeQueryComponent(sort);
+      final response = await _get('/api/tags/$encoded/books?sort=$encodedSort');
       if (response.statusCode != 200) return const <Map<String, dynamic>>[];
       final payload = jsonDecode(response.body) as Map<String, dynamic>;
       return List<Map<String, dynamic>>.from(payload['items'] as List<dynamic>);
@@ -1667,7 +2065,6 @@ class ApiService {
       return const <Map<String, dynamic>>[];
     }
   }
-
 
   /// Books for a genre (public only) — Discover / genre hub.
   Future<List<Map<String, dynamic>>> fetchBooksByGenre(String genreName) async {
@@ -1690,7 +2087,6 @@ class ApiService {
       return const <Map<String, dynamic>>[];
     }
   }
-
 
   Future<Map<String, dynamic>> followTag(String tagName) async {
     final encoded = Uri.encodeComponent(tagName.trim().replaceFirst('#', ''));
@@ -1889,17 +2285,47 @@ class ApiService {
   }
 
   Future<List<Map<String, dynamic>>> fetchStoryChapters(int storyId) async {
-    try {
-      final response = await _get(
-        '/api/write/stories/$storyId/chapters',
-        timeout: const Duration(seconds: 45),
-      );
-      if (response.statusCode != 200) return const <Map<String, dynamic>>[];
-      final payload = jsonDecode(response.body) as Map<String, dynamic>;
-      return List<Map<String, dynamic>>.from(payload['items'] as List<dynamic>);
-    } catch (_) {
-      return const <Map<String, dynamic>>[];
+    if (storyId <= 0) {
+      throw ArgumentError.value(storyId, 'storyId', 'Must be positive');
     }
+    final response = await _get(
+      '/api/write/stories/$storyId/chapters',
+      timeout: const Duration(seconds: 45),
+    );
+    _ensureSuccessResponse(response);
+    final payload = jsonDecode(response.body);
+    if (payload is! Map || payload['items'] is! List) {
+      throw const FormatException(
+        'Invalid response from /api/write/stories/{storyId}/chapters',
+      );
+    }
+    return (payload['items'] as List)
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  /// Chapters visible on a story detail page. Even the owner receives only
+  /// live chapters here; the writer manager continues to use fetchStoryChapters.
+  Future<List<Map<String, dynamic>>> fetchPublicStoryChapters(
+    int storyId,
+  ) async {
+    if (storyId <= 0) {
+      throw ArgumentError.value(storyId, 'storyId', 'Must be positive');
+    }
+    final response = await _get(
+      '/api/write/stories/$storyId/chapters?public_only=true',
+      timeout: const Duration(seconds: 45),
+    );
+    _ensureSuccessResponse(response);
+    final payload = jsonDecode(response.body);
+    if (payload is! Map || payload['items'] is! List) {
+      throw const FormatException('Invalid public chapter response');
+    }
+    return (payload['items'] as List)
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
   }
 
   Future<int?> createStoryChapter(
@@ -1998,17 +2424,14 @@ class ApiService {
   }
 
   /// Publish all eligible draft chapters (min 60 words by default).
-  Future<Map<String, dynamic>> submitAllStoryChapters(
+  Future<Map<String, dynamic>> publishAllStoryChapters(
     int storyId, {
     List<int>? chapterIds,
     int minWords = 60,
   }) async {
     final response = await _post(
-      '/api/write/stories/$storyId/chapters/submit-all',
-      {
-        'chapter_ids': ?chapterIds,
-        'min_words': minWords,
-      },
+      '/api/write/stories/$storyId/chapters/publish-all',
+      {'chapter_ids': ?chapterIds, 'min_words': minWords},
       timeout: const Duration(seconds: 90),
     );
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -2038,11 +2461,11 @@ class ApiService {
     'library_entries': [],
     'write_screen': {
       'manage_tabs': ['Manage Stories', 'Analytics'],
-      'story_tabs': ['Submitted', 'Drafts'],
+      'story_tabs': ['Published', 'Drafts'],
       'filter_label': 'All stories',
       'sort_label': 'Recently Updated',
-      'empty_title': "You haven't submitted any story yet",
-      'empty_cta': 'Submit Stories',
+      'empty_title': "You haven't published any stories yet",
+      'empty_cta': 'Write a Story',
     },
     'notifications': [],
     'menu_sections': [],

@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import threading
+import time
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 from uuid import uuid4
 
 try:
     import mysql.connector as mysql_connector
+    from mysql.connector.pooling import MySQLConnectionPool
 except ModuleNotFoundError:
     mysql_connector = None
+    MySQLConnectionPool = None
 
 try:
     from dotenv import load_dotenv
@@ -1171,6 +1175,7 @@ def _create_sqlite_schema(connection) -> None:
             profile_id INTEGER NOT NULL,
             user_id INTEGER,
             name TEXT NOT NULL,
+            description TEXT NOT NULL DEFAULT '',
             story_count INTEGER NOT NULL DEFAULT 0,
             cover_path TEXT NOT NULL DEFAULT '',
             sort_order INTEGER NOT NULL DEFAULT 0,
@@ -1386,6 +1391,9 @@ def _run_startup_migrations_sqlite(connection) -> dict[str, int]:
 
     if not _sqlite_column_exists(cursor, "reading_lists", "user_id"):
         cursor.execute("ALTER TABLE reading_lists ADD COLUMN user_id INTEGER")
+        result["columns_added"] += 1
+    if not _sqlite_column_exists(cursor, "reading_lists", "description"):
+        cursor.execute("ALTER TABLE reading_lists ADD COLUMN description TEXT NOT NULL DEFAULT ''")
         result["columns_added"] += 1
 
     if not _sqlite_table_exists(cursor, "reading_list_items"):
@@ -1942,6 +1950,13 @@ def run_startup_migrations() -> dict[str, int]:
         )
         result["columns_added"] += 1
 
+    cursor.execute("SHOW COLUMNS FROM reading_lists LIKE 'description'")
+    if cursor.fetchone() is None:
+        cursor.execute(
+            "ALTER TABLE reading_lists ADD COLUMN description VARCHAR(500) NOT NULL DEFAULT ''"
+        )
+        result["columns_added"] += 1
+
     cursor.execute("SHOW TABLES LIKE 'chapter_comments'")
     if cursor.fetchone() is None:
         cursor.execute(
@@ -2288,39 +2303,71 @@ def get_connection():
     if mysql_connector is None:
         raise RuntimeError("mysql.connector is not installed; install mysql-connector-python to use MySQL mode")
 
-    # On Vercel serverless, fail fast so the function can return 504/retry
-    # instead of hanging the whole 60s budget on a stuck DB socket.
+    # Vercel's serverless workers should open short lived connections. On the
+    # VPS, reuse MySQL connections between requests instead of handshaking for
+    # every query.
     on_vercel = bool(os.getenv("VERCEL") or os.getenv("VERCEL_ENV"))
-    default_connect = "5" if on_vercel else "8"
-    default_rw = "12" if on_vercel else "25"
-    timeout_s = int(os.getenv("MYSQL_CONNECT_TIMEOUT", default_connect))
-    read_timeout_s = int(os.getenv("MYSQL_READ_TIMEOUT", default_rw))
-    write_timeout_s = int(os.getenv("MYSQL_WRITE_TIMEOUT", default_rw))
-    kwargs = dict(
-        **mysql_connection_settings(include_database=True),
-        connection_timeout=timeout_s,
-        autocommit=True,
-    )
-
-    last_exc = None
-    retries = max(1, int(os.getenv("MYSQL_CONNECT_RETRIES", "1" if on_vercel else "2")))
-    for attempt in range(retries):
-        try:
+    if on_vercel:
+        kwargs = {
+            **mysql_connection_settings(include_database=True),
+            "connection_timeout": int(os.getenv("MYSQL_CONNECT_TIMEOUT", "5")),
+            "read_timeout": int(os.getenv("MYSQL_READ_TIMEOUT", "12")),
+            "write_timeout": int(os.getenv("MYSQL_WRITE_TIMEOUT", "12")),
+            "autocommit": True,
+        }
+        last_error = None
+        retries = max(1, int(os.getenv("MYSQL_CONNECT_RETRIES", "1")))
+        for attempt in range(retries):
             try:
-                conn = mysql_connector.connect(
-                    **kwargs,
-                    read_timeout=read_timeout_s,
-                    write_timeout=write_timeout_s,
+                try:
+                    return mysql_connector.connect(**kwargs)
+                except TypeError:
+                    kwargs.pop("read_timeout", None)
+                    kwargs.pop("write_timeout", None)
+                    return mysql_connector.connect(**kwargs)
+            except Exception as exc:
+                last_error = exc
+                if attempt + 1 < retries:
+                    time.sleep(0.25 * (attempt + 1))
+        raise last_error
+
+    # Reuse a small set of database connections. Opening a new MySQL+TLS
+    # connection for every SELECT adds latency to endpoints that issue several
+    # queries (and causes needless connection churn on the VPS).
+    global _MYSQL_CONNECTION_POOL
+    if _MYSQL_CONNECTION_POOL is None:
+        with _MYSQL_CONNECTION_POOL_LOCK:
+            if _MYSQL_CONNECTION_POOL is None:
+                pool_size = max(1, min(32, int(os.getenv("MYSQL_POOL_SIZE", "20"))))
+                _MYSQL_CONNECTION_POOL = MySQLConnectionPool(
+                    pool_name="novelhub_api_pool",
+                    pool_size=pool_size,
+                    pool_reset_session=True,
+                    **{
+                        **mysql_connection_settings(include_database=True),
+                        "connection_timeout": int(os.getenv("MYSQL_CONNECT_TIMEOUT", "8")),
+                        "read_timeout": int(os.getenv("MYSQL_READ_TIMEOUT", "25")),
+                        "write_timeout": int(os.getenv("MYSQL_WRITE_TIMEOUT", "25")),
+                        "autocommit": True,
+                    },
                 )
-            except TypeError:
-                conn = mysql_connector.connect(**kwargs)
-            return conn
-        except Exception as exc:
-            last_exc = exc
-            if attempt + 1 < retries:
-                import time as _t
-                _t.sleep(0.25 * (attempt + 1))
-    raise last_exc
+
+    pool = _MYSQL_CONNECTION_POOL
+    if pool is None:
+        raise RuntimeError("MySQL connection pool was not initialized")
+    deadline = time.monotonic() + 5.0
+    while True:
+        try:
+            return pool.get_connection()
+        except mysql_connector.errors.PoolError:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise
+            time.sleep(min(0.05, remaining))
+
+
+_MYSQL_CONNECTION_POOL = None
+_MYSQL_CONNECTION_POOL_LOCK = threading.Lock()
 
 def ensure_discover_catalog_seed(min_public_books: int = 18) -> dict[str, int | bool]:
     """Ensure a healthy discover catalog even if the DB already has some books.

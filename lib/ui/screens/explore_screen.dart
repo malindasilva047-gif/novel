@@ -127,7 +127,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 padding: EdgeInsets.zero,
                 itemCount: _tags.length,
                 separatorBuilder: (_, _) =>
-                    const Divider(height: 1, color: Color(0xFFEDE9FE)),
+                    const Divider(height: 1, color: Color(0xFFDDE2DF)),
                 itemBuilder: (context, index) {
                   final tag = _tags[index];
                   final label = tag.name.startsWith('#')
@@ -268,7 +268,7 @@ class _TagBooksScreenState extends State<_TagBooksScreen> {
                   onTap: () => _openBook(story),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: Color(0xFFEDE9FE)),
+                    side: const BorderSide(color: Color(0xFFDDE2DF)),
                   ),
                   leading: coverUrl == null
                       ? Container(

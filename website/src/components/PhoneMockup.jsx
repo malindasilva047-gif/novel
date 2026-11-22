@@ -9,7 +9,7 @@ export default function PhoneMockupRow() {
       <img
         className="hero-phone-img"
         src="/assets/hero/phone.png"
-        alt="NovelHub on mobile — discover free books"
+        alt="Wingsaga on mobile — explore free books"
         loading="lazy"
         onError={(e) => {
           // Hide broken image so layout does not show a broken icon

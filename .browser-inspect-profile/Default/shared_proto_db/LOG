@@ -1,0 +1,4 @@
+2026/11/18-05:15:45.378 53a0 Creating DB C:\lakmal_code\novel_v7\.browser-inspect-profile\Default\shared_proto_db since it was missing.
+2026/11/18-05:15:45.438 53a0 Reusing MANIFEST C:\lakmal_code\novel_v7\.browser-inspect-profile\Default\shared_proto_db/MANIFEST-000001
+2026/11/18-05:15:45.439 53a0 Recovering log #3
+2026/11/18-05:15:45.440 53a0 Reusing old log C:\lakmal_code\novel_v7\.browser-inspect-profile\Default\shared_proto_db/000003.log 

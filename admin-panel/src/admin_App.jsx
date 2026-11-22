@@ -17,6 +17,7 @@ import {
   deleteReadingList,
   getAdminBootstrap,
   getAdminSession,
+  getAdminSupportRequests,
   getAdminToken,
   getContentVersion,
   listStoryImages,
@@ -32,6 +33,7 @@ import {
   updateSupportRequest,
   updateWriteScreen,
   uploadImage,
+  uploadTagCoverImage,
   listAdminTags,
   createAdminTag,
   updateAdminTag,
@@ -41,6 +43,7 @@ import {
   createAdminChapter,
   listAdminChapters,
   getAdminStats,
+  listAdminReviews,
   listChatConversations,
   getChatConversation,
   sendChatReply,
@@ -50,6 +53,10 @@ import {
   deleteHomeSection,
   assignBooksToHomeSection,
   listHomeSectionBooks,
+  listHomeHeroImages,
+  createHomeHeroImage,
+  updateHomeHeroImage,
+  deleteHomeHeroImage,
 } from "./api";
 import { AuthorsPage, UsersPage, ReviewsPage } from "./moderation_pages";
 
@@ -57,11 +64,13 @@ const NAV = [
   { id: "dashboard", label: "Dashboard", icon: "▦" },
   { id: "novels", label: "Novels", icon: "☰" },
   { id: "home-sliders", label: "Home Sliders", icon: "▤" },
+  { id: "home-hero-images", label: "Hero Backgrounds", icon: "▧" },
   { id: "authors", label: "Authors", icon: "✎" },
   { id: "users", label: "Users", icon: "☺" },
   { id: "reports", label: "Reports", icon: "▤" },
   { id: "reviews", label: "Reviews", icon: "★" },
   { id: "hashtags", label: "Hashtags", icon: "#" },
+  { id: "genres", label: "Genres", icon: "◇" },
   { id: "revenue", label: "Catalog insights", icon: "$" },
   { id: "moderation", label: "Content Moderation", icon: "◎" },
   { id: "announcements", label: "Announcements", icon: "◎" },
@@ -84,6 +93,8 @@ const EMPTY_BOOK = {
   sort_order: 999,
   chapters: [],
 };
+
+const MAX_HOME_HERO_IMAGES = 5;
 
 
 /** Sample novels seeded from the admin UI (no backend seed script required). */
@@ -224,6 +235,14 @@ export default function App() {
   const [success, setSuccess] = useState("");
   const [contentVersion, setContentVersion] = useState("");
   const [search, setSearch] = useState("");
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const [inboxSources, setInboxSources] = useState({ chats: [], reports: [], reviews: [] });
+  const [selectedChatUserId, setSelectedChatUserId] = useState(null);
+  const [focusedSupportId, setFocusedSupportId] = useState(null);
+  const [dismissedInboxIds, setDismissedInboxIds] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("novelhub_admin_inbox_dismissed") || "[]"); }
+    catch { return []; }
+  });
 
   const [categories, setCategories] = useState([]);
   const [books, setBooks] = useState([]);
@@ -302,6 +321,52 @@ export default function App() {
     if (token) loadAll();
   }, [token, loadAll]);
 
+  useEffect(() => {
+    if (!token) return undefined;
+    const refreshSupportRequests = async () => {
+      try {
+        const payload = await getAdminSupportRequests();
+        setSupportRequests(asArray(payload.items));
+      } catch (_) {
+        // Keep the last known list visible when a background refresh fails.
+      }
+    };
+    refreshSupportRequests();
+    const timer = window.setInterval(refreshSupportRequests, 15000);
+    return () => window.clearInterval(timer);
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return undefined;
+    let active = true;
+    const refreshInbox = async () => {
+      const [chatResult, reportResult, reviewResult, supportResult] = await Promise.allSettled([
+        listChatConversations(), listStoryReports(), listAdminReviews(50), getAdminSupportRequests(),
+      ]);
+      if (!active) return;
+      setInboxSources({
+        chats: chatResult.status === "fulfilled" ? asArray(chatResult.value?.items) : [],
+        reports: reportResult.status === "fulfilled" ? asArray(reportResult.value?.items) : [],
+        reviews: reviewResult.status === "fulfilled" ? asArray(reviewResult.value?.items) : [],
+      });
+      if (supportResult.status === "fulfilled") setSupportRequests(asArray(supportResult.value?.items));
+    };
+    void refreshInbox();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refreshInbox();
+    }, 15000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [token]);
+
+  useEffect(() => {
+    if (!sidebarOpen) return undefined;
+    function closeOnEscape(event) {
+      if (event.key === "Escape") setSidebarOpen(false);
+    }
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [sidebarOpen]);
+
   const authors = useMemo(() => {
     const map = new Map();
     for (const b of books) {
@@ -350,6 +415,48 @@ export default function App() {
     }),
     [books, authors, supportRequests, categories]
   );
+  const inboxItems = useMemo(() => {
+    const items = [];
+    for (const request of supportRequests) {
+      if (["resolved", "closed"].includes(String(request.status || "open").toLowerCase()) || request.admin_reply) continue;
+      items.push({ id: `support:${request.id}`, kind: "support", title: request.subject || request.issue || "Contact Us message", sender: request.first_name || request.email || "Reader", body: request.description || "New support request", created_at: request.created_at, target: request.id });
+    }
+    for (const chat of inboxSources.chats) {
+      if (String(chat.last_sender || "").toLowerCase() !== "user") continue;
+      items.push({ id: `chat:${chat.user_id}:${chat.last_message_id}`, kind: "chat", title: chat.display_name || chat.email || `Reader #${chat.user_id}`, sender: "Live chat", body: chat.last_message || "New reader message", created_at: chat.last_message_at, target: chat.user_id });
+    }
+    for (const report of inboxSources.reports) {
+      items.push({ id: `report:${report.book_id}:${report.last_report_at}`, kind: "report", title: report.title || `Story #${report.book_id}`, sender: `${report.report_count || 1} story report(s)`, body: `Reported by readers · ${report.author || "Unknown author"}`, created_at: report.last_report_at, target: report.book_id });
+    }
+    for (const review of inboxSources.reviews) {
+      items.push({ id: `review:${review.id}`, kind: "review", title: review.book_title || "Story review", sender: review.display_name || review.email || "Reader", body: review.comment || `${review.rating || "New"}-star review`, created_at: review.created_at, target: review.book_id });
+    }
+    return items
+      .filter((item) => !dismissedInboxIds.includes(item.id))
+      .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
+  }, [supportRequests, inboxSources, dismissedInboxIds]);
+  const notificationCount = inboxItems.length;
+
+  function dismissInboxItem(event, id) {
+    event.stopPropagation();
+    event.preventDefault();
+    const next = [...new Set([...dismissedInboxIds, id])];
+    setDismissedInboxIds(next);
+    localStorage.setItem("novelhub_admin_inbox_dismissed", JSON.stringify(next));
+  }
+
+  function openInboxItem(item) {
+    setInboxOpen(false);
+    if (item.kind === "chat") {
+      setSelectedChatUserId(Number(item.target));
+      setPage("chat");
+    } else if (item.kind === "support") {
+      setFocusedSupportId(Number(item.target));
+      setPage("support");
+    }
+    else if (item.kind === "report") setPage("reports");
+    else if (item.kind === "review") setPage("reviews");
+  }
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -473,15 +580,17 @@ export default function App() {
           <h1>Sign in</h1>
           <p>Manage novels, authors, users, and content.</p>
           {error && <div className="login-error">{error}</div>}
-          <label>Username</label>
+          <label htmlFor="admin-username">Username</label>
           <input
+            id="admin-username"
             value={loginForm.username}
             onChange={(e) => setLoginForm((f) => ({ ...f, username: e.target.value }))}
             autoComplete="username"
             required
           />
-          <label>Password</label>
+          <label htmlFor="admin-password">Password</label>
           <input
+            id="admin-password"
             type="password"
             value={loginForm.password}
             onChange={(e) => setLoginForm((f) => ({ ...f, password: e.target.value }))}
@@ -501,8 +610,15 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      {sidebarOpen && <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />}
-      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`}>
+      {sidebarOpen && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Close navigation"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <aside id="admin-navigation" className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="brand">
           <div className="brand-mark">N</div>
           <div>
@@ -534,7 +650,14 @@ export default function App() {
 
       <div className="main-col">
         <header className="topbar">
-          <button type="button" className="mobile-menu-btn" onClick={() => setSidebarOpen(true)}>
+          <button
+            type="button"
+            className="mobile-menu-btn"
+            aria-label="Open navigation"
+            aria-controls="admin-navigation"
+            aria-expanded={sidebarOpen}
+            onClick={() => setSidebarOpen(true)}
+          >
             {String.fromCharCode(9776)}
           </button>
           <h1>{pageTitle}</h1>
@@ -549,9 +672,36 @@ export default function App() {
             <button type="button" className="btn btn-sm" onClick={loadAll} disabled={loading}>
               {loading ? "Sync…" : "Refresh"}
             </button>
-            <div className="icon-btn" title="Notifications">
-              {String.fromCharCode(128276)}{stats.pending > 0 && <span className="badge-dot">{Math.min(stats.pending, 9)}</span>}
-            </div>
+            <button
+              type="button"
+              className="icon-btn"
+              title="Open notifications"
+              aria-label={`Open notifications, ${notificationCount} unread`}
+              aria-expanded={inboxOpen}
+              onClick={() => setInboxOpen((open) => !open)}
+            >
+              {String.fromCharCode(128276)}{notificationCount > 0 && <span className="badge-dot">{notificationCount > 9 ? "9+" : notificationCount}</span>}
+            </button>
+            {inboxOpen && (
+              <div className="admin-inbox-menu" role="dialog" aria-label="Admin notification inbox">
+                <div className="admin-inbox-heading"><strong>Notifications</strong><span>{notificationCount} new</span></div>
+                <div className="admin-inbox-list">
+                  {inboxItems.map((item) => (
+                    <article className="admin-inbox-item" key={item.id}>
+                      <button type="button" className="admin-inbox-open" onClick={() => openInboxItem(item)}>
+                        <span className={`admin-inbox-kind is-${item.kind}`}>{item.kind === "support" ? "CONTACT" : item.kind.toUpperCase()}</span>
+                        <strong>{item.title}</strong>
+                        <small>{item.sender}</small>
+                        <span className="admin-inbox-message">{item.body}</span>
+                      </button>
+                      <button type="button" className="admin-inbox-dismiss" onClick={(event) => dismissInboxItem(event, item.id)} aria-label={`Ignore ${item.title}`}>Ignore</button>
+                    </article>
+                  ))}
+                  {!inboxItems.length && <p className="admin-inbox-empty">You’re all caught up.</p>}
+                </div>
+                <button type="button" className="admin-inbox-all" onClick={() => { setInboxOpen(false); setPage("support"); }}>Open contact requests</button>
+              </div>
+            )}
             <div className="user-chip">
               <div className="avatar-fallback">{(session?.username || "A")[0].toUpperCase()}</div>
               <div>
@@ -595,6 +745,7 @@ export default function App() {
                     {page === "home-sliders" && (
             <HomeSlidersPage books={books} onRefresh={loadAll} />
           )}
+          {page === "home-hero-images" && <HomeHeroImagesPage />}
 
 {page === "authors" && <AuthorsPage authors={authors} search={search} />}
           {page === "reviews" && <ReviewsPage />}
@@ -607,6 +758,19 @@ export default function App() {
           )}
           {page === "reports" && <StoryReportsPage />}
           {page === "hashtags" && <HashtagsPage />}
+          {page === "genres" && (
+            <GenresPage
+              categories={categories}
+              onDeleteCategory={async (id) => {
+                if (!window.confirm("Delete category?")) return;
+                await deleteCategory(id);
+                toast("Deleted");
+                loadAll();
+              }}
+              openCategory={() => setCategoryModal({ ...EMPTY_CATEGORY })}
+              editCategory={(category) => setCategoryModal({ ...category })}
+            />
+          )}
           {page === "revenue" && <RevenuePage books={books} />}
           {page === "moderation" && (
             <ModerationPage
@@ -635,10 +799,11 @@ export default function App() {
               }}
             />
           )}
-          {page === "chat" && <AdminChatPage />}
+          {page === "chat" && <AdminChatPage selectedUserId={selectedChatUserId} />}
           {page === "support" && (
             <SupportRequestsPage
               items={supportRequests}
+              focusTicketId={focusedSupportId}
               onUpdate={async (id, payload) => {
                 await updateSupportRequest(id, payload);
                 toast("Support request updated");
@@ -648,25 +813,8 @@ export default function App() {
           )}
           {page === "settings" && (
             <SettingsPage
-              categories={categories}
               writeScreen={writeScreen}
               profile={profile}
-              readingLists={readingLists}
-              achievements={achievements}
-              menuItems={menuItems}
-              onSaveCategory={async (payload, id) => {
-                if (id) await updateCategory(id, payload);
-                else await createCategory(payload);
-                toast("Category saved");
-                setCategoryModal(null);
-                loadAll();
-              }}
-              onDeleteCategory={async (id) => {
-                if (!window.confirm("Delete category?")) return;
-                await deleteCategory(id);
-                toast("Deleted");
-                loadAll();
-              }}
               onSaveWrite={async (p) => {
                 await updateWriteScreen(p);
                 toast("Write screen saved — Flutter will pick up on next sync");
@@ -677,8 +825,6 @@ export default function App() {
                 toast("Profile defaults saved");
                 loadAll();
               }}
-              openCategory={() => setCategoryModal({ ...EMPTY_CATEGORY })}
-              editCategory={(c) => setCategoryModal({ ...c })}
             />
           )}
         </main>
@@ -703,7 +849,7 @@ export default function App() {
           onSave={async (p) => {
             if (categoryModal.id) await updateCategory(categoryModal.id, p);
             else await createCategory(p);
-            toast("Category saved");
+            toast("Genre saved");
             setCategoryModal(null);
             loadAll();
           }}
@@ -730,7 +876,7 @@ export default function App() {
   );
 }
 
-function AdminChatPage() {
+function AdminChatPage({ selectedUserId = null }) {
   const [conversations, setConversations] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -743,7 +889,9 @@ function AdminChatPage() {
       const data = await listChatConversations();
       const items = asArray(data.items);
       setConversations(items);
-      if (!selectedUser && items[0]) setSelectedUser(items[0]);
+      const requested = items.find((item) => Number(item.user_id) === Number(selectedUserId));
+      if (requested) setSelectedUser(requested);
+      else if (!selectedUser && items[0]) setSelectedUser(items[0]);
     } catch (e) {
       setError(String(e.message || e));
     } finally {
@@ -763,7 +911,7 @@ function AdminChatPage() {
 
   useEffect(() => {
     loadConversations();
-  }, []);
+  }, [selectedUserId]);
 
   useEffect(() => {
     loadMessages(selectedUser);
@@ -979,7 +1127,7 @@ function Dashboard({ stats, liveStats, books, authors, supportRequests, onReview
             <button type="button" className="btn" onClick={() => onGoto("novels")}>Manage novels</button>
             <button type="button" className="btn" onClick={() => onGoto("moderation")}>Content moderation</button>
             <button type="button" className="btn" onClick={() => onGoto("announcements")}>Announcements</button>
-            <button type="button" className="btn" onClick={() => onGoto("settings")}>Settings & categories</button>
+            <button type="button" className="btn" onClick={() => onGoto("genres")}>Manage genres</button>
           </div>
         </div>
       </div>
@@ -1191,10 +1339,47 @@ function StoryReportsPage() {
   );
 }
 
+async function validateTagCover(file) {
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error("Choose a JPG, PNG, or WebP image.");
+  }
+  const previewUrl = URL.createObjectURL(file);
+  try {
+    await new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = resolve;
+      image.onerror = () => reject(new Error("This image could not be opened."));
+      image.src = previewUrl;
+    });
+  } finally {
+    URL.revokeObjectURL(previewUrl);
+  }
+}
+
+function TagCoverPreview({ file, path, name }) {
+  const [src, setSrc] = useState("");
+  useEffect(() => {
+    if (!file) {
+      setSrc(coverUrl(path));
+      return undefined;
+    }
+    const preview = URL.createObjectURL(file);
+    setSrc(preview);
+    return () => URL.revokeObjectURL(preview);
+  }, [file, path]);
+  return src
+    ? <img src={src} alt={`${name} tag cover preview`} style={{ width: 112, height: 48, objectFit: "cover", borderRadius: 6 }} />
+    : <span className="meta">No cover</span>;
+}
+
 function HashtagsPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
+  const [newCover, setNewCover] = useState(null);
+  const [coverFiles, setCoverFiles] = useState({});
+  const [uploadingTagId, setUploadingTagId] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -1220,8 +1405,13 @@ function HashtagsPage() {
     setBusy(true);
     setError("");
     try {
-      await createAdminTag({ name: n });
+      const uploaded = newCover ? await uploadTagCoverImage(newCover) : null;
+      await createAdminTag({
+        name: n,
+        cover_path: uploaded?.path || uploaded?.cover_path || uploaded?.url || "",
+      });
       setName("");
+      setNewCover(null);
       await load();
     } catch (err) {
       setError(err.message || "Create failed");
@@ -1235,11 +1425,55 @@ function HashtagsPage() {
     if (!next || !next.trim()) return;
     setBusy(true);
     try {
-      await updateAdminTag(tag.id, { name: next.trim().replace(/^#/, "") });
+      await updateAdminTag(tag.id, {
+        name: next.trim().replace(/^#/, ""),
+        cover_path: tag.cover_path || "",
+        description: tag.description || "",
+      });
       await load();
     } catch (err) {
       setError(err.message || "Update failed");
     } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onCoverChange(tag, file) {
+    if (!file) return;
+    setError("");
+    try {
+      await validateTagCover(file);
+      setCoverFiles((current) => ({ ...current, [tag.id]: file }));
+    } catch (validationError) {
+      setError(validationError.message || "That tag cover is not valid.");
+    }
+  }
+
+  async function saveTagCover(tag) {
+    const file = coverFiles[tag.id];
+    if (!file || busy) return;
+    setBusy(true);
+    setUploadingTagId(tag.id);
+    setError("");
+    try {
+      const uploaded = await uploadTagCoverImage(file);
+      const coverPath = uploaded?.path || uploaded?.cover_path || uploaded?.url || "";
+      if (!coverPath) throw new Error("The uploaded image did not return a cover path.");
+      await updateAdminTag(tag.id, {
+        name: tag.name,
+        cover_path: coverPath,
+        description: tag.description || "",
+      });
+      setCoverFiles((current) => {
+        const next = { ...current };
+        delete next[tag.id];
+        return next;
+      });
+      await load();
+    } catch (saveError) {
+      setError(saveError.message || "Could not update this tag cover.");
+    } finally {
+      setUploadingTagId(null);
       setBusy(false);
     }
   }
@@ -1264,13 +1498,27 @@ function HashtagsPage() {
         <p style={{color:"var(--text-muted)", marginBottom:12}}>
           Authors can only attach hashtags you create here (max 3 per story).
         </p>
-        <form onSubmit={onCreate} style={{display:"flex", gap:8, marginBottom:16, flexWrap:"wrap"}}>
+        <form onSubmit={onCreate} style={{display:"flex", gap:8, marginBottom:16, flexWrap:"wrap", alignItems:"center"}}>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="New hashtag (without #)"
             style={{flex:1, minWidth:180}}
           />
+          <label className="btn-ghost">
+            Choose cover
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) validateTagCover(file).then(() => { setNewCover(file); setError(""); }).catch((err) => setError(err.message));
+                e.target.value = "";
+              }}
+            />
+          </label>
+          <TagCoverPreview file={newCover} name={name || "New hashtag"} />
           <button type="submit" className="btn-primary" disabled={busy}>Add hashtag</button>
           <button type="button" className="btn-ghost" onClick={load}>Refresh</button>
         </form>
@@ -1279,15 +1527,36 @@ function HashtagsPage() {
           <div className="table-wrap">
             <table className="data">
               <thead>
-                <tr><th>Hashtag</th><th>Stories</th><th>Actions</th></tr>
+                <tr><th>Hashtag</th><th>Cover</th><th>Stories</th><th>Actions</th></tr>
               </thead>
               <tbody>
                 {items.length === 0 && (
-                  <tr><td colSpan={3} style={{color:"var(--text-muted)"}}>No hashtags yet. Add the first one.</td></tr>
+                  <tr><td colSpan={4} style={{color:"var(--text-muted)"}}>No hashtags yet. Add the first one.</td></tr>
                 )}
                 {items.map((t) => (
                   <tr key={t.id}>
                     <td><strong>#{t.name}</strong></td>
+                    <td>
+                      <div style={{display:"grid", gap:6}}>
+                        <TagCoverPreview file={coverFiles[t.id]} path={t.cover_path} name={t.name} />
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          aria-label={`Choose a cover for #${t.name}`}
+                          onChange={(e) => { void onCoverChange(t, e.target.files?.[0]); e.target.value = ""; }}
+                        />
+                        {coverFiles[t.id] ? (
+                          <button
+                            type="button"
+                            className="btn-primary"
+                            onClick={() => saveTagCover(t)}
+                            disabled={busy}
+                          >
+                            {uploadingTagId === t.id ? "Uploading…" : "Save cover"}
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
                     <td>{t.book_count ?? 0}</td>
                     <td style={{display:"flex", gap:8}}>
                       <button type="button" className="btn-ghost" onClick={() => onRename(t)} disabled={busy}>Rename</button>
@@ -1433,15 +1702,10 @@ function AnnouncementsPage({ items, onCreate, onEdit, onDelete }) {
 }
 
 function SettingsPage({
-  categories,
   writeScreen,
   profile,
-  onSaveCategory,
-  onDeleteCategory,
   onSaveWrite,
   onSaveProfile,
-  openCategory,
-  editCategory,
 }) {
   const [ws, setWs] = useState(writeScreen);
   const [pf, setPf] = useState(profile);
@@ -1451,34 +1715,6 @@ function SettingsPage({
   return (
     <div className="layout-with-aside">
       <div className="aside-stack">
-        <div className="panel">
-          <div className="panel-header">
-            <h3>Categories / Genres</h3>
-            <button type="button" className="btn btn-sm btn-primary" onClick={openCategory}>Add</button>
-          </div>
-          <table className="data">
-            <thead><tr><th>Image</th><th>Name</th><th>Group</th><th></th></tr></thead>
-            <tbody>
-              {categories.map((c) => (
-                <tr key={c.id}>
-                  <td>
-                    {c.image_path ? (
-                      <img src={c.image_path.startsWith("http") ? c.image_path : `${API_BASE_URL}${c.image_path}`} alt="" style={{width:40,height:40,objectFit:"cover",borderRadius:6}} />
-                    ) : (
-                      <span style={{color:"var(--text-muted)"}}>—</span>
-                    )}
-                  </td>
-                  <td>{c.name}</td>
-                  <td>{c.tab_group}</td>
-                  <td className="btn-row">
-                    <button type="button" className="btn btn-sm" onClick={() => editCategory(c)}>Edit</button>
-                    <button type="button" className="btn btn-sm btn-danger" onClick={() => onDeleteCategory(c.id)}>Del</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
         <div className="panel">
           <div className="panel-header"><h3>Write screen labels</h3></div>
           <div className="field" style={{ marginBottom: 8 }}>
@@ -1512,9 +1748,43 @@ function SettingsPage({
           Save profile defaults
         </button>
         <p style={{ marginTop: 16, fontSize: ".8rem", color: "var(--text-muted)" }}>
-          Changes write to the database via <code>/api/admin/*</code>. The Flutter app polls content version and reloads bootstrap — novels, categories, and notifications appear in Discover / Library after sync.
+          Changes write to the database via <code>/api/admin/*</code>. The Flutter app polls content version and reloads bootstrap — novels, categories, and notifications appear on Home / Library after sync.
         </p>
       </div>
+    </div>
+  );
+}
+
+function GenresPage({ categories, onDeleteCategory, openCategory, editCategory }) {
+  return (
+    <div className="panel">
+      <div className="panel-header">
+        <h3>Categories / Genres</h3>
+        <button type="button" className="btn btn-sm btn-primary" onClick={openCategory}>Add genre</button>
+      </div>
+      <table className="data">
+        <thead><tr><th>Image</th><th>Name</th><th>Group</th><th></th></tr></thead>
+        <tbody>
+          {categories.map((category) => (
+            <tr key={category.id}>
+              <td>
+                {category.image_path ? (
+                  <img src={category.image_path.startsWith("http") ? category.image_path : `${API_BASE_URL}${category.image_path}`} alt="" style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6 }} />
+                ) : (
+                  <span style={{ color: "var(--text-muted)" }}>—</span>
+                )}
+              </td>
+              <td>{category.name}</td>
+              <td>{category.tab_group}</td>
+              <td className="btn-row">
+                <button type="button" className="btn btn-sm" onClick={() => editCategory(category)}>Edit</button>
+                <button type="button" className="btn btn-sm btn-danger" onClick={() => onDeleteCategory(category.id)}>Del</button>
+              </td>
+            </tr>
+          ))}
+          {categories.length === 0 && <tr><td colSpan={4} className="empty">No genres available</td></tr>}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -1776,11 +2046,20 @@ function NotifModal({ item, onClose, onSave }) {
   );
 }
 
-function SupportRequestsPage({ items = [], onUpdate }) {
+function SupportRequestsPage({ items = [], onUpdate, focusTicketId = null }) {
   const list = Array.isArray(items) ? items : [];
   const [replyFor, setReplyFor] = useState(null);
   const [replyText, setReplyText] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!focusTicketId) return;
+    const ticket = list.find((item) => Number(item.id) === Number(focusTicketId));
+    if (ticket) {
+      setReplyFor(ticket.id);
+      setReplyText(ticket.admin_reply || "");
+    }
+  }, [focusTicketId]);
 
   const sendReply = async () => {
     if (!replyFor || !replyText.trim()) return;
@@ -1921,13 +2200,18 @@ function HomeSlidersPage({ books = [], onRefresh }) {
   const [sectionBooks, setSectionBooks] = useState([]);
   const [assignIds, setAssignIds] = useState("");
   const [busy, setBusy] = useState(false);
+  const [removingBookId, setRemovingBookId] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
       const res = await listHomeSections();
-      setItems(res?.items || []);
+      const nextItems = Array.isArray(res?.items) ? res.items : [];
+      setItems(nextItems);
+      setSelectedSection((current) =>
+        nextItems.find((item) => item.id === current?.id) || current || nextItems[0] || null
+      );
     } catch (e) {
       setError(e?.message || String(e));
     } finally {
@@ -1939,297 +2223,398 @@ function HomeSlidersPage({ books = [], onRefresh }) {
     load();
   }, [load]);
 
+  useEffect(() => {
+    if (!selectedSection?.section_key) {
+      setSectionBooks([]);
+      return undefined;
+    }
+    let cancelled = false;
+    setSectionBooks([]);
+    listHomeSectionBooks(selectedSection.section_key)
+      .then((res) => {
+        if (!cancelled) setSectionBooks(Array.isArray(res?.items) ? res.items : []);
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setError(e?.message || String(e));
+          setSectionBooks([]);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [selectedSection?.section_key]);
+
   const resetForm = () => {
     setEditingId(null);
-    setForm({
-      section_key: "",
-      label: "",
-      description: "",
-      sort_order: 100,
-      is_active: true,
-    });
+    setForm({ section_key: "", label: "", description: "", sort_order: 100, is_active: true });
   };
-
   const startEdit = (row) => {
     setEditingId(row.id);
+    setForm({ section_key: row.section_key || "", label: row.label || "", description: row.description || "", sort_order: row.sort_order ?? 100, is_active: !!row.is_active });
+  };
+  const openBooks = (row) => setSelectedSection(row);
+  const save = async (event) => {
+    event.preventDefault(); setBusy(true); setError("");
+    try {
+      if (editingId) await updateHomeSection(editingId, form); else await createHomeSection(form);
+      resetForm(); await load(); onRefresh?.();
+    } catch (e) { setError(e?.message || String(e)); }
+    finally { setBusy(false); }
+  };
+  const remove = async (id) => {
+    if (!window.confirm("Delete this home slider section? Its books will move to Recently Updated.")) return;
+    setBusy(true); setError("");
+    try {
+      await deleteHomeSection(id);
+      if (selectedSection?.id === id) { setSelectedSection(null); setSectionBooks([]); }
+      await load(); onRefresh?.();
+    } catch (e) { setError(e?.message || String(e)); }
+    finally { setBusy(false); }
+  };
+  const refreshSelectedBooks = async () => {
+    if (!selectedSection?.section_key) return;
+    const result = await listHomeSectionBooks(selectedSection.section_key);
+    setSectionBooks(Array.isArray(result?.items) ? result.items : []);
+  };
+  const assign = async () => {
+    if (!selectedSection) return;
+    const ids = assignIds.split(/[\s,]+/).map((value) => Number.parseInt(value, 10)).filter((id) => Number.isInteger(id) && id > 0);
+    if (!ids.length) { setError("Enter one or more valid novel IDs."); return; }
+    setBusy(true); setError("");
+    try {
+      const result = await assignBooksToHomeSection(selectedSection.section_key, ids);
+      if (Number(result?.updated) === 0) throw new Error("No matching novels were updated. Check the IDs and try again.");
+      setAssignIds(""); await refreshSelectedBooks(); await load(); onRefresh?.();
+    } catch (e) { setError(e?.message || String(e)); }
+    finally { setBusy(false); }
+  };
+  const setFromDropdown = async (bookId) => {
+    if (!selectedSection || !bookId) return;
+    setBusy(true); setError("");
+    try {
+      const result = await assignBooksToHomeSection(selectedSection.section_key, [Number(bookId)]);
+      if (Number(result?.updated) === 0) throw new Error("That novel could not be assigned. Refresh the catalog and try again.");
+      await refreshSelectedBooks(); await load(); onRefresh?.();
+    } catch (e) { setError(e?.message || String(e)); }
+    finally { setBusy(false); }
+  };
+  const removeBook = async (book) => {
+    setRemovingBookId(book.id); setError("");
+    try {
+      const result = await assignBooksToHomeSection("recently_updated", [Number(book.id)]);
+      if (Number(result?.updated) === 0) throw new Error("This novel was not moved. Refresh and try again.");
+      await refreshSelectedBooks(); await load(); onRefresh?.();
+    } catch (e) { setError(e?.message || String(e)); }
+    finally { setRemovingBookId(null); }
+  };
+  const coverUrl = (path) => {
+    if (!path) return "";
+    if (/^https?:\/\//i.test(path)) return path;
+    return `${API_BASE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
+  };
+  const displayedBooks = sectionBooks.slice(0, 6);
+
+  return (
+    <div className="page-section home-sliders-page">
+      <header className="home-sliders-heading">
+        <div>
+          <span className="home-sliders-eyebrow">DISCOVER ? CONTENT STUDIO</span>
+          <h2>Home sliders</h2>
+          <p>Shape the story shelves readers see first. Changes are saved to your catalog and sync to the app.</p>
+        </div>
+        <div className="home-sliders-heading-actions">
+          <span className="home-sliders-live"><i /> {items.filter((item) => item.is_active).length} live</span>
+          <button type="button" className="btn" onClick={load} disabled={loading || busy}>
+            {loading ? "Refreshing?" : "Refresh sections"}
+          </button>
+        </div>
+      </header>
+
+      {error ? <div className="home-sliders-error" role="alert">{error}</div> : null}
+
+      <section className="home-sliders-preview" aria-label="Selected home slider preview">
+        <div className="home-sliders-preview-copy">
+          <span className="home-sliders-eyebrow">LIVE SHELF PREVIEW</span>
+          <h3>{selectedSection?.label || "Your next featured shelf"}</h3>
+          <p>{selectedSection?.description || "Choose a section below and curate the stories shown on the home screen."}</p>
+          <div className="home-sliders-preview-meta">
+            <span className={selectedSection?.is_active ? "is-live" : ""}><i />{selectedSection?.is_active ? "Visible on home" : "Hidden from home"}</span>
+            <span>{selectedSection?.book_count ?? sectionBooks.length} stories</span>
+          </div>
+        </div>
+        <div className="home-sliders-rail" aria-label="Stories in selected slider">
+          {displayedBooks.length ? displayedBooks.map((book, index) => (
+            <article className={`home-sliders-book-preview${index === 0 ? " is-featured" : ""}`} key={book.id}>
+              {coverUrl(book.cover_path)
+                ? <img src={coverUrl(book.cover_path)} alt="" loading="lazy" />
+                : <span className="home-sliders-cover-fallback">{(book.title || "N").slice(0, 1)}</span>}
+              <div><strong>{book.title}</strong><small>{book.author || "NovelHub story"}</small></div>
+            </article>
+          )) : <div className="home-sliders-rail-empty">Select a shelf with stories to preview its card rail.</div>}
+        </div>
+      </section>
+
+      <div className="home-sliders-workspace">
+        <section className="home-sliders-section-list" aria-labelledby="home-slider-sections-title">
+          <div className="home-sliders-section-heading">
+            <div><span className="home-sliders-eyebrow">YOUR COLLECTION</span><h3 id="home-slider-sections-title">Sections <span>{items.length}</span></h3></div>
+            <span className="home-sliders-section-hint">Select a shelf to preview and edit it</span>
+          </div>
+          {loading && !items.length ? <div className="home-sliders-empty">Loading home sections?</div> : null}
+          {!loading && !items.length ? (
+            <div className="home-sliders-empty"><strong>No shelves yet</strong><span>Create a section to start curating the home page.</span></div>
+          ) : null}
+          <div className="home-sliders-section-cards">
+            {items.map((row, index) => (
+              <article className={`home-sliders-section-card${selectedSection?.id === row.id ? " is-selected" : ""}`} key={row.id}>
+                <button type="button" className="home-sliders-section-select" onClick={() => openBooks(row)} aria-pressed={selectedSection?.id === row.id}>
+                  <span className="home-sliders-section-number">{String(index + 1).padStart(2, "0")}</span>
+                  <span className="home-sliders-section-copy"><strong>{row.label}</strong><small>{row.description || row.section_key}</small></span>
+                  <span className={`home-sliders-status${row.is_active ? " is-active" : ""}`}>{row.is_active ? "Live" : "Hidden"}</span>
+                  <span className="home-sliders-section-count"><strong>{row.book_count ?? 0}</strong><small>stories</small></span>
+                </button>
+                <div className="home-sliders-section-tools">
+                  <code>{row.section_key}</code><span>Order {row.sort_order}</span>
+                  <div>
+                    <button type="button" className="btn btn-sm" onClick={() => startEdit(row)}>Edit</button>
+                    <button type="button" className="btn btn-sm btn-danger" onClick={() => remove(row.id)} disabled={busy}>Delete</button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <aside className="home-sliders-editor" aria-labelledby="home-slider-editor-title">
+          <div className="home-sliders-editor-heading">
+            <span className="home-sliders-eyebrow">SECTION SETTINGS</span>
+            <h3 id="home-slider-editor-title">{editingId ? "Edit shelf" : "Create a shelf"}</h3>
+            <p>{editingId ? "Update the label, order, or visibility of this shelf." : "Give this story rail a clear name and place it in the home feed."}</p>
+          </div>
+          <form onSubmit={save} className="home-sliders-form">
+            <label>Display name<input required value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="Editor?s picks" /></label>
+            <label>Section key<input required value={form.section_key} onChange={(e) => setForm({ ...form, section_key: e.target.value })} placeholder="editors_picks" disabled={!!editingId} /><small>Must match the story section key in the catalog.</small></label>
+            <label>Short description<input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Fresh stories selected for readers" /></label>
+            <div className="home-sliders-form-row">
+              <label>Display order<input type="number" min="0" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) || 0 })} /></label>
+              <label className="home-sliders-toggle"><input type="checkbox" checked={!!form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} /><span><strong>Show on home</strong><small>Make this shelf visible</small></span></label>
+            </div>
+            <div className="home-sliders-form-actions">
+              <button type="submit" className="btn btn-primary" disabled={busy}>{busy ? "Saving?" : editingId ? "Save changes" : "Create shelf"}</button>
+              {editingId ? <button type="button" className="btn" onClick={resetForm} disabled={busy}>Cancel</button> : null}
+            </div>
+          </form>
+        </aside>
+      </div>
+
+      <section className="home-sliders-book-manager" aria-labelledby="home-slider-books-title">
+        <div className="home-sliders-book-manager-heading">
+          <div><span className="home-sliders-eyebrow">CURATE STORIES</span><h3 id="home-slider-books-title">{selectedSection ? `Stories in ${selectedSection.label}` : "Choose a shelf to curate"}</h3><p>Each novel appears in one home shelf at a time. Moving it here updates its section in the catalog.</p></div>
+          {selectedSection ? <span className="home-sliders-key">{selectedSection.section_key}</span> : null}
+        </div>
+        {selectedSection ? (
+          <>
+            <div className="home-sliders-assign-row">
+              <label>Find a novel<select defaultValue="" onChange={(e) => { const value = e.target.value; e.target.value = ""; if (value) setFromDropdown(value); }} disabled={busy}>
+                <option value="">Choose from catalog?</option>
+                {(books || []).map((book) => <option key={book.id} value={book.id}>#{book.id} ? {book.title}</option>)}
+              </select></label>
+              <span className="home-sliders-or">or</span>
+              <label>Assign by novel IDs<input value={assignIds} onChange={(e) => setAssignIds(e.target.value)} placeholder="12, 45, 88" /></label>
+              <button type="button" className="btn btn-primary" onClick={assign} disabled={busy || !assignIds.trim()}>{busy ? "Updating?" : "Assign novels"}</button>
+            </div>
+            {sectionBooks.length ? (
+              <div className="home-sliders-assigned-list">
+                {sectionBooks.map((book) => (
+                  <article className="home-sliders-assigned-book" key={book.id}>
+                    {coverUrl(book.cover_path) ? <img src={coverUrl(book.cover_path)} alt="" loading="lazy" /> : <span className="home-sliders-assigned-fallback">{(book.title || "N").slice(0, 1)}</span>}
+                    <div><strong>{book.title}</strong><small>#{book.id} ? {book.author || "Unknown author"}</small></div>
+                    <button type="button" className="btn btn-sm" onClick={() => removeBook(book)} disabled={busy || removingBookId === book.id}>{removingBookId === book.id ? "Moving?" : "Move to Recently Updated"}</button>
+                  </article>
+                ))}
+              </div>
+            ) : <div className="home-sliders-empty">No novels are assigned to this shelf yet. Choose one above to fill the preview.</div>}
+          </>
+        ) : <div className="home-sliders-empty">Create a shelf or select an existing section to manage its stories.</div>}
+      </section>
+    </div>
+  );
+}
+
+function HomeHeroImagesPage() {
+  const [items, setItems] = useState([]);
+  const [form, setForm] = useState({ title: "", image_path: "", sort_order: 100, is_active: true });
+  const [editingId, setEditingId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const result = await listHomeHeroImages();
+      setItems(Array.isArray(result?.items) ? result.items : []);
+    } catch (e) {
+      setError(e?.message || String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const reset = () => {
+    setEditingId(null);
+    setForm({ title: "", image_path: "", sort_order: 100, is_active: true });
+  };
+
+  const edit = (item) => {
+    setEditingId(item.id);
     setForm({
-      section_key: row.section_key || "",
-      label: row.label || "",
-      description: row.description || "",
-      sort_order: row.sort_order ?? 100,
-      is_active: !!row.is_active,
+      title: item.title || "",
+      image_path: item.image_path || "",
+      sort_order: Number(item.sort_order ?? 100),
+      is_active: Boolean(Number(item.is_active)),
     });
   };
 
-  const save = async (e) => {
-    e?.preventDefault?.();
-    setBusy(true);
+  const pickImage = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
     setError("");
+    setUploading(true);
     try {
-      if (editingId) {
-        await updateHomeSection(editingId, form);
-      } else {
-        await createHomeSection(form);
-      }
-      resetForm();
-      await load();
-      onRefresh?.();
-    } catch (err) {
-      setError(err?.message || String(err));
+      const result = await uploadImage(file);
+      const path = result?.path || result?.url || "";
+      if (!path) throw new Error("The uploaded image did not return a path.");
+      setForm((current) => ({ ...current, image_path: path }));
+    } catch (e) {
+      setError(e?.message || String(e));
     } finally {
-      setBusy(false);
+      setUploading(false);
+      event.target.value = "";
     }
   };
 
-  const remove = async (id) => {
-    if (!window.confirm("Delete this home slider section? Books will move to Recently Updated.")) return;
-    setBusy(true);
-    try {
-      await deleteHomeSection(id);
-      if (selectedSection?.id === id) {
-        setSelectedSection(null);
-        setSectionBooks([]);
-      }
-      await load();
-      onRefresh?.();
-    } catch (err) {
-      setError(err?.message || String(err));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const openBooks = async (row) => {
-    setSelectedSection(row);
-    setBusy(true);
-    try {
-      const res = await listHomeSectionBooks(row.section_key);
-      setSectionBooks(res?.items || []);
-    } catch (err) {
-      setError(err?.message || String(err));
-      setSectionBooks([]);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const assign = async () => {
-    if (!selectedSection) return;
-    const ids = assignIds
-      .split(/[,\s]+/)
-      .map((x) => parseInt(x, 10))
-      .filter((n) => !Number.isNaN(n) && n > 0);
-    if (!ids.length) {
-      setError("Enter book IDs separated by commas or spaces");
+  const save = async (event) => {
+    event.preventDefault();
+    if (!editingId && items.length >= MAX_HOME_HERO_IMAGES) {
+      setError("You can use up to five hero backgrounds. Delete one before adding another.");
       return;
     }
     setBusy(true);
     setError("");
     try {
-      await assignBooksToHomeSection(selectedSection.section_key, ids);
-      setAssignIds("");
-      await openBooks(selectedSection);
+      if (editingId) await updateHomeHeroImage(editingId, form);
+      else await createHomeHeroImage(form);
+      reset();
       await load();
-      onRefresh?.();
-    } catch (err) {
-      setError(err?.message || String(err));
+    } catch (e) {
+      setError(e?.message || String(e));
     } finally {
       setBusy(false);
     }
   };
 
-  const setFromDropdown = async (bookId) => {
-    if (!selectedSection || !bookId) return;
+  const remove = async (item) => {
+    if (!window.confirm(`Delete "${item.title || "this hero background"}"?`)) return;
     setBusy(true);
+    setError("");
     try {
-      await assignBooksToHomeSection(selectedSection.section_key, [Number(bookId)]);
-      await openBooks(selectedSection);
+      await deleteHomeHeroImage(item.id);
+      if (editingId === item.id) reset();
       await load();
-    } catch (err) {
-      setError(err?.message || String(err));
+    } catch (e) {
+      setError(e?.message || String(e));
     } finally {
       setBusy(false);
     }
   };
+
+  const preview = coverUrl(form.image_path);
+  const imageLimitReached = !editingId && items.length >= MAX_HOME_HERO_IMAGES;
 
   return (
-    <div className="page-section">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+    <div className="page-section home-hero-images-page">
+      <header className="home-sliders-heading">
         <div>
-          <h2 style={{ margin: 0 }}>Home Sliders</h2>
-          <p style={{ margin: "6px 0 0", color: "var(--text-muted)", fontSize: ".9rem" }}>
-            Manage Discover home story-card rails. Each section key maps to a book&apos;s{" "}
-            <code>section_name</code>. Active sections appear as horizontal sliders on the home page.
-          </p>
+          <span className="home-sliders-eyebrow">HOME PAGE CONTENT</span>
+          <h2>Hero backgrounds</h2>
+          <p>Manage up to five images. The background follows the active featured-story slide on the home page.</p>
         </div>
-        <button type="button" className="btn btn-sm" onClick={load} disabled={loading || busy}>
-          {loading ? "Loading…" : "Refresh"}
+        <button type="button" className="btn" onClick={load} disabled={loading || busy}>
+          {loading ? "Refreshing…" : "Refresh"}
         </button>
-      </div>
+      </header>
 
-      {error && (
-        <div className="alert" style={{ marginTop: 12, color: "#b91c1c" }}>
-          {error}
-        </div>
-      )}
+      {error ? <div className="home-sliders-error" role="alert">{error}</div> : null}
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 1fr) minmax(280px, 1.2fr)", gap: 20, marginTop: 16 }}>
-        <div className="card" style={{ padding: 16 }}>
-          <h3 style={{ marginTop: 0 }}>{editingId ? "Edit section" : "Add section"}</h3>
-          <form onSubmit={save} style={{ display: "grid", gap: 10 }}>
-            <label>
-              Section key (slug)
-              <input
-                required
-                value={form.section_key}
-                onChange={(e) => setForm({ ...form, section_key: e.target.value })}
-                placeholder="e.g. editor_picks"
-                disabled={!!editingId}
-              />
-            </label>
-            <label>
-              Display label
-              <input
-                required
-                value={form.label}
-                onChange={(e) => setForm({ ...form, label: e.target.value })}
-                placeholder="Editors' Picks"
-              />
-            </label>
-            <label>
-              Description
-              <input
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Optional subtitle"
-              />
-            </label>
-            <label>
-              Sort order
-              <input
-                type="number"
-                value={form.sort_order}
-                onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) || 0 })}
-              />
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <input
-                type="checkbox"
-                checked={!!form.is_active}
-                onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-              />
-              Active on home page
-            </label>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button type="submit" className="btn btn-primary" disabled={busy}>
-                {editingId ? "Save changes" : "Create section"}
-              </button>
-              {editingId && (
-                <button type="button" className="btn" onClick={resetForm}>
-                  Cancel
-                </button>
-              )}
-            </div>
-          </form>
-        </div>
-
-        <div className="card" style={{ padding: 16, overflowX: "auto" }}>
-          <h3 style={{ marginTop: 0 }}>Sections ({items.length})</h3>
-          {loading ? (
-            <p>Loading…</p>
-          ) : items.length === 0 ? (
-            <p style={{ color: "var(--text-muted)" }}>No sections yet. Create one or restart the backend to seed defaults.</p>
-          ) : (
-            <table className="data-table" style={{ width: "100%", fontSize: ".9rem" }}>
-              <thead>
-                <tr>
-                  <th>Label</th>
-                  <th>Key</th>
-                  <th>Books</th>
-                  <th>Order</th>
-                  <th>Active</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.label}</td>
-                    <td>
-                      <code>{row.section_key}</code>
-                    </td>
-                    <td>{row.book_count ?? 0}</td>
-                    <td>{row.sort_order}</td>
-                    <td>{row.is_active ? "Yes" : "No"}</td>
-                    <td style={{ whiteSpace: "nowrap" }}>
-                      <button type="button" className="btn btn-sm" onClick={() => openBooks(row)}>
-                        Books
-                      </button>{" "}
-                      <button type="button" className="btn btn-sm" onClick={() => startEdit(row)}>
-                        Edit
-                      </button>{" "}
-                      <button type="button" className="btn btn-sm" onClick={() => remove(row.id)}>
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
-
-      {selectedSection && (
-        <div className="card" style={{ padding: 16, marginTop: 20 }}>
-          <h3 style={{ marginTop: 0 }}>
-            Books in <code>{selectedSection.section_key}</code> — {selectedSection.label}
-          </h3>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12, alignItems: "flex-end" }}>
-            <label style={{ flex: "1 1 200px" }}>
-              Assign by book ID(s)
-              <input
-                value={assignIds}
-                onChange={(e) => setAssignIds(e.target.value)}
-                placeholder="12, 45, 88"
-              />
-            </label>
-            <button type="button" className="btn btn-primary" onClick={assign} disabled={busy}>
-              Assign IDs
-            </button>
-            <label style={{ flex: "1 1 220px" }}>
-              Or pick a novel
-              <select
-                defaultValue=""
-                onChange={(e) => {
-                  const v = e.target.value;
-                  e.target.value = "";
-                  if (v) setFromDropdown(v);
-                }}
-              >
-                <option value="">Select book…</option>
-                {(books || []).map((b) => (
-                  <option key={b.id} value={b.id}>
-                    #{b.id} — {b.title}
-                  </option>
-                ))}
-              </select>
-            </label>
+      <div className="home-hero-images-layout">
+        <section className="home-hero-images-list" aria-label="Existing hero backgrounds">
+          <div className="home-hero-images-list-heading">
+            <h3>Background images <span>{items.length}/{MAX_HOME_HERO_IMAGES}</span></h3>
+            <p>Active images follow the featured-story slider. Lower order numbers appear first.</p>
           </div>
-          {sectionBooks.length === 0 ? (
-            <p style={{ color: "var(--text-muted)" }}>No books in this section yet.</p>
-          ) : (
-            <ul style={{ margin: 0, paddingLeft: 18 }}>
-              {sectionBooks.map((b) => (
-                <li key={b.id}>
-                  <strong>#{b.id}</strong> {b.title}{" "}
-                  <span style={{ color: "var(--text-muted)" }}>by {b.author}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+          {loading && !items.length ? <p className="home-sliders-empty">Loading hero backgrounds…</p> : null}
+          {!loading && !items.length ? <p className="home-sliders-empty">No hero backgrounds yet. Add an image to get started.</p> : null}
+          <div className="home-hero-images-grid">
+            {items.map((item) => (
+              <article className={`home-hero-image-card${editingId === item.id ? " is-editing" : ""}`} key={item.id}>
+                {coverUrl(item.image_path)
+                  ? <img src={coverUrl(item.image_path)} alt={item.title || "Home hero background"} loading="lazy" />
+                  : <div className="home-hero-image-empty">Image unavailable</div>}
+                <div className="home-hero-image-card-copy">
+                  <strong>{item.title || "Untitled background"}</strong>
+                  <span>{Number(item.is_active) ? "Active" : "Hidden"} · Order {item.sort_order}</span>
+                </div>
+                <div className="home-hero-image-card-actions">
+                  <button type="button" className="btn btn-sm" onClick={() => edit(item)}>Edit</button>
+                  <button type="button" className="btn btn-sm btn-danger" onClick={() => remove(item)} disabled={busy}>Delete</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="home-hero-image-editor" aria-labelledby="home-hero-image-editor-title">
+          <div>
+            <span className="home-sliders-eyebrow">BACKGROUND SETTINGS</span>
+            <h3 id="home-hero-image-editor-title">{editingId ? "Edit background" : "Add a background"}</h3>
+            <p>Use a wide image for the best result. The hero applies a dark overlay to keep its text readable.</p>
+          </div>
+          <form onSubmit={save}>
+            <label>
+              Background image
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={pickImage} disabled={uploading || busy || imageLimitReached} />
+            </label>
+            <label>
+              Or image path / URL
+              <input required value={form.image_path} onChange={(event) => setForm({ ...form, image_path: event.target.value })} placeholder="/api/media/…" disabled={imageLimitReached} />
+            </label>
+            {preview ? <img className="home-hero-image-editor-preview" src={preview} alt="Hero background preview" /> : null}
+            <label>
+              Image label (optional)
+              <input maxLength={160} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Evening city skyline" />
+            </label>
+            <label>
+              Display order
+              <input type="number" value={form.sort_order} onChange={(event) => setForm({ ...form, sort_order: Number(event.target.value) })} />
+            </label>
+            <label className="home-hero-image-active">
+              <input type="checkbox" checked={form.is_active} onChange={(event) => setForm({ ...form, is_active: event.target.checked })} />
+              Show this image on the home page
+            </label>
+            <div className="home-hero-image-editor-actions">
+              {editingId ? <button type="button" className="btn" onClick={reset} disabled={busy}>Cancel</button> : null}
+              <button type="submit" className="btn btn-primary" disabled={busy || uploading || imageLimitReached}>
+                {uploading ? "Uploading…" : busy ? "Saving…" : editingId ? "Save changes" : imageLimitReached ? "Limit reached" : "Add background"}
+              </button>
+            </div>
+            {imageLimitReached ? <p className="home-hero-image-limit" role="status">You can use up to five backgrounds. Delete one to add another.</p> : null}
+          </form>
+        </section>
+      </div>
     </div>
   );
 }

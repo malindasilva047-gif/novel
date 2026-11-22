@@ -1,6 +1,8 @@
 import 'dart:math';
 
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_service.dart';
@@ -12,6 +14,8 @@ class AuthSession {
     required this.email,
     required this.displayName,
     this.photoUrl,
+    this.isNewUser = false,
+    this.accountStatusMessage,
   });
 
   final int? id;
@@ -19,10 +23,23 @@ class AuthSession {
   final String email;
   final String displayName;
   final String? photoUrl;
+  final bool isNewUser;
+  final String? accountStatusMessage;
 
   bool get isGoogle => method == 'google';
+  bool get isFacebook => method == 'facebook';
   bool get isGuest => method == 'guest';
   bool get isEmail => method == 'email';
+
+  AuthSession copyWith({String? photoUrl}) => AuthSession(
+    id: id,
+    method: method,
+    email: email,
+    displayName: displayName,
+    photoUrl: photoUrl ?? this.photoUrl,
+    isNewUser: isNewUser,
+    accountStatusMessage: accountStatusMessage,
+  );
 }
 
 /// Thrown when the backend refuses login (ban / suspend / deleted).
@@ -41,6 +58,10 @@ class AuthService {
   static const String _googleClientIdEnv = String.fromEnvironment(
     'GOOGLE_CLIENT_ID',
     defaultValue: _defaultGoogleWebClientId,
+  );
+  static const String _facebookAppId = String.fromEnvironment(
+    'FACEBOOK_APP_ID',
+    defaultValue: '',
   );
 
   AuthService({required ApiService apiService, GoogleSignIn? googleSignIn})
@@ -64,11 +85,48 @@ class AuthService {
 
   final ApiService _apiService;
   final GoogleSignIn _googleSignIn;
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  int _sessionOperation = 0;
+
+  Future<String?> _readSessionToken(SharedPreferences prefs) async {
+    final secureToken = await _secureStorage.read(key: _tokenKey);
+    if (secureToken != null && secureToken.isNotEmpty) return secureToken;
+
+    final legacyToken = prefs.getString(_tokenKey);
+    if (legacyToken == null || legacyToken.isEmpty) return null;
+    await _secureStorage.write(key: _tokenKey, value: legacyToken);
+    await prefs.remove(_tokenKey);
+    return legacyToken;
+  }
+
+  String _resolveSessionMethod(String savedMethod, Map<String, dynamic> me) {
+    final provider = (me['provider'] ?? '').toString().trim().toLowerCase();
+    if (provider == 'google') return 'google';
+    if (provider == 'facebook') return 'facebook';
+    if (provider == 'guest' || me['is_guest'] == true) return 'guest';
+    if (provider == 'email' || provider == 'password') return 'email';
+    return savedMethod;
+  }
+
+  String _resolveOfflineSessionMethod(String savedMethod, String email) {
+    if (savedMethod != 'guest') return savedMethod;
+    final normalizedEmail = email.trim().toLowerCase();
+    final isGuestAddress =
+        normalizedEmail == 'guest@novel.app' ||
+        (normalizedEmail.startsWith('guest_') &&
+            normalizedEmail.endsWith('@novel.app'));
+    if (isGuestAddress) return 'guest';
+    // Older app builds could leave a stale "guest" method beside a real
+    // account email. Never apply guest-only restrictions to that account.
+    return normalizedEmail.endsWith('@gmail.com') ? 'google' : 'email';
+  }
 
   String _acceptSessionToken(Map<String, dynamic> payload) {
     final token = payload['token']?.toString().trim() ?? '';
     if (token.isEmpty || token.toLowerCase() == 'null') {
-      throw Exception('The server did not return a session token. Please try again.');
+      throw Exception(
+        'The server did not return a session token. Please try again.',
+      );
     }
     _apiService.setAuthToken(token);
     return token;
@@ -128,13 +186,15 @@ class AuthService {
 
   /// Pull latest profile from /api/me into local session (after onboarding).
   Future<AuthSession?> refreshSessionFromServer() async {
+    final operation = _sessionOperation;
     final prefs = await SharedPreferences.getInstance();
     final methodName = prefs.getString(_methodKey);
-    final token = prefs.getString(_tokenKey);
+    final token = await _readSessionToken(prefs);
     if (methodName == null || token == null || token.isEmpty) return null;
     _apiService.setAuthToken(token);
     try {
       final me = await _apiService.fetchMeStrict();
+      if (operation != _sessionOperation) return null;
       if (me.isEmpty || me['id'] == null) {
         await _clearLocalSession(keepDeviceId: true);
         return null;
@@ -152,9 +212,13 @@ class AuthService {
       if (me['email'] != null) {
         await prefs.setString(_emailKey, me['email'].toString());
       }
+      final resolvedMethod = _resolveSessionMethod(methodName, me);
+      if (resolvedMethod != methodName) {
+        await prefs.setString(_methodKey, resolvedMethod);
+      }
       return AuthSession(
         id: prefs.getInt(_idKey),
-        method: methodName,
+        method: resolvedMethod,
         email: prefs.getString(_emailKey) ?? me['email']?.toString() ?? '',
         displayName:
             prefs.getString(_displayNameKey) ??
@@ -163,6 +227,7 @@ class AuthService {
         photoUrl: prefs.getString(_photoUrlKey) ?? photo,
       );
     } catch (error) {
+      if (operation != _sessionOperation) return null;
       if (_isRejectedSessionError(error)) {
         await _clearLocalSession(keepDeviceId: true);
       }
@@ -171,13 +236,14 @@ class AuthService {
   }
 
   Future<AuthSession?> restoreSession() async {
+    final operation = _sessionOperation;
     final prefs = await SharedPreferences.getInstance();
     final method = prefs.getString(_methodKey);
     if (method == null || method.isEmpty) {
       return null;
     }
 
-    final token = prefs.getString(_tokenKey);
+    final token = await _readSessionToken(prefs);
     if (token == null || token.isEmpty) {
       await _clearLocalSession(keepDeviceId: true);
       return null;
@@ -186,6 +252,7 @@ class AuthService {
     _apiService.setAuthToken(token);
     try {
       final me = await _apiService.fetchMeStrict();
+      if (operation != _sessionOperation) return null;
       if (me.isEmpty || me['id'] == null) {
         await _clearLocalSession(keepDeviceId: true);
         return null;
@@ -199,6 +266,10 @@ class AuthService {
       if (me['id'] is num) {
         await prefs.setInt(_idKey, (me['id'] as num).toInt());
       }
+      final resolvedMethod = _resolveSessionMethod(method, me);
+      if (resolvedMethod != method) {
+        await prefs.setString(_methodKey, resolvedMethod);
+      }
       final serverPhoto = (me['photo_url'] ?? me['avatar_url'] ?? '')
           .toString();
       if (serverPhoto.isNotEmpty) {
@@ -206,7 +277,7 @@ class AuthService {
       }
       return AuthSession(
         id: prefs.getInt(_idKey),
-        method: method,
+        method: resolvedMethod,
         email: prefs.getString(_emailKey) ?? me['email']?.toString() ?? '',
         displayName:
             prefs.getString(_displayNameKey) ??
@@ -215,9 +286,11 @@ class AuthService {
         photoUrl: prefs.getString(_photoUrlKey) ?? serverPhoto,
       );
     } on AuthBlockedException {
+      if (operation != _sessionOperation) return null;
       await signOut();
       rethrow;
     } catch (e) {
+      if (operation != _sessionOperation) return null;
       final msg = e.toString().toLowerCase();
       if (msg.contains('banned') ||
           msg.contains('suspended') ||
@@ -234,16 +307,17 @@ class AuthService {
       // bounced to Login on every brief outage. Next API call revalidates.
       final email = prefs.getString(_emailKey) ?? '';
       final displayName = prefs.getString(_displayNameKey) ?? email;
+      final offlineMethod = _resolveOfflineSessionMethod(method, email);
       if (email.isEmpty && method != 'guest') {
         await _clearLocalSession(keepDeviceId: true);
         return null;
       }
       return AuthSession(
         id: prefs.getInt(_idKey),
-        method: method,
+        method: offlineMethod,
         email: email.isEmpty ? 'guest@novel.app' : email,
         displayName: displayName.isEmpty
-            ? (method == 'guest' ? 'Guest' : email)
+            ? (offlineMethod == 'guest' ? 'Guest' : email)
             : displayName,
         photoUrl: prefs.getString(_photoUrlKey),
       );
@@ -251,6 +325,7 @@ class AuthService {
   }
 
   Future<AuthSession> signInWithGoogle() async {
+    _sessionOperation++;
     GoogleSignInAccount? user;
     try {
       user = await _googleSignIn.signIn();
@@ -281,6 +356,8 @@ class AuthService {
             user.displayName ??
             user.email,
         photoUrl: payload['photo_url']?.toString() ?? user.photoUrl,
+        isNewUser: payload['is_new_user'] == true,
+        accountStatusMessage: payload['account_status_message']?.toString(),
       );
       await _persistSession(session);
       return session;
@@ -292,13 +369,54 @@ class AuthService {
     }
   }
 
+  Future<AuthSession> signInWithFacebook() async {
+    _sessionOperation++;
+    if (_facebookAppId.isEmpty) {
+      throw Exception(
+        'Facebook sign-in needs Wingsaga’s Facebook App ID. Configure FACEBOOK_APP_ID and rebuild the APK.',
+      );
+    }
+    try {
+      final result = await FacebookAuth.instance.login(
+        permissions: const ['email', 'public_profile'],
+      );
+      if (result.status == LoginStatus.cancelled) {
+        throw Exception('Facebook sign-in was cancelled.');
+      }
+      if (result.status != LoginStatus.success || result.accessToken == null) {
+        throw Exception(
+          result.message ?? 'Facebook sign-in could not be completed.',
+        );
+      }
+      final payload = await _apiService.verifyFacebookSignIn(
+        accessToken: result.accessToken!.tokenString,
+      );
+      _acceptSessionToken(payload);
+      final session = AuthSession(
+        id: payload['id'] is num ? (payload['id'] as num).toInt() : null,
+        method: 'facebook',
+        email: payload['email']?.toString() ?? '',
+        displayName: payload['display_name']?.toString() ?? 'Reader',
+        photoUrl: payload['photo_url']?.toString(),
+        isNewUser: payload['is_new_user'] == true,
+      );
+      await _persistSession(session);
+      return session;
+    } catch (error) {
+      try {
+        await FacebookAuth.instance.logOut();
+      } catch (_) {}
+      rethrow;
+    }
+  }
+
   String _friendlyGoogleSignInError(Object error) {
     final message = error.toString();
     final lower = message.toLowerCase();
     if (lower.contains('statuscode=10') ||
         lower.contains('developer_error') ||
         lower.contains('sign_in_failed')) {
-      return 'Google sign-in is not configured for this debug build. Add the Android OAuth client for com.example.novel_mobile_app with the debug SHA-1, download the updated google-services.json, then rebuild.';
+      return 'Google sign-in is not enabled for this release yet. In Google Cloud Console, create an Android OAuth client for package com.example.novel_mobile_app with SHA-1 98:3A:B9:03:17:FF:49:2A:BB:BC:E0:F2:B3:B1:F0:7F:67:74:DB:12. Save it, wait a few minutes, then try again. You do not need to reinstall this app.';
     }
     if (lower.contains('network')) {
       return 'Google sign-in needs an active internet connection.';
@@ -313,6 +431,7 @@ class AuthService {
     String mode = 'login',
     String? displayName,
   }) async {
+    _sessionOperation++;
     final ident = email.trim();
     if (ident.isEmpty) {
       throw Exception('Enter username or email.');
@@ -341,6 +460,7 @@ class AuthService {
             payload['display_name']?.toString() ??
             payload['username']?.toString() ??
             ident,
+        accountStatusMessage: payload['account_status_message']?.toString(),
       );
       await _persistSession(session);
       return session;
@@ -350,6 +470,7 @@ class AuthService {
   }
 
   Future<AuthSession> signInAsGuest() async {
+    _sessionOperation++;
     final deviceId = await _deviceId();
     try {
       final payload = await _apiService.verifyGuestSignIn(deviceId: deviceId);
@@ -369,9 +490,13 @@ class AuthService {
   }
 
   Future<void> signOut() async {
+    _sessionOperation++;
     await _apiService.revokeCurrentSession();
     try {
       await _googleSignIn.signOut();
+    } catch (_) {}
+    try {
+      await FacebookAuth.instance.logOut();
     } catch (_) {}
     _apiService.setAuthToken(null);
     await _clearLocalSession(keepDeviceId: true);
@@ -388,6 +513,7 @@ class AuthService {
     await prefs.remove(_displayNameKey);
     await prefs.remove(_photoUrlKey);
     await prefs.remove(_tokenKey);
+    await _secureStorage.delete(key: _tokenKey);
     _apiService.setAuthToken(null);
 
     // Drop user-scoped local search history so the next account cannot see it.
@@ -427,8 +553,9 @@ class AuthService {
     await prefs.setString(_methodKey, session.method);
     final token = _apiService.authTokenForPersistence;
     if (token != null && token.isNotEmpty) {
-      await prefs.setString(_tokenKey, token);
+      await _secureStorage.write(key: _tokenKey, value: token);
     } else {
+      await _secureStorage.delete(key: _tokenKey);
       await prefs.remove(_tokenKey);
     }
     if (session.id != null) {
@@ -442,6 +569,16 @@ class AuthService {
       await prefs.setString(_photoUrlKey, session.photoUrl!);
     } else {
       await prefs.remove(_photoUrlKey);
+    }
+  }
+
+  Future<void> updateProfilePhoto(String photoUrl) async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = photoUrl.trim();
+    if (value.isEmpty) {
+      await prefs.remove(_photoUrlKey);
+    } else {
+      await prefs.setString(_photoUrlKey, value);
     }
   }
 }

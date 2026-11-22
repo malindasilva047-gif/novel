@@ -1,6 +1,15 @@
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").trim().replace(/\/$/, "");
+const configuredApiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").trim();
+const useSameOriginApi = import.meta.env.VITE_USE_SAME_ORIGIN_API === "true";
+// Cloudflare quick tunnels expose the local Vite server. Keep API calls same-origin
+// so Vite's /api proxy forwards them without a browser CORS preflight.
+const isCloudflareTunnel = typeof window !== "undefined"
+  && window.location.hostname.toLowerCase().endsWith(".trycloudflare.com");
+const API_BASE_URL = (useSameOriginApi || isCloudflareTunnel ? "" : configuredApiBaseUrl || (import.meta.env.DEV
+  ? ""
+  : "https://novel-v7.vercel.app")).replace(/\/+$/, "");
 const ADMIN_TOKEN_KEY = "novel_admin_token";
+const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 
 export function getAdminToken() {
   return window.localStorage.getItem(ADMIN_TOKEN_KEY) || "";
@@ -29,11 +38,11 @@ async function request(path, options = {}) {
   let response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
       headers: {
         ...(isFormData ? {} : { "Content-Type": "application/json" }),
         ...headers,
       },
-      ...options,
     });
   } catch (e) {
     throw new Error(
@@ -58,7 +67,7 @@ export function loginAdmin(payload) {
 }
 
 export function getAdminSession() {
-  // Backend only allows POST (Bearer token in Authorization header).
+  // Validate the stored admin token using the backend's session endpoint.
   return request("/api/admin/session", { method: "POST", body: "{}" });
 }
 
@@ -70,14 +79,68 @@ export function listStoryImages() {
   return request("/api/story-images");
 }
 
-export function uploadImage(file) {
+async function optimizeUploadedImage(file) {
+  if (!file?.type?.startsWith("image/") || file.type === "image/svg+xml") return file;
+  const source = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = () => reject(new Error("This image could not be opened for optimization."));
+      image.src = source;
+    });
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Image optimization is not available in this browser.");
+    let scale = Math.min(1, 1800 / image.naturalWidth, 1800 / image.naturalHeight);
+    let optimized = null;
+    const qualities = [0.82, 0.72, 0.62, 0.52];
+    for (let attempt = 0; attempt < 10 && !optimized; attempt += 1) {
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      for (const quality of qualities) {
+        const webp = await new Promise((resolve) => canvas.toBlob(resolve, "image/webp", quality));
+        if (webp?.type === "image/webp" && webp.size <= MAX_UPLOAD_BYTES) {
+          optimized = webp;
+          break;
+        }
+      }
+      scale *= 0.8;
+    }
+    if (!optimized) {
+      if (file.size <= MAX_UPLOAD_BYTES) return file;
+      throw new Error("This image could not be compressed enough to upload.");
+    }
+    if (file.size <= MAX_UPLOAD_BYTES && optimized.size >= file.size) return file;
+    const baseName = file.name.replace(/\.[^.]+$/, "") || "image";
+    return new File([optimized], `${baseName}.webp`, { type: "image/webp", lastModified: Date.now() });
+  } finally {
+    URL.revokeObjectURL(source);
+  }
+}
+
+async function uploadImageTo(file, path) {
+  const optimizedFile = await optimizeUploadedImage(file);
   const body = new FormData();
-  body.append("file", file);
-  return request("/api/upload-image", { method: "POST", body });
+  body.append("file", optimizedFile);
+  return request(path, { method: "POST", body });
+}
+
+export function uploadImage(file) {
+  return uploadImageTo(file, "/api/upload-image");
+}
+
+export function uploadTagCoverImage(file) {
+  return uploadImageTo(file, "/api/admin/tags/upload-cover");
 }
 
 export function getAdminBootstrap() {
   return request("/api/admin/bootstrap");
+}
+
+export function getAdminSupportRequests() {
+  return request("/api/admin/support-requests");
 }
 
 export function createCategory(payload) {
@@ -370,6 +433,28 @@ export function sendChatReply(userId, message) {
 // --- Home slider sections (story card rails on Discover home) ---
 export function listHomeSections() {
   return request("/api/admin/home-sections");
+}
+
+export function listHomeHeroImages() {
+  return request("/api/admin/home-hero-images");
+}
+
+export function createHomeHeroImage(payload) {
+  return request("/api/admin/home-hero-images", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateHomeHeroImage(id, payload) {
+  return request(`/api/admin/home-hero-images/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteHomeHeroImage(id) {
+  return request(`/api/admin/home-hero-images/${id}`, { method: "DELETE" });
 }
 
 export function createHomeSection(payload) {

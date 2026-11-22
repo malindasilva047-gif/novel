@@ -29,26 +29,70 @@ class _SupportScreenState extends State<SupportScreen> {
   String _attachmentPath = '';
   bool _submitting = false;
 
+  Future<void> _showSubmitResult(
+    String message, {
+    bool failed = false,
+    bool warning = false,
+  }) async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        icon: Icon(
+          failed
+              ? Icons.error_outline_rounded
+              : warning
+              ? Icons.warning_amber_rounded
+              : Icons.check_circle_outline,
+          color: failed
+              ? Theme.of(ctx).colorScheme.error
+              : warning
+              ? AppTheme.amber
+              : AppTheme.brand,
+        ),
+        title: Text(
+          failed
+              ? 'Could not send message'
+              : warning
+              ? 'Check your message'
+              : 'Message sent',
+        ),
+        content: Text(message),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _pickAttachment() async {
     final picked = await _imagePicker.pickImage(source: ImageSource.gallery);
     if (picked == null) {
       return;
     }
 
-    final bytes = await picked.readAsBytes();
-    final payload = await widget.apiService.uploadSupportAttachment(
-      bytes,
-      picked.name,
-    );
-    final path = payload['path']?.toString() ?? '';
-    if (!mounted || path.isEmpty) {
-      return;
-    }
+    try {
+      final bytes = await picked.readAsBytes();
+      final payload = await widget.apiService.uploadSupportAttachment(
+        bytes,
+        picked.name,
+      );
+      final path = payload['path']?.toString() ?? '';
+      if (!mounted) return;
 
-    setState(() => _attachmentPath = path);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Attachment uploaded')),
-    );
+      setState(() => _attachmentPath = path);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Attachment uploaded')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not upload attachment: $error')),
+      );
+    }
   }
 
   @override
@@ -67,8 +111,9 @@ class _SupportScreenState extends State<SupportScreen> {
     final description = _descriptionController.text.trim();
 
     if (email.isEmpty || firstName.isEmpty || subject.isEmpty || description.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete every field.')),
+      await _showSubmitResult(
+        'Please complete every field before sending.',
+        warning: true,
       );
       return;
     }
@@ -90,16 +135,12 @@ class _SupportScreenState extends State<SupportScreen> {
       _subjectController.clear();
       _descriptionController.clear();
       setState(() => _attachmentPath = '');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Support request submitted.')),
-      );
+      await _showSubmitResult('Your support request was sent successfully.');
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
- SnackBar(content: Text('Failed to submit request: $error')),
-      );
+      await _showSubmitResult('Failed to send your request: $error', failed: true);
     } finally {
       if (mounted) {
         setState(() => _submitting = false);
@@ -112,11 +153,14 @@ class _SupportScreenState extends State<SupportScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.symmetric(
+          horizontal: MediaQuery.sizeOf(context).width < 380 ? 14 : 20,
+          vertical: 20,
+        ),
         children: [
  Container(
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
+              color: AppTheme.surfaceOf(context),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: AppTheme.borderOf(context)),
             ),
@@ -133,7 +177,10 @@ class _SupportScreenState extends State<SupportScreen> {
           const SizedBox(height: 18),
  Text(
             'Submit a request',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontSize: 34),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontSize: MediaQuery.sizeOf(context).width < 380 ? 27 : 32,
+              color: AppTheme.inkOf(context),
+            ),
           ),
           const SizedBox(height: 18),
  TextField(

@@ -1,42 +1,12 @@
-import { useRef, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import ArrowCarousel from "./ArrowCarousel";
 import BookCard from "./BookCard";
 
-export default function Shelf({ title, books = [], seeAllTo, seeAllLabel = "View All →" }) {
-  const scroller = useRef(null);
-  const [canLeft, setCanLeft] = useState(false);
-  const [canRight, setCanRight] = useState(true);
-
-  function updateArrows() {
-    const el = scroller.current;
-    if (!el) return;
-    setCanLeft(el.scrollLeft > 4);
-    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
-  }
-
-  useEffect(() => {
-    const el = scroller.current;
-    if (!el) return;
-    updateArrows();
-    el.addEventListener("scroll", updateArrows, { passive: true });
-    window.addEventListener("resize", updateArrows);
-    return () => {
-      el.removeEventListener("scroll", updateArrows);
-      window.removeEventListener("resize", updateArrows);
-    };
-  }, [books]);
-
-  function scroll(dir) {
-    const el = scroller.current;
-    if (!el) return;
-    const step = Math.min(el.clientWidth * 0.8, 640);
-    el.scrollBy({ left: dir * step, behavior: "smooth" });
-  }
-
+export default function Shelf({ title, books = [], seeAllTo, seeAllLabel = "View All →", className = "", inkittStyle = false, deferUntilVisible = false }) {
   if (!books.length) return null;
 
   return (
-    <section className="shelf shelf--inkitt">
+    <section className={`shelf shelf--inkitt ${className}`.trim()}>
       <div className="shelf-inner">
         <div className="shelf-header">
           <h2>{title}</h2>
@@ -49,23 +19,21 @@ export default function Shelf({ title, books = [], seeAllTo, seeAllLabel = "View
           </div>
         </div>
         <div className="shelf-track-wrap">
-          {canLeft && (
-            <button type="button" className="shelf-arrow shelf-arrow--left" onClick={() => scroll(-1)} aria-label="Previous">
-              ‹
-            </button>
-          )}
-          <div className="shelf-track" ref={scroller}>
+          <ArrowCarousel
+            className="shelf-track"
+            itemClassName={`shelf-item home-story-card-slot${inkittStyle ? " home-story-card-slot--inkitt" : ""}`}
+            label={`${title} stories`}
+            previousLabel={`Previous ${title} stories`}
+            nextLabel={`Next ${title} stories`}
+            edgeGlow={!inkittStyle}
+            stepByItem={inkittStyle}
+            carouselClassName={inkittStyle ? "arrow-carousel--inkitt-stories" : ""}
+            deferUntilVisible={deferUntilVisible}
+          >
             {books.map((b) => (
-              <div key={b.id} className="shelf-item">
-                <BookCard book={b} variant="shelf" />
-              </div>
+              <BookCard key={b.id} book={b} variant="shelf" inkittStyle={inkittStyle} />
             ))}
-          </div>
-          {canRight && (
-            <button type="button" className="shelf-arrow shelf-arrow--right" onClick={() => scroll(1)} aria-label="Next">
-              ›
-            </button>
-          )}
+          </ArrowCarousel>
         </div>
       </div>
     </section>

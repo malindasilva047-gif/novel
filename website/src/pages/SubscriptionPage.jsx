@@ -5,7 +5,7 @@ export default function SubscriptionPage({ user }) {
     <div className="container page subscription-page">
       <h1>Author Subscription</h1>
       <p className="lead">
-        Support for paid author subscriptions is coming soon. You can still discover new voices,
+        Support for paid author subscriptions is coming soon. You can still meet new voices,
         follow authors, and publish your own stories today.
       </p>
       <div className="card-panel">

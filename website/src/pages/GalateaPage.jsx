@@ -43,8 +43,8 @@ export default function GalateaPage() {
           <p className="galatea-kicker">PREMIUM COLLECTION</p>
           <h1>Galatea Stories</h1>
           <p className="lead">
-            Curated reads from the same NovelHub catalog — romance, fantasy, and more. Full chapters
-            stay on NovelHub; this shelf highlights standout titles.
+            Curated reads from the same Wingsaga catalog — romance, fantasy, and more. Full chapters
+            stay on Wingsaga; this shelf highlights standout titles.
           </p>
           <Link className="btn btn-primary" to="/">
             Explore Free Books

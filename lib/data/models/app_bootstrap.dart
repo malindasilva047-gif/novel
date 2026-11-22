@@ -4,6 +4,7 @@ class AppBootstrap {
     required this.recentlyUpdated,
     required this.recentlyCompleted,
     required this.discoverBooks,
+    this.recommendations = const [],
     required this.featuredBook,
     required this.exploreTopics,
     required this.libraryEntries,
@@ -18,6 +19,7 @@ class AppBootstrap {
   final List<BookCardModel> recentlyUpdated;
   final List<BookCardModel> recentlyCompleted;
   final List<BookCardModel> discoverBooks;
+  final List<BookCardModel> recommendations;
   final BookDetailModel featuredBook;
   final List<ExploreTopicModel> exploreTopics;
   final List<LibraryEntryModel> libraryEntries;
@@ -71,6 +73,10 @@ class AppBootstrap {
           .whereType<Map>()
           .map((item) => BookCardModel.fromMap(Map<String, dynamic>.from(item)))
           .toList(),
+      recommendations: asList('recommendations')
+          .whereType<Map>()
+          .map((item) => BookCardModel.fromMap(Map<String, dynamic>.from(item)))
+          .toList(),
       featuredBook: BookDetailModel.fromMap(featuredRaw),
       exploreTopics: asList('explore_topics')
           .whereType<Map>()
@@ -90,11 +96,11 @@ class AppBootstrap {
         asMap('write_screen').isEmpty
             ? <String, dynamic>{
                 'manage_tabs': <String>['Manage Stories', 'Analytics'],
-                'story_tabs': <String>['Submitted', 'Drafts'],
+                'story_tabs': <String>['Published', 'Drafts'],
                 'filter_label': 'All stories',
                 'sort_label': 'Recently Updated',
-                'empty_title': "You haven't submitted any story yet",
-                'empty_cta': 'Submit Stories',
+                'empty_title': "You haven't published any stories yet",
+                'empty_cta': 'Write a Story',
               }
             : asMap('write_screen'),
       ),
@@ -369,7 +375,10 @@ class LibraryEntryModel {
     if (bookMap['id'] == null && map['book_id'] != null) {
       bookMap['id'] = map['book_id'];
     }
-    if (bookMap['id'] == null && map['id'] != null && map['book_id'] == null && map['title'] != null) {
+    if (bookMap['id'] == null &&
+        map['id'] != null &&
+        map['book_id'] == null &&
+        map['title'] != null) {
       // rare: id is book id
     }
     for (final k in [
@@ -432,7 +441,7 @@ class WriteScreenModel {
             .map((e) => e.toString()),
       ),
       storyTabs: List<String>.from(
-        ((map['story_tabs'] as List?) ?? const ['Submitted', 'Drafts']).map(
+        ((map['story_tabs'] as List?) ?? const ['Published', 'Drafts']).map(
           (e) => e.toString(),
         ),
       ),
@@ -440,8 +449,8 @@ class WriteScreenModel {
       sortLabel: map['sort_label']?.toString() ?? 'Recently Updated',
       emptyTitle:
           map['empty_title']?.toString() ??
-          "You haven't submitted any story yet",
-      emptyCta: map['empty_cta']?.toString() ?? 'Submit Stories',
+          "You haven't published any stories yet",
+      emptyCta: map['empty_cta']?.toString() ?? 'Write a Story',
     );
   }
 }
@@ -524,6 +533,10 @@ class ProfileModel {
     this.gender = '',
     this.birthDate = '',
     this.country = '',
+    this.facebookUrl = '',
+    this.youtubeUrl = '',
+    this.instagramUrl = '',
+    this.twitterUrl = '',
   });
 
   final int? id;
@@ -543,6 +556,10 @@ class ProfileModel {
   final String gender;
   final String birthDate;
   final String country;
+  final String facebookUrl;
+  final String youtubeUrl;
+  final String instagramUrl;
+  final String twitterUrl;
 
   factory ProfileModel.fromMap(Map<String, dynamic> map) {
     return ProfileModel(
@@ -572,6 +589,10 @@ class ProfileModel {
       birthDate:
           map['birth_date']?.toString() ?? map['birthDate']?.toString() ?? '',
       country: map['country']?.toString() ?? '',
+      facebookUrl: map['facebook_url']?.toString() ?? '',
+      youtubeUrl: map['youtube_url']?.toString() ?? '',
+      instagramUrl: map['instagram_url']?.toString() ?? '',
+      twitterUrl: map['twitter_url']?.toString() ?? '',
     );
   }
 }

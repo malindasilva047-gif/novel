@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../data/services/api_service.dart';
 import '../../data/models/app_bootstrap.dart';
 import 'story_detail_screen.dart';
@@ -61,6 +62,8 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
   int _readSeconds = 0;
   Timer? _readTimer;
   Timer? _progressTimer;
+  Timer? _activityTimer;
+  List<String>? _cachedParagraphs;
 
   late int _chapterIndex;
   late List<Map<String, dynamic>> _chapters;
@@ -117,14 +120,13 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
   @override
   void initState() {
     _readTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _readSeconds++);
+      if (mounted) _readSeconds++;
     });
 
     super.initState();
     // Track as ongoing when reader opens
     unawaited(_markLibraryProgress(completed: false));
     _chapters = List<Map<String, dynamic>>.from(widget.chapters);
-    _loadChapterLikeState();
     _chapterIndex = widget.initialChapterIndex.clamp(
       0,
       _chapters.isEmpty ? 0 : _chapters.length - 1,
@@ -138,9 +140,14 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
       _chapterNumber = widget.chapterNumber;
       _authorPhotoUrl = widget.authorPhotoUrl;
       _resolveAuthorPhoto();
+      unawaited(_loadChapterLikeState());
     }
     _loadChaptersIfNeeded();
     _loadReactions();
+    _activityTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      if (!mounted) return;
+      unawaited(_refreshReaderActivity());
+    });
     // Resume scroll to last paragraph after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToParagraph(_lastParagraphIndex);
@@ -223,7 +230,6 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
   Timer? _librarySaveTimer;
 
   Future<void> _markLibraryProgress({bool completed = false}) async {
-
     final bookId = widget.bookId;
     if (bookId == null || bookId <= 0) return;
     // Author reading their own book must NOT enter Continue Reading / Completed.
@@ -247,10 +253,10 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
       }
     } catch (_) {}
     final total = _chapters.isNotEmpty ? _chapters.length : 1;
-    // chapters_read = how many chapters started (at least current)
+    // Only count chapters before the current one as completed.
     final chaptersRead = completed
         ? total
-        : (_chapterIndex + 1).clamp(1, total);
+        : _chapterIndex.clamp(0, total).toInt();
     final payload = <String, dynamic>{
       'book_id': bookId,
       'title': widget.title,
@@ -360,6 +366,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
 
   Future<void> _persistReadTime() async {
     if (_readSeconds <= 0) return;
+    final secondsToPersist = _readSeconds;
     try {
       final prefs = await SharedPreferences.getInstance();
       final key = 'reading_seconds_by_day_v1';
@@ -370,7 +377,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
       final dayKey =
           '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       final prev = (map[dayKey] as num?)?.toInt() ?? 0;
-      map[dayKey] = prev + _readSeconds;
+      map[dayKey] = prev + secondsToPersist;
       // Keep last 60 days
       if (map.length > 60) {
         final keys = map.keys.map((k) => k.toString()).toList()..sort();
@@ -379,6 +386,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
         }
       }
       await prefs.setString(key, jsonEncode(map));
+      _readSeconds = (_readSeconds - secondsToPersist).clamp(0, 1 << 30);
     } catch (_) {}
   }
 
@@ -386,6 +394,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
   void dispose() {
     _readTimer?.cancel();
     _progressTimer?.cancel();
+    _activityTimer?.cancel();
     unawaited(_persistReadTime());
 
     // Persist exact stop position as ongoing read (unless already completed)
@@ -428,6 +437,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
   }) {
     final rawTitle = chapter['title'] as String? ?? '';
     _chapterContent = chapter['content'] as String? ?? '';
+    _cachedParagraphs = null;
     _chapterNumber =
         (chapter['chapter_number'] as num?)?.toInt() ?? (_chapterIndex + 1);
     final titlePrefix = RegExp(
@@ -459,6 +469,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
       _lastParagraphIndex = widget.initialParagraphIndex;
     }
     _loadReactions();
+    unawaited(_loadChapterLikeState());
     unawaited(_loadParagraphCommentCounts());
   }
 
@@ -597,7 +608,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.surfaceOf(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -726,7 +737,9 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                       final selected = index == _chapterIndex;
                       return ListTile(
                         selected: selected,
-                        selectedTileColor: const Color(0xFFF3F0FF),
+                        selectedTileColor: AppTheme.brand.withValues(
+                          alpha: 0.2,
+                        ),
                         title: Text(
                           'Chapter $chapterNo: $title',
                           style: TextStyle(
@@ -784,7 +797,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
     try {
       final res = await widget.apiService.fetchChapterReactions(
         bookId: bookId,
-        chapterNumber: widget.chapterNumber,
+        chapterNumber: _chapterNumber,
       );
       final counts = Map<String, dynamic>.from(
         (res['counts'] as Map?) ?? const {},
@@ -798,6 +811,14 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
         _likeCount = (counts['Like'] as num?)?.toInt() ?? 0;
       });
     } catch (_) {}
+  }
+
+  Future<void> _refreshReaderActivity() async {
+    await Future.wait<void>([
+      _loadReactions(),
+      _loadParagraphCommentCounts(),
+      _loadChapterLikeState(),
+    ]);
   }
 
   Future<void> _toggleLike() async {
@@ -815,7 +836,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
       decoration: BoxDecoration(
         color: _theme == _ReaderTheme.nightowl
             ? Colors.white10
-            : const Color(0xFFF0F4F8),
+            : const Color(0xFFF6F5FA),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: _theme == _ReaderTheme.nightowl
@@ -855,14 +876,27 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
   }
 
   List<String> _paragraphs() {
+    final cached = _cachedParagraphs;
+    if (cached != null) return cached;
     final text = _chapterContent.trim();
-    if (text.isEmpty) return const [];
+    if (text.isEmpty) return _cachedParagraphs = const [];
     // Split on blank lines first; fall back to single newlines for denser text
     var parts = text.split(RegExp(r'\n\s*\n'));
     if (parts.length <= 1) {
       parts = text.split('\n');
     }
-    return parts.map((p) => p.trim()).where((p) => p.isNotEmpty).toList();
+    return _cachedParagraphs = parts
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+  }
+
+  bool _isRepeatedChapterLabel(String paragraph) {
+    final number = RegExp.escape(_chapterNumber.toString());
+    return RegExp(
+      '^\\[?\\s*(?:chapter|ch\\.?)\\s*#?\\s*$number\\s*\\]?\$',
+      caseSensitive: false,
+    ).hasMatch(paragraph.trim());
   }
 
   Future<void> _loadParagraphCommentCounts() async {
@@ -935,6 +969,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
     String? error;
     final controller = TextEditingController();
     var posting = false;
+    Timer? commentsRefreshTimer;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -949,6 +984,31 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
             // Load once only — avoid re-fetch on every rebuild
             if (!loadStarted) {
               loadStarted = true;
+              commentsRefreshTimer = Timer.periodic(
+                const Duration(seconds: 15),
+                (_) async {
+                  try {
+                    final items = await widget.apiService.fetchChapterComments(
+                      bookId: bookId,
+                      chapterNumber: _chapterNumber,
+                    );
+                    final latest = items
+                        .where(
+                          (comment) =>
+                              ((comment['paragraph_index'] as num?)?.toInt() ??
+                                  -1) ==
+                              paragraphIndex,
+                        )
+                        .toList();
+                    if (ctx.mounted) {
+                      setModal(() {
+                        comments = latest;
+                        loading = false;
+                      });
+                    }
+                  } catch (_) {}
+                },
+              );
               widget.apiService
                   .fetchChapterComments(
                     bookId: bookId,
@@ -1119,8 +1179,8 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                                   hintStyle: TextStyle(color: _muted),
                                   filled: true,
                                   fillColor: _theme == _ReaderTheme.nightowl
-                                      ? const Color(0xFF221C30)
-                                      : const Color(0xFFF2F2F2),
+                                      ? const Color(0xFF2B3832)
+                                      : const Color(0xFFF6F5FA),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(24),
                                     borderSide: BorderSide.none,
@@ -1144,7 +1204,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                                     )
                                   : const Icon(
                                       Icons.send,
-                                      color: Color(0xFF8B5CF6),
+                                      color: Color(0xFF16856A),
                                     ),
                               onPressed: posting
                                   ? null
@@ -1226,6 +1286,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
         );
       },
     );
+    commentsRefreshTimer?.cancel();
     Future.delayed(const Duration(milliseconds: 300), controller.dispose);
   }
 
@@ -1237,7 +1298,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
     final key = _paragraphKeys.putIfAbsent(index, () => GlobalKey());
     // Ash/grey when only others commented; purple when current user also commented.
     final commentColor = selfCommented
-        ? const Color(0xFF8B5CF6)
+        ? const Color(0xFF16856A)
         : (count > 0 ? const Color(0xFF9CA3AF) : _muted.withValues(alpha: 0.7));
     return Padding(
       key: key,
@@ -1264,10 +1325,10 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: selfCommented
-                        ? const Color(0xFFEDE9FE)
+                        ? const Color(0xFFDDE2DF)
                         : (count > 0
-                            ? const Color(0xFFF3F4F6)
-                            : Colors.transparent),
+                              ? const Color(0xFFF6F5FA)
+                              : Colors.transparent),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -1284,7 +1345,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: selfCommented
-                                ? const Color(0xFF8B5CF6)
+                                ? const Color(0xFF16856A)
                                 : const Color(0xFF9CA3AF),
                           ),
                         ),
@@ -1544,12 +1605,13 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           for (var i = 0; i < paragraphs.length; i++) ...[
-                            _buildParagraphBlock(paragraphs[i], i),
+                            if (i != 0 ||
+                                !_isRepeatedChapterLabel(paragraphs[i]))
+                              _buildParagraphBlock(paragraphs[i], i),
                             if (i == paragraphs.length ~/ 2 &&
                                 paragraphs.length > 2)
                               _buildAdBanner(
-                                label:
-                                    'Discover more stories you\'ll love',
+                                label: 'Discover more stories you\'ll love',
                               ),
                           ],
                         ],
@@ -1570,9 +1632,9 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                               child: OutlinedButton(
                                 onPressed: () => unawaited(_goPrev()),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: const Color(0xFF8B5CF6),
+                                  foregroundColor: const Color(0xFF16856A),
                                   side: const BorderSide(
-                                    color: Color(0xFF8B5CF6),
+                                    color: Color(0xFF16856A),
                                   ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
@@ -1601,10 +1663,10 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                               child: ElevatedButton(
                                 onPressed: _goNext,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF8B5CF6),
+                                  backgroundColor: const Color(0xFF16856A),
                                   foregroundColor: Colors.white,
                                   elevation: 4,
-                                  shadowColor: const Color(0xFF8B5CF6),
+                                  shadowColor: const Color(0xFF16856A),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(14),
                                   ),
@@ -1667,20 +1729,20 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: selected
-                                    ? const Color(0xFFEDE9FE)
+                                    ? const Color(0xFFDDE2DF)
                                     : (_theme == _ReaderTheme.nightowl
                                           ? Colors.white12
-                                          : const Color(0xFFF3F4F6)),
+                                          : const Color(0xFFF6F5FA)),
                                 shape: BoxShape.circle,
                                 border: selected
                                     ? Border.all(
-                                        color: const Color(0xFF8B5CF6),
+                                        color: const Color(0xFF16856A),
                                         width: 2,
                                       )
                                     : Border.all(
                                         color: _theme == _ReaderTheme.nightowl
                                             ? Colors.white24
-                                            : const Color(0xFFE5E7EB),
+                                            : const Color(0xFFDDE2DF),
                                       ),
                               ),
                               child: Text(
@@ -1696,7 +1758,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: selected
-                                    ? const Color(0xFF8B5CF6)
+                                    ? const Color(0xFF16856A)
                                     : _muted,
                                 fontSize: 11,
                                 fontWeight: selected
@@ -1710,7 +1772,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                                 style: TextStyle(
                                   fontSize: 10,
                                   color: selected
-                                      ? const Color(0xFF8B5CF6)
+                                      ? const Color(0xFF16856A)
                                       : _muted,
                                 ),
                               ),
@@ -1816,8 +1878,8 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                 Expanded(
                   child: SliderTheme(
                     data: SliderTheme.of(context).copyWith(
-                      activeTrackColor: const Color(0xFF8B5CF6),
-                      thumbColor: const Color(0xFF8B5CF6),
+                      activeTrackColor: const Color(0xFF16856A),
+                      thumbColor: const Color(0xFF16856A),
                       overlayColor: const Color(0x336C3CE1),
                     ),
                     child: Slider(
@@ -1870,7 +1932,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: selected
-                      ? const Color(0xFF8B5CF6)
+                      ? const Color(0xFF16856A)
                       : Colors.grey.shade400,
                   width: selected ? 2.5 : 1,
                 ),
@@ -1878,7 +1940,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                     ? [
                         BoxShadow(
                           color: const Color(
-                            0xFF8B5CF6,
+                            0xFF16856A,
                           ).withValues(alpha: 0.35),
                           blurRadius: 8,
                         ),
@@ -1898,7 +1960,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
             Text(
               label,
               style: TextStyle(
-                color: selected ? const Color(0xFF8B5CF6) : _muted,
+                color: selected ? const Color(0xFF16856A) : _muted,
                 fontSize: 11,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
               ),
@@ -2167,6 +2229,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
       myUserId =
           (me['id'] as num?)?.toInt() ?? (me['user_id'] as num?)?.toInt();
     } catch (_) {}
+    if (!mounted) return;
     var loading = true;
     var posting = false;
     String? error;
@@ -2228,10 +2291,11 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
       }
     }
 
+    Timer? commentsRefreshTimer;
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.surfaceOf(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -2241,6 +2305,33 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
           builder: (ctx, setModal) {
             if (!startedLoad) {
               startedLoad = true;
+              commentsRefreshTimer = Timer.periodic(
+                const Duration(seconds: 15),
+                (_) async {
+                  try {
+                    final items = await widget.apiService
+                        .fetchChapterOnlyComments(
+                          bookId: bookId,
+                          chapterNumber: _chapterNumber,
+                        );
+                    if (ctx.mounted) {
+                      setModal(() {
+                        comments = items;
+                        likedComments
+                          ..clear()
+                          ..addAll(
+                            items
+                                .where((item) => item['liked'] == true)
+                                .map(
+                                  (item) => (item['id'] as num?)?.toInt() ?? 0,
+                                )
+                                .where((id) => id > 0),
+                          );
+                      });
+                    }
+                  } catch (_) {}
+                },
+              );
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 loadComments(setModal);
               });
@@ -2346,7 +2437,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                                       CircleAvatar(
                                         radius: 18,
                                         backgroundColor: const Color(
-                                          0xFFE8EEF9,
+                                          0xFFF6F5FA,
                                         ),
                                         backgroundImage: photo.isNotEmpty
                                             ? NetworkImage(
@@ -2358,7 +2449,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                                             ? Text(
                                                 letter,
                                                 style: const TextStyle(
-                                                  color: Color(0xFF8B5CF6),
+                                                  color: Color(0xFF16856A),
                                                   fontWeight: FontWeight.w600,
                                                 ),
                                               )
@@ -2519,7 +2610,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                                 decoration: InputDecoration(
                                   hintText: 'Add a comment…',
                                   filled: true,
-                                  fillColor: const Color(0xFFF3F4F6),
+                                  fillColor: const Color(0xFFF6F5FA),
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 14,
                                     vertical: 10,
@@ -2601,7 +2692,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
                                     )
                                   : const Icon(
                                       Icons.send_rounded,
-                                      color: Color(0xFF8B5CF6),
+                                      color: Color(0xFF16856A),
                                     ),
                             ),
                           ],
@@ -2616,6 +2707,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
         );
       },
     );
+    commentsRefreshTimer?.cancel();
     controller.dispose();
   }
 

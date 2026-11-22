@@ -1,41 +1,24 @@
-import { Link } from "react-router-dom";
 import { resolveAssetUrl } from "../api";
 
-/**
- * Build faux reading-list cards from books (grouped) when API lists are empty.
- */
-function buildLists(books) {
-  if (!books?.length) return [];
-  const genres = {};
-  for (const b of books) {
-    const g = (b.genre || "Mixed").split(/[,/]/)[0].trim() || "Mixed";
-    if (!genres[g]) genres[g] = [];
-    if (genres[g].length < 4) genres[g].push(b);
-  }
-  return Object.entries(genres)
-    .slice(0, 8)
-    .map(([name, items], i) => ({
-      id: `genre-${i}`,
-      name: `${name} picks`,
-      story_count: items.length,
-      items,
-    }));
-}
-
 function ListCard({ list }) {
-  const covers = (list.items || list.books || []).slice(0, 3);
+  const covers = (Array.isArray(list.covers) ? list.covers : [])
+    .map((cover) => typeof cover === "string" ? cover : cover?.cover_path || cover?.coverPath || "")
+    .filter(Boolean)
+    .slice(0, 3);
+  if (!covers.length && list.cover_path) covers.push(list.cover_path);
+  while (covers.length > 0 && covers.length < 3) covers.push(covers[covers.length - 1]);
+  const storyCount = Number(list.story_count || 0);
   return (
-    <Link to={`/genres/${encodeURIComponent((list.name || "").replace(/ picks$/i, ""))}`} className="rl-card">
-      <div className="rl-stack">
-        {[0, 1, 2].map((i) => {
-          const b = covers[i];
-          const src = b ? resolveAssetUrl(b.cover_path || b.coverPath || "") : "";
+    <article className="rl-card" aria-label={`${list.name}, ${storyCount} stories`}>
+      <div className="rl-stack" aria-hidden="true">
+        {Array.from({ length: 3 }, (_, i) => {
+          const src = covers[i] ? resolveAssetUrl(covers[i]) : "";
           return (
             <div key={i} className={`rl-cover rl-cover-${i}`}>
               {src ? (
                 <img src={src} alt="" />
               ) : (
-                <div className="rl-cover-empty" style={{ background: b?.accent_hex || "var(--bg-elevated)" }} />
+                <div className="rl-cover-empty" />
               )}
             </div>
           );
@@ -43,25 +26,21 @@ function ListCard({ list }) {
       </div>
       <div className="rl-meta">
         <h3 className="rl-name">{list.name}</h3>
-        <p className="rl-count">{list.story_count || covers.length} stories</p>
+        <p className="rl-count">{storyCount} {storyCount === 1 ? "story" : "stories"}</p>
       </div>
-    </Link>
+    </article>
   );
 }
 
-export default function ReadingListsRow({ lists, books = [] }) {
-  const apiLists = Array.isArray(lists) && lists.length ? lists : null;
-  const display = apiLists || buildLists(books);
+export default function ReadingListsRow({ lists = [] }) {
+  const display = Array.isArray(lists) ? lists.filter((list) => Number(list?.story_count || 0) > 0) : [];
   if (!display.length) return null;
 
   return (
     <section className="rl-section full-bleed">
       <div className="full-bleed-inner">
       <div className="rl-header">
-        <h2 className="rl-title">Reading Lists</h2>
-        <Link to="/" className="trending-see-all">
-          See all
-        </Link>
+        <h2 className="rl-title">Community Reading Lists</h2>
       </div>
       <div className="rl-track">
         {display.map((list) => (

@@ -1,4 +1,4 @@
-import { createSupportRequest, getMyPreferences, getMyReadingStats, updateMyPreferences } from "../api";
+import { createSupportRequest, getChatMessages, getMyPreferences, getMyReadingStats, getMySupportRequests, sendChatMessage, updateMyPreferences } from "../api";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { isGuestUser } from "../utils/guest";
@@ -58,20 +58,6 @@ const FAQ = {
     },
   ],
 };
-
-const TERMS = [
-  { t: "1. Acceptance", b: "By using NovelHub you agree to these terms. If you do not agree, do not use the service." },
-  { t: "2. Use of Service", b: "You must be at least 13 years old. Use the platform only for lawful purposes." },
-  { t: "3. User Content", b: "You retain ownership of content you post, and grant us a license to host and display it to provide the service." },
-  { t: "4. Termination", b: "We may suspend or terminate accounts that violate these terms or harm other users." },
-];
-
-const PRIVACY = [
-  { t: "1. Information We Collect", b: "We collect account details you provide (name, email) and usage data needed for reading progress and recommendations." },
-  { t: "2. How We Use Information", b: "We use data to provide and improve NovelHub, sync library progress, and communicate about the service." },
-  { t: "3. Information Sharing", b: "We do not sell your personal information. Data may be processed by trusted infrastructure partners." },
-  { t: "4. Your Rights", b: "You can access, update, or request deletion of your information via Contact us." },
-];
 
 const GENRES = [
   "Romance",
@@ -158,7 +144,7 @@ export function AccountHelp() {
   );
 }
 
-export function AccountContact() {
+export function AccountContact({ user }) {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
@@ -167,6 +153,44 @@ export function AccountContact() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const [supportItems, setSupportItems] = useState([]);
+  const [chatItems, setChatItems] = useState([]);
+  const [chatDraft, setChatDraft] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
+  const signedIn = Boolean(user && !isGuestUser(user));
+
+  useEffect(() => {
+    if (!signedIn) return undefined;
+    let active = true;
+    const refreshInbox = async () => {
+      const [support, chat] = await Promise.allSettled([getMySupportRequests(), getChatMessages()]);
+      if (!active) return;
+      if (support.status === "fulfilled") setSupportItems(support.value?.items || []);
+      if (chat.status === "fulfilled") setChatItems(chat.value?.items || []);
+    };
+    void refreshInbox();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refreshInbox();
+    }, 15000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [signedIn]);
+
+  async function sendChat(e) {
+    e.preventDefault();
+    const text = chatDraft.trim();
+    if (!text || chatBusy) return;
+    setChatBusy(true);
+    try {
+      await sendChatMessage(text);
+      setChatDraft("");
+      const response = await getChatMessages();
+      setChatItems(response?.items || []);
+    } catch (err) {
+      setError(String(err.message || "Message could not be sent."));
+    } finally {
+      setChatBusy(false);
+    }
+  }
 
   async function submit(e) {
     e.preventDefault();
@@ -232,6 +256,31 @@ export function AccountContact() {
           </form>
         )}
       </div>
+      {signedIn ? (
+        <>
+          <section className="card-panel account-support-inbox">
+            <h2>Your support requests</h2>
+            {supportItems.length ? supportItems.map((item) => (
+              <article className="account-support-ticket" key={item.id}>
+                <div><strong>{item.subject || item.topic || "Contact request"}</strong><span>{item.status || "open"}</span></div>
+                <p>{item.message || item.description}</p>
+                {item.admin_reply ? <blockquote><strong>Wingsaga support replied</strong><br />{item.admin_reply}</blockquote> : null}
+              </article>
+            )) : <p className="meta">Your submitted requests and replies will appear here.</p>}
+          </section>
+          <section className="card-panel account-chat-inbox">
+            <h2>Message Wingsaga support</h2>
+            <div className="account-chat-messages" aria-live="polite">
+              {chatItems.map((item) => <article className={`account-chat-message is-${String(item.sender || "user").toLowerCase()}`} key={item.id}><span>{item.message}</span><small>{item.sender === "admin" ? "Wingsaga support" : "You"}</small></article>)}
+              {!chatItems.length ? <p className="meta">Send us a message and our team will reply here.</p> : null}
+            </div>
+            <form className="account-chat-compose" onSubmit={sendChat}>
+              <input value={chatDraft} onChange={(event) => setChatDraft(event.target.value)} maxLength={4000} placeholder="Write a message…" aria-label="Message Wingsaga support" />
+              <button className="btn btn-primary" disabled={chatBusy || !chatDraft.trim()}>{chatBusy ? "Sending…" : "Send"}</button>
+            </form>
+          </section>
+        </>
+      ) : null}
     </PageShell>
   );
 }
@@ -320,7 +369,7 @@ export function AccountNotifications() {
     ["reading_reminders", "Reading reminders"],
     ["new_releases", "New releases"],
     ["recommendations", "Recommendations"],
-    ["marketing", "NovelHub updates"],
+    ["marketing", "Wingsaga updates"],
     ["system", "System messages"],
   ];
   return (
@@ -338,7 +387,7 @@ export function AccountNotifications() {
           </div>
         ))}
       </div>
-      <p className="meta" role="status">{status || "Preferences sync with your NovelHub account."}</p>
+      <p className="meta" role="status">{status || "Preferences sync with your Wingsaga account."}</p>
     </PageShell>
   );
 }
@@ -412,7 +461,7 @@ export function AccountWarnings() {
           ))}
         </div>
       </div>
-      <p className="meta" role="status">{status || "These choices sync with your NovelHub account."}</p>
+      <p className="meta" role="status">{status || "These choices sync with your Wingsaga account."}</p>
     </PageShell>
   );
 }
@@ -420,19 +469,28 @@ export function AccountWarnings() {
 export function AccountLegal({ kind }) {
   const isPrivacy = kind === "privacy";
   const title = isPrivacy ? "Privacy Policy" : kind === "cookies" ? "Cookie preferences" : "Terms of Service";
-  const sections = isPrivacy ? PRIVACY : kind === "cookies" ? [
+  const [policyText, setPolicyText] = useState("");
+  useEffect(() => {
+    if (kind === "cookies") return;
+    const file = isPrivacy ? "/legal/privacy.txt" : "/legal/terms.txt";
+    fetch(file).then((response) => {
+      if (!response.ok) throw new Error("Could not load policy");
+      return response.text();
+    }).then(setPolicyText).catch(() => setPolicyText("Policy text could not be loaded. Please contact Wingsaga77@gmail.com."));
+  }, [isPrivacy, kind]);
+  const sections = kind === "cookies" ? [
     { t: "Local storage", b: "We store your login token and UI preferences (theme, notification toggles) in local storage only." },
     { t: "No third-party ad cookies", b: "This web client does not load advertising trackers by default." },
-  ] : TERMS;
+  ] : null;
 
   return (
     <PageShell title={title}>
-      {sections.map((s) => (
+      {sections ? sections.map((s) => (
         <div key={s.t} className="legal-block">
           <h3>{s.t}</h3>
           <p>{s.b}</p>
         </div>
-      ))}
+      )) : <div className="legal-block" style={{ whiteSpace: "pre-wrap", lineHeight: 1.65 }}>{policyText || "Loading policy…"}</div>}
     </PageShell>
   );
 }
@@ -470,8 +528,8 @@ export default function AccountPage({ user, onLogout }) {
   const groups = [
     { title: "Your space", description: "Pick up a read or return to your writing.", links: [["Library", "Your saved stories and collections", "/library"], ["My stories", "Drafts and published work", "/manage-stories"], ["Reading stats", "Your reading activity", "/account/stats"]] },
     { title: "Preferences", description: "Shape the stories and updates you see.", links: [["Notifications", "Choose which updates reach you", "/account/notifications"], ["Language", "Set your preferred language", "/account/language"], ["Favourite genres", "Tune story recommendations", "/account/genres"], ["Content warnings", "Manage sensitive content filters", "/account/warnings"]] },
-    { title: "Help & support", description: "Find an answer or get in touch with the team.", links: [["Help center", "Answers to common questions", "/account/help"], ["Contact us", "Send a message to NovelHub support", "/account/contact"]] },
-    { title: "Policies", description: "Read how NovelHub works and protects your data.", links: [["Terms of service", "The rules for using NovelHub", "/account/terms"], ["Privacy policy", "How account information is handled", "/account/privacy"], ["Cookie preferences", "Review cookie information", "/account/cookies"]] },
+    { title: "Help & support", description: "Find an answer or get in touch with the team.", links: [["Help center", "Answers to common questions", "/account/help"], ["Contact us", "Send a message to Wingsaga support", "/account/contact"]] },
+    { title: "Policies", description: "Read how Wingsaga works and protects your data.", links: [["Terms of service", "The rules for using Wingsaga", "/account/terms"], ["Privacy policy", "How account information is handled", "/account/privacy"], ["Cookie preferences", "Review cookie information", "/account/cookies"]] },
   ];
 
   return (
@@ -479,8 +537,8 @@ export default function AccountPage({ user, onLogout }) {
       <header className="more-hero card-panel">
         <div className="more-avatar" aria-hidden="true">{initial}</div>
         <div className="more-hero-copy">
-          <span className="eyebrow">NOVELHUB ACCOUNT</span>
-          <h1>{guest ? "Make NovelHub yours" : `Welcome back, ${name.split(" ")[0]}`}</h1>
+          <span className="eyebrow">WINGSAGA ACCOUNT</span>
+          <h1>{guest ? "Make Wingsaga yours" : `Welcome back, ${name.split(" ")[0]}`}</h1>
           <p className="meta">{guest ? "Sign in to sync your library, preferences, and writing across devices." : user?.email || "Your reading and writing, all in one place."}</p>
         </div>
         <div className="more-hero-actions">

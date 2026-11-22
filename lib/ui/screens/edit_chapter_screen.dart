@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../data/services/api_service.dart';
 import 'root_shell.dart';
+import 'create_story_screen.dart';
 
 class EditChapterScreen extends StatefulWidget {
   const EditChapterScreen({
@@ -36,11 +39,15 @@ class EditChapterScreen extends StatefulWidget {
 class _EditChapterScreenState extends State<EditChapterScreen> {
   late TextEditingController _titleController;
   late TextEditingController _textController;
+  final List<TextEditingValue> _undoHistory = [];
+  final List<TextEditingValue> _redoHistory = [];
+  late TextEditingValue _lastHistoryValue;
+  bool _applyingHistory = false;
 
-  bool _isBold = false;
-  bool _isItalic = false;
   bool _isLoading = true;
   bool _isSaving = false;
+  bool _isPublishing = false;
+  bool _isDeleting = false;
 
   int? _chapterId;
   int _chapterNumber = 1;
@@ -50,6 +57,8 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
   String _initialNotes = '';
   String _submissionStatus = 'draft';
   DateTime? _scheduledFor;
+  Timer? _autosaveTimer;
+  bool _autosaving = false;
 
   int get _wordCount {
     final text = _textController.text.trim();
@@ -62,15 +71,120 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
     super.initState();
     _titleController = TextEditingController(text: widget.chapterTitle);
     _textController = TextEditingController(text: widget.initialContent);
-    _textController.addListener(() => setState(() {}));
+    _lastHistoryValue = _textController.value;
+    _textController.addListener(_trackTextHistory);
+    _titleController.addListener(_scheduleAutosave);
+    _textController.addListener(_scheduleAutosave);
     _loadChapter();
+  }
+
+  void _trackTextHistory() {
+    final next = _textController.value;
+    if (!_applyingHistory && next.text != _lastHistoryValue.text) {
+      _undoHistory.add(_lastHistoryValue);
+      if (_undoHistory.length > 100) _undoHistory.removeAt(0);
+      _redoHistory.clear();
+    }
+    _lastHistoryValue = next;
+    if (mounted) setState(() {});
+  }
+
+  void _undoText() {
+    if (_undoHistory.isEmpty) return;
+    final previous = _undoHistory.removeLast();
+    _redoHistory.add(_textController.value);
+    _applyingHistory = true;
+    _textController.value = previous;
+    _applyingHistory = false;
+    _lastHistoryValue = previous;
+  }
+
+  void _redoText() {
+    if (_redoHistory.isEmpty) return;
+    final next = _redoHistory.removeLast();
+    _undoHistory.add(_textController.value);
+    _applyingHistory = true;
+    _textController.value = next;
+    _applyingHistory = false;
+    _lastHistoryValue = next;
   }
 
   @override
   void dispose() {
+    _autosaveTimer?.cancel();
+    _titleController.removeListener(_scheduleAutosave);
+    _textController.removeListener(_scheduleAutosave);
     _titleController.dispose();
     _textController.dispose();
     super.dispose();
+  }
+
+  void _scheduleAutosave() {
+    if (_isLoading || !mounted) return;
+    _autosaveTimer?.cancel();
+    _autosaveTimer = Timer(const Duration(seconds: 2), _autosaveDraft);
+  }
+
+  Future<void> _autosaveDraft() async {
+    if (!mounted || _isLoading || _isSaving || _isPublishing || _autosaving) {
+      return;
+    }
+    if (_titleController.text.trim().isEmpty ||
+        _textController.text.trim().isEmpty) {
+      return;
+    }
+    if (_titleController.text.trim() == _initialTitle &&
+        _textController.text.trim() == _initialContent) {
+      return;
+    }
+    _autosaving = true;
+    try {
+      await _saveChapter(submissionStatus: _submissionStatus, quiet: true);
+    } finally {
+      _autosaving = false;
+      if (mounted &&
+          (_titleController.text.trim() != _initialTitle ||
+              _textController.text.trim() != _initialContent)) {
+        _scheduleAutosave();
+      }
+    }
+  }
+
+  Future<void> _openDetailsToComplete(Map<String, dynamic> story) async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) =>
+            CreateStoryScreen(apiService: widget.apiService, story: story),
+      ),
+    );
+  }
+
+  Future<bool> _ensureStoryDetailsForPublishing() async {
+    final story = await widget.apiService.fetchWriterStory(widget.storyId);
+    if (!mounted) return false;
+    final title = (story?['title'] ?? '').toString().trim();
+    final description = (story?['description'] ?? story?['summary'] ?? '')
+        .toString()
+        .trim();
+    final genre = (story?['genre'] ?? story?['primary_genre'] ?? '')
+        .toString()
+        .trim();
+    final audience =
+        (story?['audience'] ?? story?['age_rating'] ?? story?['age'] ?? '')
+            .toString()
+            .trim();
+    final language = (story?['language'] ?? '').toString().trim();
+    if (title.isEmpty ||
+        description.isEmpty ||
+        genre.isEmpty ||
+        audience.isEmpty ||
+        language.isEmpty) {
+      await _openDetailsToComplete(
+        story ?? {'id': widget.storyId, 'title': 'Story'},
+      );
+      return false;
+    }
+    return true;
   }
 
   Future<void> _loadChapter() async {
@@ -168,6 +282,9 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
         _initialTitle = _titleController.text;
         _initialContent = _textController.text;
         _initialNotes = _chapterNotes;
+        _undoHistory.clear();
+        _redoHistory.clear();
+        _lastHistoryValue = _textController.value;
         setState(() => _isLoading = false);
       }
     }
@@ -202,8 +319,8 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
       if (maxN + 1 > nextNo) nextNo = maxN + 1;
     } catch (_) {}
     if (!mounted) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
+    final result = await Navigator.of(context).push<Object?>(
+      MaterialPageRoute<Object?>(
         builder: (_) => EditChapterScreen(
           apiService: widget.apiService,
           storyId: widget.storyId,
@@ -213,23 +330,22 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
         ),
       ),
     );
+    if (result is Map && result['returnToWriteManager'] == true && mounted) {
+      Navigator.of(context).pop(result);
+    }
   }
 
   /// After leave/save: if story has any published chapter (or status Ongoing),
-  /// land on Submitted tab so author still sees the story. Drafts only when
+  /// land on Published tab so author still sees the story. Drafts only when
   /// the whole story is still Draft-only.
   Future<bool> _storyBelongsInDraftsTab() async {
     try {
-      final chapters = await widget.apiService.fetchStoryChapters(widget.storyId);
+      final chapters = await widget.apiService.fetchStoryChapters(
+        widget.storyId,
+      );
       final hasPublished = chapters.any((c) {
         final s = (c['submission_status'] ?? 'draft').toString().toLowerCase();
-        return {
-          'published',
-          'submitted',
-          'ongoing',
-          'completed',
-          'scheduled',
-        }.contains(s);
+        return {'published', 'ongoing', 'completed'}.contains(s);
       });
       if (hasPublished) return false;
       final story = await widget.apiService.fetchWriterStory(widget.storyId);
@@ -258,6 +374,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
     final nav = Navigator.of(context);
     if (nav.canPop()) {
       nav.pop(<String, dynamic>{
+        'returnToWriteManager': true,
         'openDrafts': openDrafts,
         'refreshed': true,
       });
@@ -271,6 +388,31 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
   }
 
   Future<void> _publishStoryAndChapter() async {
+    if (_isSaving || _isPublishing) return;
+    setState(() => _isPublishing = true);
+    try {
+      await _publishStoryAndChapterAfterOrderCheck();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not verify chapter order: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _isPublishing = false);
+    }
+  }
+
+  Future<int?> _firstUnpublishedChapterBeforeCurrent() async {
+    if (_chapterNumber <= 1) return null;
+    final chapters = await widget.apiService.fetchStoryChapters(widget.storyId);
+    return firstUnpublishedChapterNumber(
+      chapters: chapters,
+      chapterNumber: _chapterNumber,
+    );
+  }
+
+  Future<void> _publishStoryAndChapterAfterOrderCheck() async {
+    if (!await _ensureStoryDetailsForPublishing()) return;
     final content = _textController.text.trim();
     final title = _titleController.text.trim();
     if (title.isEmpty) {
@@ -291,7 +433,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
         .length;
     if (words < 60) {
       ScaffoldMessenger.of(context).showSnackBar(
- SnackBar(
+        SnackBar(
           content: Text(
             'Minimum 60 words required to publish this chapter. You have $words word${words == 1 ? '' : 's'}.',
           ),
@@ -314,7 +456,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
       successMessage: 'Chapter published',
     );
     if (!saved || !mounted) return;
-    // Publish → Submitted as Ongoing (Complete later from Manage Story ⋮ menu)
+    // Publish as Ongoing (Complete later from Manage Story ⋮ menu)
     try {
       await widget.apiService.updateWriterStory(widget.storyId, {
         'status_text': 'Ongoing',
@@ -334,7 +476,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
     } catch (_) {}
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Chapter submitted — story under Submitted as Ongoing')),
+      const SnackBar(content: Text('Chapter published — story is now Ongoing')),
     );
     await _returnToWriteManager(openDrafts: false);
   }
@@ -351,8 +493,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
     }
     // Nothing changed → leave quietly (Inkitt does not nag)
     if (!_isDirty) {
-      final openDrafts = await _storyBelongsInDraftsTab();
-      await _returnToWriteManager(openDrafts: openDrafts);
+      await _returnToWriteManager(openDrafts: true);
       return true;
     }
 
@@ -362,7 +503,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
         title: const Text('Leave chapter?'),
         content: const Text(
           'You have unsaved changes.\n\n'
-          '• Save as Draft — this chapter stays private; other published chapters stay on Submitted.\n'
+          '• Save as Draft — this chapter stays private; other published chapters stay on Published.\n'
           '• Discard — lose changes on this chapter only.\n'
           '• Keep editing — stay on this page.',
         ),
@@ -388,14 +529,15 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
     if (action == 'draft') {
       // Empty content cannot be saved — treat as discard of new empty chapter
       if (title.isEmpty && content.isEmpty) {
-        final openDrafts = await _storyBelongsInDraftsTab();
-        await _returnToWriteManager(openDrafts: openDrafts);
+        await _returnToWriteManager(openDrafts: true);
         return true;
       }
       if (content.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Can't save an empty chapter as draft")),
+            const SnackBar(
+              content: Text("Can't save an empty chapter as draft"),
+            ),
           );
         }
         return false;
@@ -408,8 +550,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
       if (!saved || !mounted) return false;
     }
     // discard: do not save; published siblings unchanged
-    final openDrafts = await _storyBelongsInDraftsTab();
-    await _returnToWriteManager(openDrafts: openDrafts);
+    await _returnToWriteManager(openDrafts: true);
     return true;
   }
 
@@ -420,8 +561,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
       successMessage: 'Saved as draft — other chapters unchanged',
     );
     if (!saved || !mounted) return;
-    final openDrafts = await _storyBelongsInDraftsTab();
-    await _returnToWriteManager(openDrafts: openDrafts);
+    await _returnToWriteManager(openDrafts: true);
   }
 
   /// Convert Latin letters in [input] to Mathematical Bold / Italic code points
@@ -430,6 +570,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
     String input, {
     required bool bold,
     required bool italic,
+    bool underline = false,
   }) {
     final buf = StringBuffer();
     for (final r in input.runes) {
@@ -474,21 +615,26 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
       }
       buf.write(ch);
     }
-    return buf.toString();
+    final styled = buf.toString();
+    return underline
+        ? styled.runes.map((r) => '${String.fromCharCode(r)}\u0332').join()
+        : styled;
   }
 
-  void _applyInlineFormat({bool bold = false, bool italic = false}) {
+  void _applyInlineFormat({
+    bool bold = false,
+    bool italic = false,
+    bool underline = false,
+  }) {
     final sel = _textController.selection;
     final text = _textController.text;
     if (!sel.isValid ||
         sel.start < 0 ||
         sel.end > text.length ||
         sel.isCollapsed) {
-      // No selection → toggle typing style for whole field (next keystrokes feel)
-      setState(() {
-        if (bold) _isBold = !_isBold;
-        if (italic) _isItalic = !_isItalic;
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select text first to format it')),
+      );
       return;
     }
     final start = sel.start;
@@ -500,18 +646,15 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
         .replaceAll(RegExp(r'(?<!\*)\*(?!\*)'), '');
     final styled = _toStyledText(
       cleaned,
-      bold: bold || _isBold,
-      italic: italic || _isItalic,
+      bold: bold,
+      italic: italic,
+      underline: underline,
     );
     final newText = text.replaceRange(start, end, styled);
     _textController.value = TextEditingValue(
       text: newText,
       selection: TextSelection.collapsed(offset: start + styled.length),
     );
-    setState(() {
-      if (bold) _isBold = false;
-      if (italic) _isItalic = false;
-    });
   }
 
   Future<bool> _saveChapter({
@@ -519,6 +662,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
     DateTime? scheduledFor,
     String? successMessage,
     bool offerNextChapter = false,
+    bool quiet = false,
   }) async {
     final title = _titleController.text.trim();
     final content = _textController.text.trim();
@@ -535,24 +679,26 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
       return false;
     }
     // Block duplicate chapter titles on the same story
-    try {
-      final existing = await widget.apiService.fetchStoryChapters(
-        widget.storyId,
-      );
-      for (final c in existing) {
-        final cid = (c['id'] as num?)?.toInt();
-        final ct = (c['title'] ?? '').toString().trim().toLowerCase();
-        if (ct == title.toLowerCase() && cid != _chapterId) {
-          if (!mounted) return false;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('A chapter with this title already exists'),
-            ),
-          );
-          return false;
+    if (!quiet) {
+      try {
+        final existing = await widget.apiService.fetchStoryChapters(
+          widget.storyId,
+        );
+        for (final c in existing) {
+          final cid = (c['id'] as num?)?.toInt();
+          final ct = (c['title'] ?? '').toString().trim().toLowerCase();
+          if (ct == title.toLowerCase() && cid != _chapterId) {
+            if (!mounted) return false;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('A chapter with this title already exists'),
+              ),
+            );
+            return false;
+          }
         }
-      }
-    } catch (_) {}
+      } catch (_) {}
+    }
     // CRITICAL: chapters must attach to existing book — never create a new book here
     if (widget.storyId <= 0) {
       if (!mounted) return false;
@@ -562,6 +708,41 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
         ),
       );
       return false;
+    }
+
+    // Enforce chapter order at the shared save boundary so Publish, Schedule,
+    // and any future publishing action all follow the same rule.
+    final targetStatus = (submissionStatus ?? _submissionStatus)
+        .trim()
+        .toLowerCase();
+    const publishableStatuses = {
+      'published',
+      'submitted',
+      'ongoing',
+      'completed',
+      'scheduled',
+    };
+    if (!quiet && publishableStatuses.contains(targetStatus)) {
+      try {
+        final firstUnpublished = await _firstUnpublishedChapterBeforeCurrent();
+        if (!mounted) return false;
+        if (firstUnpublished != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Publish Chapter $firstUnpublished before Chapter $_chapterNumber.',
+              ),
+            ),
+          );
+          return false;
+        }
+      } catch (error) {
+        if (!mounted) return false;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not verify chapter order: $error')),
+        );
+        return false;
+      }
     }
 
     setState(() => _isSaving = true);
@@ -579,31 +760,26 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
         'story_id': widget.storyId,
       };
 
-      final allChapters = await widget.apiService.fetchStoryChapters(
-        widget.storyId,
-      );
-      final publishedChapterCount = allChapters.where((chapter) {
-        final status = (chapter['submission_status'] ?? 'draft')
-            .toString()
-            .toLowerCase();
-        return {
-          'ongoing',
+      String? storyStatus;
+      if (!quiet) {
+        final allChapters = await widget.apiService.fetchStoryChapters(
+          widget.storyId,
+        );
+        final publishedChapterCount = allChapters.where((chapter) {
+          final status = (chapter['submission_status'] ?? 'draft')
+              .toString()
+              .toLowerCase();
+          return {'ongoing', 'published', 'completed'}.contains(status);
+        }).length;
+        final thisWillBePublished = {
           'published',
-          'submitted',
+          'ongoing',
           'completed',
-          'scheduled',
-        }.contains(status);
-      }).length;
-      // Inkitt: if ANY chapter is already published (or this save publishes),
-      // story is Ongoing (Submitted tab). Only pure first-draft stays Draft.
-      // Leaving chapter 4 as draft must NOT move the whole story to Drafts.
-      final savingAsDraft =
-          nextSubmissionStatus.toLowerCase().trim() == 'draft';
-      final thisWillBePublished = !savingAsDraft;
-      final storyStatus =
-          (publishedChapterCount > 0 || thisWillBePublished)
-              ? 'Ongoing'
-              : 'Draft';
+        }.contains(nextSubmissionStatus.toLowerCase().trim());
+        storyStatus = (publishedChapterCount > 0 || thisWillBePublished)
+            ? 'Ongoing'
+            : 'Draft';
+      }
 
       if (_chapterId == null) {
         final newId = await widget.apiService.createStoryChapter(
@@ -621,19 +797,27 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
         await widget.apiService.updateStoryChapter(_chapterId!, payload);
       }
 
-      try {
-        await widget.apiService.updateWriterStory(widget.storyId, {
-          'status_text': storyStatus,
-        });
-      } catch (_) {}
+      if (storyStatus != null) {
+        try {
+          await widget.apiService.updateWriterStory(widget.storyId, {
+            'status_text': storyStatus,
+          });
+        } catch (_) {}
+      }
 
       _submissionStatus = nextSubmissionStatus;
       _scheduledFor = nextScheduledFor;
 
       if (!mounted) return false;
-      ScaffoldMessenger.of(context).showSnackBar(
- SnackBar(content: Text(successMessage ?? 'Chapter saved to database')),
-      );
+      _initialTitle = title;
+      _initialContent = content;
+      if (!quiet) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(successMessage ?? 'Chapter saved to database'),
+          ),
+        );
+      }
 
       // Check/save action: ask whether to finish here or continue with the next chapter.
       if (offerNextChapter) {
@@ -665,7 +849,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
       }
       return true;
     } catch (e) {
-      if (mounted) {
+      if (mounted && !quiet) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Failed to save chapter: $e')));
@@ -699,12 +883,12 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
- Text(
+              Text(
                 'Chapter Notes',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 12),
- TextField(
+              TextField(
                 controller: controller,
                 maxLines: 5,
                 decoration: const InputDecoration(
@@ -713,7 +897,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
                 ),
               ),
               const SizedBox(height: 12),
- SizedBox(
+              SizedBox(
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: () =>
@@ -737,12 +921,27 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
     await _saveChapter(successMessage: 'Chapter notes updated');
   }
 
-  Future<void> _submitChapter() async {
+  Future<void> _publishChapter() async {
+    final firstUnpublished = await _firstUnpublishedChapterBeforeCurrent();
+    if (firstUnpublished != null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Publish Chapter $firstUnpublished before Chapter $_chapterNumber.',
+          ),
+        ),
+      );
+      return;
+    }
+    if (!await _ensureStoryDetailsForPublishing()) return;
     final words = _wordCount;
     if (words < 60) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('At least 60 words are required. Current count: $words.'),
+          content: Text(
+            'At least 60 words are required. Current count: $words.',
+          ),
         ),
       );
       return;
@@ -756,14 +955,90 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
       return;
     }
     await _saveChapter(
-      submissionStatus: 'submitted',
+      submissionStatus: 'published',
       scheduledFor: null,
-      successMessage: 'Chapter submitted',
+      successMessage: 'Chapter published',
     );
     // Do NOT force-publish the parent story here.
     // Ongoing/Draft stories stay in Drafts; only stories marked Completed
     // (or already Published) become visible to readers via backend promote.
     // Backend `_promote_author_and_maybe_publish` handles Completed + 50+ words.
+  }
+
+  Future<void> _unpublishCurrentChapter() async {
+    final chapterId = _chapterId;
+    if (chapterId == null || _isSaving || _isPublishing || _isDeleting) return;
+    try {
+      final chapters = await widget.apiService.fetchStoryChapters(
+        widget.storyId,
+      );
+      final live =
+          chapters.where((chapter) {
+            final status = (chapter['submission_status'] ?? 'draft')
+                .toString()
+                .trim()
+                .toLowerCase();
+            return {
+              'published',
+              'submitted',
+              'ongoing',
+              'completed',
+            }.contains(status);
+          }).toList()..sort((a, b) {
+            final aNo = (a['chapter_number'] as num?)?.toInt() ?? 0;
+            final bNo = (b['chapter_number'] as num?)?.toInt() ?? 0;
+            return bNo.compareTo(aNo);
+          });
+      final latest = live.isEmpty ? null : live.first;
+      final latestId = (latest?['id'] as num?)?.toInt();
+      final latestNumber =
+          (latest?['chapter_number'] as num?)?.toInt() ?? _chapterNumber;
+      if (latestId != null && latestId != chapterId) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Please unpublish the latest chapter (Chapter $latestNumber) first.',
+            ),
+          ),
+        );
+        return;
+      }
+      if (!mounted) return;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('Unpublish Chapter $_chapterNumber?'),
+          content: const Text(
+            'This chapter will be hidden from readers and moved to Draft.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Unpublish'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+      await widget.apiService.updateStoryChapter(chapterId, {
+        'submission_status': 'draft',
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Chapter unpublished')));
+      await _loadChapter();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not unpublish chapter: $error')),
+      );
+    }
   }
 
   Future<void> _scheduleChapterSubmission() async {
@@ -795,7 +1070,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
     await _saveChapter(
       submissionStatus: 'scheduled',
       scheduledFor: scheduled,
-      successMessage: 'Chapter scheduled for submission',
+      successMessage: 'Chapter scheduled for publishing',
     );
   }
 
@@ -861,6 +1136,127 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
     );
   }
 
+  Future<void> _deleteCurrentChapter() async {
+    final chapterId = _chapterId;
+    if (chapterId == null || _isDeleting || _isSaving || _isPublishing) return;
+
+    _autosaveTimer?.cancel();
+
+    final chapterStatus = _submissionStatus.trim().toLowerCase();
+    if ({
+      'published',
+      'submitted',
+      'ongoing',
+      'completed',
+    }.contains(chapterStatus)) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Cannot delete chapter'),
+          content: const Text(
+            'Published chapters cannot be deleted directly. Please unpublish the chapter first.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    late final List<Map<String, dynamic>> chapters;
+    try {
+      chapters = await widget.apiService.fetchStoryChapters(widget.storyId);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not check the story chapters: $error')),
+      );
+      return;
+    }
+
+    final chapterExists = chapters.any(
+      (chapter) => (chapter['id'] as num?)?.toInt() == chapterId,
+    );
+    if (!chapterExists) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This chapter is no longer available.')),
+      );
+      return;
+    }
+    if (!mounted) return;
+
+    if (chapterStatus == 'scheduled') {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Cannot delete scheduled chapter'),
+          content: const Text('Clear the chapter schedule before deleting it.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    if (chapterStatus != 'draft') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Only draft chapters can be deleted.')),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete chapter?'),
+        content: Text(
+          chapters.length == 1
+              ? 'This is the last chapter. Deleting it will keep the story details page. You can delete the story from Manage Story after all chapters are removed.'
+              : 'Are you sure you want to delete this chapter? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete Chapter'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isDeleting = true);
+    try {
+      await widget.apiService.deleteStoryChapter(chapterId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Chapter deleted')));
+      Navigator.of(
+        context,
+      ).pop(const <String, dynamic>{'chapterDeleted': true});
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not delete chapter: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+  }
+
   Future<void> _restoreRevision(
     int revisionId,
     Map<String, dynamic> revision,
@@ -874,11 +1270,11 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
           'Current chapter content will be saved as a new revision, then replaced with the selected version. Other chapters are not changed.',
         ),
         actions: [
- TextButton(
+          TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel'),
           ),
- FilledButton(
+          FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Restore'),
           ),
@@ -917,16 +1313,16 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
- SnackBar(content: Text('Could not restore: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not restore: $e')));
     }
   }
 
   String _statusLabel(String status) {
     switch (status.toLowerCase().trim()) {
       case 'submitted':
-        return 'Submitted';
+        return 'Published';
       case 'scheduled':
         return 'Scheduled';
       case 'published':
@@ -945,61 +1341,64 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
     return '${localizations.formatShortDate(scheduledFor)} ${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(scheduledFor))}';
   }
 
-  Future<void> _deleteChapter() async {
-    if (_chapterId == null) {
-      Navigator.pop(context);
-      return;
-    }
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Are you sure?'),
-        content: const Text(
-          'Are you sure you want to delete this chapter? This cannot be undone.',
-        ),
-        actions: [
- TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('No'),
-          ),
- FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Yes'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    try {
-      await widget.apiService.deleteStoryChapter(_chapterId!);
-      if (mounted) {
-        Navigator.pop(context, true);
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to delete chapter')),
-        );
-      }
-    }
-  }
-
   Future<bool?> _onWillPop() async {
-    if (_isSaving) return false;
+    if (_isSaving || _isPublishing) return false;
     final title = _titleController.text.trim();
     final content = _textController.text.trim();
-    if (title.isEmpty && content.isEmpty && _chapterId == null) return true;
+    if (title.isEmpty && content.isEmpty && _chapterId == null) {
+      await _returnToWriteManager(openDrafts: true);
+      return true;
+    }
     if (title.isEmpty) {
       _titleController.text = 'Chapter $_chapterNumber';
     }
     return await _confirmLeaveAndSaveDraft();
   }
 
-  void _showOptionsMenu() {
+  Future<void> _showOptionsMenu() async {
+    final status = _submissionStatus.trim().toLowerCase();
+    final isPublishedChapter = {
+      'published',
+      'submitted',
+      'ongoing',
+      'completed',
+    }.contains(status);
+    int? latestLiveChapterId;
+    int? latestLiveChapterNumber;
+    var verifiedLatest = false;
+    try {
+      final chapters = await widget.apiService.fetchStoryChapters(
+        widget.storyId,
+      );
+      final live =
+          chapters.where((chapter) {
+            final chapterStatus = (chapter['submission_status'] ?? 'draft')
+                .toString()
+                .trim()
+                .toLowerCase();
+            return {
+              'published',
+              'submitted',
+              'ongoing',
+              'completed',
+            }.contains(chapterStatus);
+          }).toList()..sort((a, b) {
+            final aNumber = (a['chapter_number'] as num?)?.toInt() ?? 0;
+            final bNumber = (b['chapter_number'] as num?)?.toInt() ?? 0;
+            return bNumber.compareTo(aNumber);
+          });
+      latestLiveChapterId = live.isEmpty
+          ? null
+          : (live.first['id'] as num?)?.toInt();
+      latestLiveChapterNumber = live.isEmpty
+          ? null
+          : (live.first['chapter_number'] as num?)?.toInt();
+      verifiedLatest = true;
+    } catch (_) {
+      // The backend still enforces this rule if the status check is offline.
+    }
+    if (!mounted) return;
+    final canUnpublish = !verifiedLatest || latestLiveChapterId == _chapterId;
     showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -1009,15 +1408,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
- ListTile(
-              leading: const Icon(Icons.save_rounded),
-              title: const Text('Save Chapter'),
-              onTap: () async {
-                Navigator.pop(context);
-                await _saveChapter();
-              },
-            ),
- ListTile(
+            ListTile(
               leading: const Icon(Icons.sticky_note_2_outlined),
               title: const Text('Add Chapter Notes'),
               onTap: () async {
@@ -1025,15 +1416,42 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
                 await _editChapterNotes();
               },
             ),
- ListTile(
-              leading: const Icon(Icons.publish_outlined),
-              title: const Text('Submit Chapter'),
-              onTap: () async {
-                Navigator.pop(context);
-                await _submitChapter();
-              },
-            ),
- ListTile(
+            if (isPublishedChapter)
+              ListTile(
+                leading: Icon(
+                  Icons.unpublished_outlined,
+                  color: canUnpublish ? null : AppTheme.mutedOf(context),
+                ),
+                title: Text(
+                  'Unpublish Chapter',
+                  style: canUnpublish
+                      ? null
+                      : TextStyle(color: AppTheme.mutedOf(context)),
+                ),
+                subtitle: canUnpublish
+                    ? null
+                    : Text(
+                        'Unpublish Chapter ${latestLiveChapterNumber ?? ''} first',
+                        style: TextStyle(color: AppTheme.mutedOf(context)),
+                      ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  if (canUnpublish) {
+                    await _unpublishCurrentChapter();
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          latestLiveChapterNumber == null
+                              ? 'Please unpublish the latest chapter first.'
+                              : 'Please unpublish the latest chapter (Chapter $latestLiveChapterNumber) first.',
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
+            ListTile(
               leading: const Icon(Icons.history_rounded),
               title: const Text('Revisions'),
               onTap: () async {
@@ -1041,28 +1459,23 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
                 await _showRevisions();
               },
             ),
- ListTile(
+            ListTile(
               leading: const Icon(Icons.schedule_rounded),
-              title: const Text('Schedule Submission'),
+              title: const Text('Schedule Publishing'),
               onTap: () async {
                 Navigator.pop(context);
                 await _scheduleChapterSubmission();
               },
             ),
- ListTile(
-              leading: const Icon(
-                Icons.delete_outline_rounded,
-                color: Colors.red,
+            if (_chapterId != null && !isPublishedChapter)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text('Delete Chapter'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _deleteCurrentChapter();
+                },
               ),
-              title: const Text(
-                'Delete Chapter',
-                style: TextStyle(color: Colors.red),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _deleteChapter();
-              },
-            ),
           ],
         ),
       ),
@@ -1076,10 +1489,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         // Tab choice is decided after draft save (_storyBelongsInDraftsTab)
-        final shouldPop = await _onWillPop();
-        if (shouldPop == true && context.mounted) {
-          // _confirmLeaveAndSaveDraft already navigates via _returnToWriteManager
-        }
+        await _onWillPop();
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -1089,24 +1499,22 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
           elevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-            onPressed: () async {
-              try {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setBool('write_open_drafts', true);
-                await prefs.setBool('write_open_submitted', false);
-              } catch (_) {}
-              final shouldPop = await _onWillPop();
-              if (shouldPop == true && context.mounted) {
-                await _returnToWriteManager(openDrafts: true);
-              }
-            },
+            onPressed: () => _onWillPop(),
           ),
-          title: const Text('Edit Chapter'),
+          title: const Row(
+            children: [
+              Icon(Icons.menu_book_rounded, size: 21),
+              SizedBox(width: 8),
+              Flexible(
+                child: Text('Edit Chapter', overflow: TextOverflow.ellipsis),
+              ),
+            ],
+          ),
           actions: [
- IconButton(
+            IconButton(
               icon: const Icon(Icons.add_circle_outline_rounded),
               tooltip: 'Add chapter',
-              onPressed: _isSaving
+              onPressed: _isSaving || _isPublishing || _isDeleting
                   ? null
                   : () async {
                       // Save current chapter, then open Chapter N+1 on SAME book
@@ -1117,7 +1525,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
                       await _openNextChapterEditor();
                     },
             ),
- IconButton(
+            IconButton(
               icon: _isSaving
                   ? const SizedBox(
                       width: 18,
@@ -1126,35 +1534,55 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
                     )
                   : const Icon(Icons.check_rounded, color: AppTheme.brand),
               tooltip: 'Save',
-              onPressed: _isSaving
+              onPressed: _isSaving || _isPublishing || _isDeleting
                   ? null
                   : () => _saveChapter(offerNextChapter: true),
             ),
- IconButton(
-              icon: const Icon(Icons.menu_rounded),
-              onPressed: _showOptionsMenu,
+            IconButton(
+              icon: const Icon(Icons.more_horiz_rounded),
+              tooltip: 'More chapter options',
+              onPressed: _isSaving || _isPublishing || _isDeleting
+                  ? null
+                  : _showOptionsMenu,
             ),
           ],
         ),
         bottomNavigationBar: SafeArea(
-          child: Padding(
+          child: Container(
+            color: AppTheme.bgOf(context),
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: Row(
               children: [
- Expanded(
+                Expanded(
                   child: OutlinedButton(
-                    onPressed: _isSaving ? null : _saveAsDraftChapter,
-                    child: const Text('Draft'),
+                    onPressed: _isSaving || _isPublishing || _isDeleting
+                        ? null
+                        : _saveAsDraftChapter,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.brand,
+                      side: const BorderSide(color: AppTheme.brand),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('Save Draft'),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
- Expanded(
+                Expanded(
                   child: FilledButton(
-                    onPressed: _isSaving ? null : _publishStoryAndChapter,
+                    onPressed: _isSaving || _isPublishing || _isDeleting
+                        ? null
+                        : _publishStoryAndChapter,
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF8B5CF6),
+                      backgroundColor: AppTheme.brand,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                    child: const Text('Publish'),
+                    child: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('Publish Chapter'),
+                    ),
                   ),
                 ),
               ],
@@ -1165,7 +1593,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
             ? const Center(child: CircularProgressIndicator())
             : Column(
                 children: [
- Container(
+                  Container(
                     decoration: BoxDecoration(
                       border: Border(
                         bottom: BorderSide(color: AppTheme.borderOf(context)),
@@ -1174,11 +1602,11 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
- Padding(
+                        Padding(
                           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                           child: Row(
                             children: [
- Container(
+                              Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 10,
                                   vertical: 4,
@@ -1197,7 +1625,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
                                 ),
                               ),
                               const SizedBox(width: 8),
- Expanded(
+                              Expanded(
                                 child: Text(
                                   _scheduledLabel(),
                                   style: TextStyle(
@@ -1210,7 +1638,7 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
                             ],
                           ),
                         ),
- Padding(
+                        Padding(
                           padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
                           child: Text(
                             'TITLE',
@@ -1222,26 +1650,45 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
                             ),
                           ),
                         ),
- TextField(
-                          controller: _titleController,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          decoration: const InputDecoration(
-                            contentPadding: EdgeInsets.fromLTRB(16, 4, 16, 12),
-                            border: InputBorder.none,
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+                          child: TextField(
+                            controller: _titleController,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: AppTheme.inkOf(context),
+                            ),
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: AppTheme.fieldOf(context),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                  color: AppTheme.borderOf(context),
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                  color: AppTheme.borderOf(context),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
- Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
- Padding(
+                        Padding(
                           padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
                           child: Text(
                             'TEXT',
@@ -1253,42 +1700,51 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
                             ),
                           ),
                         ),
- Expanded(
-                          child: TextField(
-                            controller: _textController,
-                            maxLines: null,
-                            expands: true,
-                            textAlignVertical: TextAlignVertical.top,
-                            keyboardType: TextInputType.multiline,
-                            style: TextStyle(
-                              fontSize: 16,
-                              height: 1.5,
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontWeight: _isBold
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                              fontStyle: _isItalic
-                                  ? FontStyle.italic
-                                  : FontStyle.normal,
-                              // dark-mode: was Colors.black87
-                            ),
-                            decoration: InputDecoration(
-                              contentPadding: EdgeInsets.fromLTRB(
-                                16,
-                                4,
-                                16,
-                                12,
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: AppTheme.fieldOf(context),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: AppTheme.borderOf(context),
+                                ),
                               ),
-                              border: InputBorder.none,
-                              hintText: 'Start writing your story here...',
-                              hintStyle: TextStyle(color: AppTheme.mutedOf(context)),
+                              child: TextField(
+                                controller: _textController,
+                                maxLines: null,
+                                expands: true,
+                                textAlignVertical: TextAlignVertical.top,
+                                keyboardType: TextInputType.multiline,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  height: 1.5,
+                                  color: AppTheme.inkOf(context),
+                                  fontWeight: FontWeight.normal,
+                                  fontStyle: FontStyle.normal,
+                                ),
+                                decoration: InputDecoration(
+                                  contentPadding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    14,
+                                    16,
+                                    12,
+                                  ),
+                                  border: InputBorder.none,
+                                  hintText: 'Start writing your story here...',
+                                  hintStyle: TextStyle(
+                                    color: AppTheme.mutedOf(context),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ],
                     ),
                   ),
- Container(
+                  Container(
                     alignment: Alignment.centerRight,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -1296,21 +1752,23 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
                     ),
                     child: Text(
                       _wordCount >= 60
-                          ? 'word count: $_wordCount · ready to publish'
-                          : 'word count: $_wordCount · goal 60',
+                          ? 'Word count: $_wordCount · ready to publish'
+                          : 'Word count: $_wordCount · goal 60',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         color: _wordCount >= 60
-                            ? const Color(0xFF047857)
+                            ? AppTheme.brand
                             : AppTheme.mutedOf(context),
                       ),
                     ),
                   ),
- Container(
+                  Container(
                     decoration: BoxDecoration(
-                      border: Border(top: BorderSide(color: AppTheme.borderOf(context))),
-                      color: Color(0xFFFAFAFA),
+                      border: Border(
+                        top: BorderSide(color: AppTheme.borderOf(context)),
+                      ),
+                      color: AppTheme.bgOf(context),
                     ),
                     child: SafeArea(
                       top: false,
@@ -1318,31 +1776,32 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
                         children: [
                           _ToolbarButton(
                             icon: Icons.undo_rounded,
-                            onPressed: () {},
+                            onPressed: _undoHistory.isEmpty ? null : _undoText,
                           ),
                           _ToolbarButton(
                             icon: Icons.redo_rounded,
-                            onPressed: () {},
+                            onPressed: _redoHistory.isEmpty ? null : _redoText,
                           ),
                           _ToolbarButton(
                             icon: Icons.format_bold_rounded,
                             onPressed: () => _applyInlineFormat(bold: true),
-                            isActive: _isBold,
+                            isActive: false,
                           ),
                           _ToolbarButton(
                             icon: Icons.format_italic_rounded,
                             onPressed: () => _applyInlineFormat(italic: true),
-                            isActive: _isItalic,
+                            isActive: false,
                           ),
- Container(
+                          _ToolbarButton(
+                            icon: Icons.format_underlined_rounded,
+                            onPressed: () =>
+                                _applyInlineFormat(underline: true),
+                          ),
+                          Container(
                             width: 1,
                             height: 24,
                             color: AppTheme.borderOf(context),
                             margin: const EdgeInsets.symmetric(horizontal: 4),
-                          ),
-                          _ToolbarButton(
-                            icon: Icons.delete_outline_rounded,
-                            onPressed: _deleteChapter,
                           ),
                         ],
                       ),
@@ -1355,6 +1814,32 @@ class _EditChapterScreenState extends State<EditChapterScreen> {
   }
 }
 
+int? firstUnpublishedChapterNumber({
+  required List<Map<String, dynamic>> chapters,
+  required int chapterNumber,
+}) {
+  // A chapter waiting for review/submission is not yet published. Scheduling
+  // also does not make it eligible to unlock later chapters.
+  const publishedStatuses = {'published', 'ongoing', 'completed'};
+  for (var number = 1; number < chapterNumber; number++) {
+    Map<String, dynamic>? previousChapter;
+    for (final chapter in chapters) {
+      if ((chapter['chapter_number'] as num?)?.toInt() == number) {
+        previousChapter = chapter;
+        break;
+      }
+    }
+    final status = (previousChapter?['submission_status'] ?? 'draft')
+        .toString()
+        .trim()
+        .toLowerCase();
+    if (previousChapter == null || !publishedStatuses.contains(status)) {
+      return number;
+    }
+  }
+  return null;
+}
+
 class _ToolbarButton extends StatelessWidget {
   const _ToolbarButton({
     required this.icon,
@@ -1363,7 +1848,7 @@ class _ToolbarButton extends StatelessWidget {
   });
 
   final IconData icon;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool isActive;
 
   @override
@@ -1373,7 +1858,11 @@ class _ToolbarButton extends StatelessWidget {
       icon: Icon(
         icon,
         size: 22,
-        color: isActive ? AppTheme.brand : AppTheme.mutedOf(context),
+        color: onPressed == null
+            ? AppTheme.mutedOf(context)
+            : isActive
+            ? AppTheme.brand
+            : AppTheme.mutedOf(context),
       ),
       constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
     );

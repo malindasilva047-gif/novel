@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../data/services/api_service.dart';
+import '../widgets/image_adjustment.dart';
 
 /// Shown for new users before Discover — must complete once.
 class OnboardingProfileScreen extends StatefulWidget {
@@ -44,8 +46,8 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
 
   String _photoUrl = '';
   String _coverUrl = '';
-  File? _localPhoto;
-  File? _localCover;
+  Uint8List? _localPhoto;
+  Uint8List? _localCover;
 
   static const _genders = ['Female', 'Male', 'Non-binary', 'Prefer not to say'];
   static const List<String> _countryOptions = [
@@ -125,36 +127,38 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
       imageQuality: 85,
     );
     if (x == null) return;
+    final adjusted = await showImageAdjustmentDialog(
+      context,
+      x,
+      aspectRatio: cover ? 2.8 : 1,
+      circular: !cover,
+    );
+    if (adjusted == null) return;
     setState(() {
       if (cover) {
-        _localCover = File(x.path);
+        _localCover = adjusted;
       } else {
-        _localPhoto = File(x.path);
+        _localPhoto = adjusted;
       }
     });
   }
 
-  Future<String?> _uploadIfNeeded(File? file) async {
-    if (file == null) return null;
-    try {
-      final bytes = await file.readAsBytes();
-      final name = file.path.split(RegExp(r'[\\/]')).last;
-      final res = await widget.apiService.uploadUserImage(
-        bytes,
-        name.isEmpty ? 'photo.jpg' : name,
-      );
-      final path =
-          (res['path'] ??
-                  res['url'] ??
-                  res['photo_url'] ??
-                  res['cover_url'] ??
-                  res['cover_path'] ??
-                  '')
-              .toString();
-      return path.isEmpty ? null : path;
-    } catch (_) {
-      return null;
-    }
+  Future<String?> _uploadIfNeeded(
+    Uint8List? imageBytes,
+    String filename,
+  ) async {
+    if (imageBytes == null) return null;
+    final res = await widget.apiService.uploadUserImage(imageBytes, filename);
+    final path =
+        (res['path'] ??
+                res['url'] ??
+                res['photo_url'] ??
+                res['cover_url'] ??
+                res['cover_path'] ??
+                '')
+            .toString();
+    if (path.isEmpty) throw Exception('The server returned no image path.');
+    return path;
   }
 
   Future<void> _pickBirthDate() async {
@@ -163,14 +167,17 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
       context: context,
       initialDate: DateTime(now.year - 18, now.month, now.day),
       firstDate: DateTime(1920),
-      lastDate: DateTime(now.year - 13, now.month, now.day),
+      lastDate: DateTime(now.year - 16, now.month, now.day),
     );
     if (picked != null) setState(() => _birthDate = picked);
   }
 
   Future<void> _save() async {
     final name = _nameCtrl.text.trim();
-    final username = _usernameCtrl.text.trim().replaceFirst('@', '');
+    final username = _usernameCtrl.text
+        .trim()
+        .replaceFirst('@', '')
+        .toLowerCase();
     final password = _passCtrl.text;
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -184,48 +191,64 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
       ).showSnackBar(const SnackBar(content: Text('Birthday is required')));
       return;
     }
+    final today = DateTime.now();
+    var age = today.year - _birthDate!.year;
+    if (today.month < _birthDate!.month ||
+        (today.month == _birthDate!.month && today.day < _birthDate!.day)) {
+      age--;
+    }
+    if (age < 16) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You must be at least 16 to use Wingsaga'),
+        ),
+      );
+      return;
+    }
     if ((_country ?? '').trim().isEmpty) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Country is required')));
       return;
     }
-    if (username.isNotEmpty || password.isNotEmpty) {
-      if (username.length < 3) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Username must be at least 3 characters'),
-          ),
-        );
-        return;
-      }
-      if (password.length < 6) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password must be at least 6 characters'),
-          ),
-        );
-        return;
-      }
-    }
-    // Must be at least 13 to use the app
-    final age = DateTime.now().difference(_birthDate!).inDays ~/ 365;
-    if (age < 13) {
+    if (username.length < 3 ||
+        username.length > 32 ||
+        !RegExp(r'^[a-z0-9_]+$').hasMatch(username)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must be at least 13 years old')),
+        const SnackBar(
+          content: Text(
+            'Username is required: 3–32 letters, numbers, or underscores',
+          ),
+        ),
+      );
+      return;
+    }
+    if (!RegExp(
+      r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$',
+    ).hasMatch(password)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Password is required: 8+ characters with a letter, number, and symbol',
+          ),
+        ),
       );
       return;
     }
     setState(() => _saving = true);
     try {
-      final uploadedPhoto = await _uploadIfNeeded(_localPhoto);
-      final uploadedCover = await _uploadIfNeeded(_localCover);
+      final uploads = await Future.wait([
+        _uploadIfNeeded(_localPhoto, 'profile-photo.png'),
+        _uploadIfNeeded(_localCover, 'profile-cover.png'),
+      ]);
+      final uploadedPhoto = uploads[0];
+      final uploadedCover = uploads[1];
       if (uploadedPhoto != null) _photoUrl = uploadedPhoto;
       if (uploadedCover != null) _coverUrl = uploadedCover;
 
       await widget.apiService.updateMyProfile({
         'display_name': name,
-        if (username.isNotEmpty) 'username': username,
+        'username': username,
         'bio': _bioCtrl.text.trim(),
         if (_gender != null) 'gender': _gender,
         if ((_country ?? '').trim().isNotEmpty)
@@ -238,7 +261,7 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
         if (_coverUrl.isNotEmpty) 'cover_url': _coverUrl,
       });
       final em = _emailCtrl.text.trim();
-      if (password.length >= 6 && (username.isNotEmpty || em.contains('@'))) {
+      if (password.isNotEmpty) {
         await widget.apiService.linkEmailPassword(
           email: em,
           username: username,
@@ -258,7 +281,8 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
     } catch (e) {
       if (!mounted) return;
       final msg = e.toString().toLowerCase();
-      final isTimeout = msg.contains('timeout') ||
+      final isTimeout =
+          msg.contains('timeout') ||
           msg.contains('timed out') ||
           msg.contains('connection') ||
           msg.contains('503') ||
@@ -287,7 +311,7 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
   }
 
   ImageProvider? get _avatarProvider {
-    if (_localPhoto != null) return FileImage(_localPhoto!);
+    if (_localPhoto != null) return MemoryImage(_localPhoto!);
     if (_photoUrl.isNotEmpty) {
       final url = widget.apiService.resolveAssetUrl(_photoUrl);
       if (url.startsWith('http')) return NetworkImage(url);
@@ -296,7 +320,7 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
   }
 
   ImageProvider? get _coverProvider {
-    if (_localCover != null) return FileImage(_localCover!);
+    if (_localCover != null) return MemoryImage(_localCover!);
     if (_coverUrl.isNotEmpty) {
       final url = widget.apiService.resolveAssetUrl(_coverUrl);
       if (url.startsWith('http')) return NetworkImage(url);
@@ -323,9 +347,9 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
               const SizedBox(height: 6),
               Text(
                 'This appears on your public profile for readers and authors.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 20),
               // Cover
@@ -334,7 +358,7 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
                 child: Container(
                   height: 120,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF3F0FF),
+                    color: const Color(0xFFF6F5FA),
                     borderRadius: BorderRadius.circular(12),
                     image: _coverProvider != null
                         ? DecorationImage(
@@ -368,7 +392,7 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
                     children: [
                       CircleAvatar(
                         radius: 44,
-                        backgroundColor: const Color(0xFFEDE9FE),
+                        backgroundColor: const Color(0xFFDDE2DF),
                         backgroundImage: _avatarProvider,
                         child: _avatarProvider == null
                             ? const Icon(
@@ -384,7 +408,7 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: const BoxDecoration(
-                            color: Color(0xFF8B5CF6),
+                            color: Color(0xFF16856A),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -415,13 +439,21 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
                   border: OutlineInputBorder(),
                 ),
                 textCapitalization: TextCapitalization.words,
-                style: const TextStyle(color: Colors.black),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 14),
               TextField(
                 controller: _bioCtrl,
                 maxLines: 3,
-                style: const TextStyle(color: Colors.black),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                autocorrect: false,
+                enableSuggestions: false,
+                spellCheckConfiguration:
+                    const SpellCheckConfiguration.disabled(),
                 decoration: const InputDecoration(
                   labelText: 'Bio',
                   hintText: 'A short intro about you',
@@ -476,19 +508,25 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     'Detected from network: $_detectedCountry',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
 
               const SizedBox(height: 8),
               TextField(
                 controller: _usernameCtrl,
-                style: const TextStyle(color: Colors.black87),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                autocorrect: false,
+                enableSuggestions: false,
+                spellCheckConfiguration:
+                    const SpellCheckConfiguration.disabled(),
                 decoration: const InputDecoration(
-                  labelText: 'Username (optional)',
-                  hintText: 'Used to sign in without Google',
+                  labelText: 'Username *',
+                  hintText: '3–32 letters, numbers, or underscores',
                   prefixText: '@',
                   border: OutlineInputBorder(),
                 ),
@@ -503,15 +541,17 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
               const SizedBox(height: 4),
               Text(
                 'Set an email and password so you can also sign in without Google.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: _emailCtrl,
                 keyboardType: TextInputType.emailAddress,
-                style: const TextStyle(color: Colors.black87),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
                 decoration: const InputDecoration(
                   labelText: 'Email (optional)',
                   border: OutlineInputBorder(),
@@ -521,9 +561,11 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
               TextField(
                 controller: _passCtrl,
                 obscureText: true,
-                style: const TextStyle(color: Colors.black87),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
                 decoration: const InputDecoration(
-                  labelText: 'Password (optional, min 6)',
+                  labelText: 'Password * (8+ with letter, number, symbol)',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -558,12 +600,15 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
                 ),
               ),
               if (_saving)
-                const Padding(
-                  padding: EdgeInsets.only(top: 10),
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
                   child: Text(
-                    'First save after idle can take up to a minute while the server starts.',
+                    'Saving your profile. Please keep the app open.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
             ],

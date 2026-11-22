@@ -44,7 +44,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   File? _photo;
   String _photoUrl = '';
 
-  static const _purple = Color(0xFF8B5CF6);
+  static const _purple = Color(0xFF16856A);
   static const _genders = ['Female', 'Male', 'Non-binary', 'Prefer not to say'];
   static const _countries = [
     'United States',
@@ -113,7 +113,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       context: context,
       initialDate: DateTime(now.year - 18, now.month, now.day),
       firstDate: DateTime(1900),
-      lastDate: DateTime(now.year - 13, now.month, now.day),
+      lastDate: DateTime(now.year - 16, now.month, now.day),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
           colorScheme: Theme.of(ctx).colorScheme.copyWith(primary: _purple),
@@ -140,6 +140,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
       return;
     }
+    final today = DateTime.now();
+    var age = today.year - _birthDate!.year;
+    if (today.month < _birthDate!.month ||
+        (today.month == _birthDate!.month && today.day < _birthDate!.day)) {
+      age--;
+    }
+    if (age < 16) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be at least 16 to create an account')),
+      );
+      return;
+    }
     setState(() => _busy = true);
     try {
       final upPhoto = await _upload(_photo);
@@ -156,6 +168,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         'birth_date':
             '${_birthDate!.year.toString().padLeft(4, '0')}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}',
         'profile_complete': true,
+        'accepted_terms': _agreed,
       });
 
       final needsVerify = result['needs_verification'] == true;
@@ -214,6 +227,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('$e')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _facebook() async {
+    setState(() => _busy = true);
+    try {
+      await widget.onContinue('facebook');
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -569,8 +596,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                       ),
                       const SizedBox(height: 18),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text(
                             'Already have an account? ',
@@ -600,6 +628,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                           label: const Text('Continue with Google'),
                           style: TextButton.styleFrom(foregroundColor: _purple),
+                        ),
+                      ),
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: _busy ? null : _facebook,
+                          icon: const Icon(Icons.facebook_rounded, size: 22),
+                          label: const Text('Continue with Facebook'),
+                          style: TextButton.styleFrom(foregroundColor: const Color(0xFF1877F2)),
                         ),
                       ),
                     ],

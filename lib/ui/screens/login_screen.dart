@@ -182,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               Text(
                                 'Login to continue to your account',
                                 style: TextStyle(
-                                  color: Color(0xFFE8E0FF),
+                                  color: Color(0xFFF6F5FA),
                                   fontSize: 13,
                                   height: 1.25,
                                 ),
@@ -345,8 +345,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                         const SizedBox(height: 18),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             _SocialBtn(
                               icon: Icons.g_mobiledata_rounded,
@@ -358,15 +359,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(width: 16),
                             _SocialBtn(
-                              icon: Icons.apple,
-                              label: 'A',
-                              onTap: null, // not wired
-                            ),
-                            const SizedBox(width: 16),
-                            _SocialBtn(
                               icon: Icons.facebook_rounded,
                               label: 'f',
-                              onTap: null,
+                              onTap: _busy
+                                  ? null
+                                  : () => _run(() => widget.onContinue('facebook')),
                             ),
                           ],
                         ),
@@ -392,18 +389,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ],
                         ),
-                        if (widget.onSkipAsReader != null) ...[
-                          const SizedBox(height: 12),
-                          TextButton(
-                            onPressed: _busy ? null : widget.onSkipAsReader,
-                            child: Text(
-                              'Continue as guest',
-                              style: TextStyle(
-                                color: AppStyles.colors(context).textMuted,
-                              ),
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),

@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// App-wide light / dark / system theme controller (persisted).
-/// Default is light; users can explicitly choose dark mode in More > Theme.
 class ThemeController extends ChangeNotifier {
   ThemeController._();
   static final ThemeController instance = ThemeController._();
 
   static const _prefsKey = 'app_theme_mode';
+  static const _migrationKey = 'app_theme_mode_light_default_v1';
 
-  ThemeMode _mode = ThemeMode.dark;
+  ThemeMode _mode = ThemeMode.light;
   bool _loaded = false;
 
   ThemeMode get mode => _mode;
@@ -18,18 +18,21 @@ class ThemeController extends ChangeNotifier {
   Future<void> load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_prefsKey);
-      if (raw == null || raw.isEmpty) {
-        _mode = ThemeMode.dark;
+      if ((prefs.getInt(_migrationKey) ?? 0) < 1) {
+        _mode = ThemeMode.light;
+        await prefs.setString(_prefsKey, 'light');
+        await prefs.setInt(_migrationKey, 1);
       } else {
+        final raw = prefs.getString(_prefsKey);
         _mode = switch (raw) {
           'light' => ThemeMode.light,
+          'dark' => ThemeMode.dark,
           'system' => ThemeMode.system,
-          _ => ThemeMode.dark,
+          _ => ThemeMode.light,
         };
       }
     } catch (_) {
-      _mode = ThemeMode.dark;
+      _mode = ThemeMode.light;
     }
     _loaded = true;
     notifyListeners();
@@ -47,6 +50,7 @@ class ThemeController extends ChangeNotifier {
         ThemeMode.system => 'system',
       };
       await prefs.setString(_prefsKey, raw);
+      await prefs.setInt(_migrationKey, 1);
     } catch (_) {}
   }
 

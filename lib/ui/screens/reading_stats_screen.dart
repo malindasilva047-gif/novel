@@ -24,7 +24,7 @@ class _ReadingStatsScreenState extends State<ReadingStatsScreen> {
   int _monthBooks = 0;
   double _goalPct = 0.75;
   final List<(String, int)> _topGenres = [];
-  static const _purple = Color(0xFF8B5CF6);
+  static const _purple = Color(0xFF16856A);
 
   @override
   void initState() {
@@ -129,7 +129,7 @@ class _ReadingStatsScreenState extends State<ReadingStatsScreen> {
                       child: _metric(
                         '$_booksRead',
                         'Books Read',
-                        const Color(0xFF7C3AED),
+                        const Color(0xFF35A486),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -137,7 +137,7 @@ class _ReadingStatsScreenState extends State<ReadingStatsScreen> {
                       child: _metric(
                         '$_pagesRead',
                         'Pages Read',
-                        const Color(0xFF8B5CF6),
+                        const Color(0xFF16856A),
                       ),
                     ),
                   ],
@@ -149,7 +149,7 @@ class _ReadingStatsScreenState extends State<ReadingStatsScreen> {
                       child: _metric(
                         _readingTimeLabel,
                         'Reading Time',
-                        const Color(0xFF6D28D9),
+                        const Color(0xFF35A486),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -157,7 +157,7 @@ class _ReadingStatsScreenState extends State<ReadingStatsScreen> {
                       child: _metric(
                         '$_streak',
                         'Current Streak',
-                        const Color(0xFFA78BFA),
+                        const Color(0xFF35A486),
                       ),
                     ),
                   ],

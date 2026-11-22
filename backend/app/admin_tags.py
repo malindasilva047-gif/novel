@@ -39,6 +39,18 @@ def register_admin_tag_routes(app, *, require_admin, fetch_all, execute_write, b
             "followers_count": int(row.get("followers_count") or 0),
         }
 
+    @app.get("/api/write/tag-options")
+    def writer_tag_options(q: str = ""):
+        query = q.strip().lstrip("#").strip()
+        if not query:
+            return {"items": [], "total": 0}
+        rows = fetch_all(
+            "SELECT id, name FROM tags WHERE LOWER(name) LIKE %s ORDER BY name ASC LIMIT 50",
+            (f"{query.lower()}%",),
+        ) or []
+        items = [{"id": row["id"], "name": row["name"]} for row in rows]
+        return {"items": items, "total": len(items)}
+
     @app.get("/api/admin/tags")
     def admin_list_tags(_: dict[str, Any] = Depends(require_admin)):
         rows = fetch_all(

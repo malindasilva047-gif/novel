@@ -32,9 +32,7 @@ export default function ReviewPage({ user }) {
   const [plot, setPlot] = useState(0);
   const [style, setStyle] = useState(0);
   const [tech, setTech] = useState(0);
-  const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [agree, setAgree] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -50,12 +48,8 @@ export default function ReviewPage({ user }) {
       setError("Sign in to submit a review");
       return;
     }
-    if (!overall || !title.trim() || !body.trim()) {
-      setError("Rating, title, and review text are required");
-      return;
-    }
-    if (!agree) {
-      setError("Please confirm the guidelines");
+    if (!overall || !body.trim()) {
+      setError("Rating and review text are required");
       return;
     }
     setBusy(true);
@@ -63,9 +57,12 @@ export default function ReviewPage({ user }) {
     try {
       await postBookReview(id, {
         rating: overall,
-        comment: `${title.trim()}\n\n${body.trim()}\n\n(Plot ${plot}/5 · Style ${style}/5 · Tech ${tech}/5)`,
+        comment: body.trim(),
+        plot_rating: plot,
+        style_rating: style,
+        tech_rating: tech,
       });
-      navigate(`/stories/${id}`);
+      navigate(`/stories/${id}/reviews`);
     } catch (err) {
       setError(String(err.message || err));
     } finally {
@@ -120,17 +117,8 @@ export default function ReviewPage({ user }) {
             onChange={setTech}
           />
           <label>
-            Title (required)
-            <input value={title} onChange={(e) => setTitle(e.target.value)} required />
-          </label>
-          <label>
             Write your review here (required)
             <textarea rows={8} value={body} onChange={(e) => setBody(e.target.value)} required />
-          </label>
-          <label className="checkbox-row">
-            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-            I have read these guidelines and understand that reviews that don’t follow them may be
-            removed.
           </label>
           <div className="form-actions">
             <Link className="btn" to={`/stories/${id}`}>

@@ -7,15 +7,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/cover_assets.dart';
 import '../../core/constants/responsive.dart';
+import '../../core/theme/app_styles.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/app_bootstrap.dart';
 import '../../data/services/api_service.dart';
 
 import 'explore_screen.dart';
 import 'profile_screen.dart';
-import 'story_detail_screen.dart';
 import 'hashtag_detail_screen.dart';
 import 'chapter_reader_screen.dart';
+import 'story_detail_screen.dart';
+import 'genre_stories_screen.dart';
 
 part 'discover_widgets.dart';
 
@@ -23,11 +25,15 @@ class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({
     super.key,
     required this.data,
+    this.recommendedBooks = const [],
     required this.apiService,
+    required this.onRefresh,
   });
 
   final AppBootstrap data;
+  final List<BookCardModel> recommendedBooks;
   final ApiService apiService;
+  final Future<void> Function() onRefresh;
 
   @override
   State<DiscoverScreen> createState() => _DiscoverScreenState();
@@ -42,14 +48,25 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   int _selectedTabIndex = 0;
   late List<BookCardModel> _shuffledBooks;
   int _shuffleToken = 0;
+  int? _lastFirstBookId;
 
   void _reshuffleBooks() {
-    // AppBootstrap uses discoverBooks / recentlyUpdated — not `.books`
-    final pool = _booksForDiscover();
-    pool.shuffle(
-      math.Random(DateTime.now().millisecondsSinceEpoch + _shuffleToken),
-    );
+    final pool = _booksForDiscover()
+      ..shuffle(
+        math.Random(DateTime.now().microsecondsSinceEpoch + _shuffleToken),
+      );
+    if (pool.length > 1 && pool.first.id == _lastFirstBookId) {
+      final nextDifferent = pool.indexWhere(
+        (book) => book.id != _lastFirstBookId,
+      );
+      if (nextDifferent > 0) {
+        final first = pool[0];
+        pool[0] = pool[nextDifferent];
+        pool[nextDifferent] = first;
+      }
+    }
     _shuffledBooks = pool;
+    _lastFirstBookId = pool.isEmpty ? null : pool.first.id;
     _shuffleToken++;
   }
 
@@ -81,6 +98,15 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   }
 
   @override
+  void didUpdateWidget(covariant DiscoverScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.data != widget.data ||
+        oldWidget.recommendedBooks != widget.recommendedBooks) {
+      setState(_reshuffleBooks);
+    }
+  }
+
+  @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
@@ -91,19 +117,20 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     return RefreshIndicator(
       onRefresh: () async {
         setState(_reshuffleBooks);
-        // Small delay so the indicator is visible
-        await Future<void>.delayed(const Duration(milliseconds: 350));
+        await widget.onRefresh();
       },
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
- Builder(
+          Builder(
             builder: (context) {
               final isDark = Theme.of(context).brightness == Brightness.dark;
               final fg = isDark ? Colors.white : const Color(0xFF1A1A1A);
               return SliverToBoxAdapter(
                 child: Container(
-                  color: isDark ? const Color(0xFF121218) : AppTheme.bgOf(context),
+                  color: isDark
+                      ? AppTheme.elevatedOf(context)
+                      : AppTheme.bgOf(context),
                   padding: EdgeInsets.fromLTRB(
                     AppBreakpoints.pagePadding(context),
                     10,
@@ -112,13 +139,13 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                   ),
                   child: Row(
                     children: [
- Expanded(
+                      Expanded(
                         child: Text(
                           'Wingsaga',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 28,
+                            fontSize: 26,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.8,
                             fontFamily: 'cursive',
@@ -127,19 +154,19 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                         ),
                       ),
                       const SizedBox(width: 6),
- IconButton(
+                      IconButton(
                         tooltip: 'Search',
                         icon: Icon(Icons.search_rounded, size: 26, color: fg),
                         onPressed: () {
                           Navigator.of(context).push(
                             MaterialPageRoute<void>(
                               builder: (_) =>
- SearchScreen(apiService: widget.apiService),
+                                  SearchScreen(apiService: widget.apiService),
                             ),
                           );
                         },
                       ),
- IconButton(
+                      IconButton(
                         tooltip: 'More',
                         icon: Icon(Icons.more_vert, size: 22, color: fg),
                         onPressed: () {
@@ -156,7 +183,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const SizedBox(height: 8),
- Container(
+                                    Container(
                                       width: 40,
                                       height: 4,
                                       decoration: BoxDecoration(
@@ -164,7 +191,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                                         borderRadius: BorderRadius.circular(2),
                                       ),
                                     ),
- ListTile(
+                                    ListTile(
                                       leading: const Icon(
                                         Icons.support_agent_outlined,
                                       ),
@@ -182,106 +209,133 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                                           ),
                                           builder: (sctx) {
                                             final subject =
- TextEditingController();
+                                                TextEditingController();
                                             final body =
- TextEditingController();
-                                            return Padding(
-                                              padding: EdgeInsets.only(
-                                                left: 20,
-                                                right: 20,
-                                                top: 20,
-                                                bottom:
-                                                    MediaQuery.of(
-                                                      sctx,
-                                                    ).viewInsets.bottom +
-                                                    20,
-                                              ),
-                                              child: Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.stretch,
-                                                children: [
-                                                  const Text(
-                                                    'Contact support',
-                                                    style: TextStyle(
-                                                      fontSize: 18,
-                                                      fontWeight:
-                                                          FontWeight.w700,
+                                                TextEditingController();
+                                            return SafeArea(
+                                              top: false,
+                                              child: AnimatedPadding(
+                                                duration: const Duration(
+                                                  milliseconds: 180,
+                                                ),
+                                                padding: EdgeInsets.only(
+                                                  bottom: MediaQuery.of(
+                                                    sctx,
+                                                  ).viewInsets.bottom,
+                                                ),
+                                                child: SingleChildScrollView(
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.fromLTRB(
+                                                          20,
+                                                          20,
+                                                          20,
+                                                          20,
+                                                        ),
+                                                    child: Column(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .stretch,
+                                                      children: [
+                                                        const Text(
+                                                          'Contact support',
+                                                          style: TextStyle(
+                                                            fontSize: 18,
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 12,
+                                                        ),
+                                                        TextField(
+                                                          controller: subject,
+                                                          decoration:
+                                                              const InputDecoration(
+                                                                labelText:
+                                                                    'Subject',
+                                                              ),
+                                                        ),
+                                                        TextField(
+                                                          controller: body,
+                                                          maxLines: 4,
+                                                          decoration:
+                                                              const InputDecoration(
+                                                                labelText:
+                                                                    'How can we help?',
+                                                              ),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 12,
+                                                        ),
+                                                        ElevatedButton(
+                                                          onPressed: () async {
+                                                            try {
+                                                              await widget
+                                                                  .apiService
+                                                                  .submitSupportRequest({
+                                                                    'subject':
+                                                                        subject
+                                                                            .text
+                                                                            .trim(),
+                                                                    'description': body
+                                                                        .text
+                                                                        .trim(),
+                                                                    'issue': subject
+                                                                        .text
+                                                                        .trim(),
+                                                                  });
+                                                              if (sctx
+                                                                  .mounted) {
+                                                                Navigator.pop(
+                                                                  sctx,
+                                                                );
+                                                              }
+                                                              if (context
+                                                                  .mounted) {
+                                                                ScaffoldMessenger.of(
+                                                                  context,
+                                                                ).showSnackBar(
+                                                                  const SnackBar(
+                                                                    content: Text(
+                                                                      'Support request sent',
+                                                                    ),
+                                                                  ),
+                                                                );
+                                                              }
+                                                            } catch (e) {
+                                                              if (sctx
+                                                                  .mounted) {
+                                                                ScaffoldMessenger.of(
+                                                                  sctx,
+                                                                ).showSnackBar(
+                                                                  SnackBar(
+                                                                    content:
+                                                                        Text(
+                                                                          '$e',
+                                                                        ),
+                                                                  ),
+                                                                );
+                                                              }
+                                                            }
+                                                          },
+                                                          child: const Text(
+                                                            'Send',
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
                                                   ),
-                                                  const SizedBox(height: 12),
- TextField(
-                                                    controller: subject,
-                                                    decoration:
-                                                        const InputDecoration(
-                                                          labelText: 'Subject',
-                                                        ),
-                                                  ),
- TextField(
-                                                    controller: body,
-                                                    maxLines: 4,
-                                                    decoration:
-                                                        const InputDecoration(
-                                                          labelText:
-                                                              'How can we help?',
-                                                        ),
-                                                  ),
-                                                  const SizedBox(height: 12),
- ElevatedButton(
-                                                    onPressed: () async {
-                                                      try {
-                                                        await widget.apiService
-                                                            .submitSupportRequest(
-                                                              {
-                                                                'subject':
-                                                                    subject.text
-                                                                        .trim(),
-                                                                'description':
-                                                                    body.text
-                                                                        .trim(),
-                                                                'issue': subject
-                                                                    .text
-                                                                    .trim(),
-                                                              },
-                                                            );
-                                                        if (sctx.mounted) {
-                                                          Navigator.pop(sctx);
-                                                        }
-                                                        if (context.mounted) {
-                                                          ScaffoldMessenger.of(
-                                                            context,
-                                                          ).showSnackBar(
-                                                            const SnackBar(
-                                                              content: Text(
-                                                                'Support request sent',
-                                                              ),
-                                                            ),
-                                                          );
-                                                        }
-                                                      } catch (e) {
-                                                        if (sctx.mounted) {
-                                                          ScaffoldMessenger.of(
-                                                            sctx,
-                                                          ).showSnackBar(
- SnackBar(
-                                                              content: Text(
-                                                                '$e',
-                                                              ),
-                                                            ),
-                                                          );
-                                                        }
-                                                      }
-                                                    },
-                                                    child: const Text('Send'),
-                                                  ),
-                                                ],
+                                                ),
                                               ),
                                             );
                                           },
                                         );
                                       },
                                     ),
- ListTile(
+                                    ListTile(
                                       leading: const Icon(
                                         Icons.switch_account_outlined,
                                       ),
@@ -301,7 +355,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
                                         );
                                       },
                                     ),
- ListTile(
+                                    ListTile(
                                       title: const Text(
                                         'Cancel',
                                         textAlign: TextAlign.center,
@@ -322,22 +376,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
               );
             },
           ),
- SliverPersistentHeader(
-            pinned: true,
-            delegate: _TabBarDelegate(
-              child: Container(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xFF0B0A12)
-                    : Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: _CategoryTabs(
-                  labels: _tabs,
-                  tabController: _tabController,
-                ),
-              ),
-            ),
-          ),
- SliverToBoxAdapter(child: _buildTabContent(_selectedTabIndex)),
+          SliverToBoxAdapter(child: _buildTabContent(_selectedTabIndex)),
         ],
       ),
     );
@@ -366,18 +405,14 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           ? allBooks.skip(4).take(8).toList()
           : allBooks.take(8).toList();
       return Container(
-        color: isDark ? const Color(0xFF0B0A12) : Colors.white,
+        color: isDark ? AppTheme.bgOf(context) : Colors.white,
         child: ListView(
           physics: const NeverScrollableScrollPhysics(),
           shrinkWrap: true,
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 30),
           children: [
             // Featured hero (Inkitt-style)
-            _HomeFeaturedBanner(
-              book: widget.data.featuredBook,
-              fallbackBooks: allBooks,
-              apiService: widget.apiService,
-            ),
+            _HomeFeaturedBanner(books: allBooks, apiService: widget.apiService),
             const SizedBox(height: 22),
             // Recommended For You (above Continue Reading)
             _HomeSectionHeader(
@@ -439,12 +474,6 @@ class _DiscoverScreenState extends State<DiscoverScreen>
               books: allBooks,
               apiService: widget.apiService,
             ),
-            const SizedBox(height: 18),
-            _HomeCategoryGrid(
-              topics: widget.data.exploreTopics,
-              books: allBooks,
-              apiService: widget.apiService,
-            ),
             const SizedBox(height: 22),
             // Trending Now
             _HomeSectionHeader(
@@ -484,7 +513,7 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     // Other category tabs — keep existing rail behavior
     final showExploreLead = tabLabel == 'new' && sections.isNotEmpty;
     return Container(
-      color: isDark ? const Color(0xFF0B0A12) : Colors.white,
+      color: isDark ? AppTheme.bgOf(context) : Colors.white,
       child: ListView(
         physics: const NeverScrollableScrollPhysics(),
         shrinkWrap: true,
@@ -547,9 +576,12 @@ class _DiscoverScreenState extends State<DiscoverScreen>
   List<BookCardModel> _booksForDiscover() {
     final seen = <int>{};
     final merged = <BookCardModel>[];
-    final source = widget.data.discoverBooks.isNotEmpty
-        ? widget.data.discoverBooks
-        : [...widget.data.recentlyUpdated, ...widget.data.recentlyCompleted];
+    final source = <BookCardModel>[
+      ...widget.recommendedBooks,
+      ...(widget.data.discoverBooks.isNotEmpty
+          ? widget.data.discoverBooks
+          : [...widget.data.recentlyUpdated, ...widget.data.recentlyCompleted]),
+    ];
     for (final book in source) {
       if (!_isValidBook(book)) continue;
       if (seen.contains(book.id)) continue;
@@ -586,9 +618,14 @@ class _DiscoverScreenState extends State<DiscoverScreen>
     final recentlyCompleted = takeWhere(
       (b) => b.sectionName == 'recently_completed' || b.isCompleted,
     );
-    final topRated = distinct(
+    final rankedByRating = distinct(
       [...booksByTitle]..sort((a, b) => b.rating.compareTo(a.rating)),
     );
+    final topRatedStart = rankedByRating.length <= 20
+        ? 0
+        : math.Random(_shuffleToken).nextInt(rankedByRating.length - 19);
+    final topRated = rankedByRating.skip(topRatedStart).take(20).toList()
+      ..shuffle(math.Random(_shuffleToken + 1));
     final fantasy = takeWhere(
       (b) =>
           b.primaryGenre.toLowerCase().contains('fantasy') ||
@@ -788,9 +825,9 @@ class _DiscoverScreenState extends State<DiscoverScreen>
           final title = name
               .replaceAll('_', ' ')
               .split(' ')
-              .map((w) => w.isEmpty
-                  ? w
-                  : '${w[0].toUpperCase()}${w.substring(1)}')
+              .map(
+                (w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}',
+              )
               .join(' ');
           sections.add(
             _DiscoverRailSection(
@@ -850,6 +887,7 @@ class _SearchScreenState extends State<SearchScreen> {
   static const _kResultsTagBase = 'search_results_tag_v1';
   static const _kResultsProfileBase = 'search_results_profile_v1';
   Timer? _searchDebounce;
+  int _searchRequestId = 0;
 
   Future<String> _historyScope() async {
     try {
@@ -875,16 +913,11 @@ class _SearchScreenState extends State<SearchScreen> {
   Future<String> _keyResultsProfile() async =>
       '${_kResultsProfileBase}_${await _historyScope()}';
 
-  List<String> get _recentForScope {
-    switch (_searchScope) {
-      case 'tag':
-        return _recentTag;
-      case 'profile':
-        return _recentProfile;
-      default:
-        return _recentTitle;
-    }
-  }
+  List<String> get _recentForScope => switch (_searchScope) {
+    'tag' => _recentTag,
+    'profile' => _recentProfile,
+    _ => _recentTitle,
+  };
 
   Future<void> _loadSearchHistory() async {
     try {
@@ -935,7 +968,10 @@ class _SearchScreenState extends State<SearchScreen> {
   Future<void> _saveRecentResults(List<Map<String, dynamic>> rows) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(await _resultsKeyAsync(), jsonEncode(rows.take(5).toList()));
+      await prefs.setString(
+        await _resultsKeyAsync(),
+        jsonEncode(rows.take(5).toList()),
+      );
     } catch (_) {}
   }
 
@@ -988,8 +1024,18 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _runSearch({bool recordHistory = true}) async {
     final q = _searchQuery.trim();
-    // No query → only recent history chips, no random book list
+    final requestId = ++_searchRequestId;
+    // Empty queries show search history and discovery suggestions. The main
+    // Discover tab remains the place for the default story feed.
     if (q.isEmpty) {
+      if (_searchScope == 'title') {
+        setState(() {
+          _results = <Map<String, dynamic>>[];
+          _loading = false;
+          _showRecent = true;
+        });
+        return;
+      }
       if (mounted) {
         setState(() {
           _results = List<Map<String, dynamic>>.from(_recentRows);
@@ -1000,6 +1046,7 @@ class _SearchScreenState extends State<SearchScreen> {
       return;
     }
     setState(() => _loading = true);
+    final scope = _searchScope;
     // Persist every non-empty search per scope (title / tag / profile)
     if (recordHistory) {
       await _saveSearchHistory(q);
@@ -1113,18 +1160,14 @@ class _SearchScreenState extends State<SearchScreen> {
           }
         }
       } else {
-        // TITLE scope: exact title match only (case-insensitive)
+        // Search all public story metadata; the API also matches author,
+        // description, and genres so existing books remain discoverable.
         final stories = await widget.apiService.searchStories(
           query: q,
           genre: _genre,
           minRating: _minRating,
         );
-        final qLower = q.toLowerCase();
         rows = stories
-            .where((e) {
-              final title = (e['title'] ?? '').toString().trim().toLowerCase();
-              return title.contains(qLower);
-            })
             .map(
               (e) => <String, dynamic>{
                 ...Map<String, dynamic>.from(e),
@@ -1136,7 +1179,12 @@ class _SearchScreenState extends State<SearchScreen> {
     } catch (_) {
       rows = <Map<String, dynamic>>[];
     }
-    if (!mounted) return;
+    if (!mounted ||
+        requestId != _searchRequestId ||
+        q != _searchQuery.trim() ||
+        scope != _searchScope) {
+      return;
+    }
     setState(() {
       _results = rows;
       _loading = false;
@@ -1157,9 +1205,9 @@ class _SearchScreenState extends State<SearchScreen> {
     _searchFocus = FocusNode();
     _searchFocus.addListener(() {
       if (_searchFocus.hasFocus) {
-        setState(() {
-          _showRecent = _searchQuery.trim().isEmpty;
-        });
+        if (_searchQuery.trim().isNotEmpty || _searchScope != 'title') {
+          setState(() => _showRecent = _searchQuery.trim().isEmpty);
+        }
         if (_searchQuery.trim().isEmpty) {
           unawaited(_loadSearchHistory());
         }
@@ -1179,17 +1227,12 @@ class _SearchScreenState extends State<SearchScreen> {
     if (widget.initialQuery.trim().isNotEmpty) {
       _runSearch(recordHistory: true);
     } else {
-      setState(() {
-        _showRecent = true;
-        _results = <Map<String, dynamic>>[];
-        _loading = false;
-      });
+      _runSearch(recordHistory: false);
     }
-    // Open keyboard + keep recent chips visible
+    // Open keyboard without replacing the default English book results.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _searchFocus.requestFocus();
-      setState(() => _showRecent = _searchQuery.trim().isEmpty);
     });
   }
 
@@ -1229,9 +1272,11 @@ class _SearchScreenState extends State<SearchScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF121218) : AppTheme.bgOf(context),
+      backgroundColor: isDark ? AppTheme.bgOf(context) : AppTheme.bgOf(context),
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF121218) : AppTheme.bgOf(context),
+        backgroundColor: isDark
+            ? AppTheme.elevatedOf(context)
+            : AppTheme.bgOf(context),
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
@@ -1244,14 +1289,14 @@ class _SearchScreenState extends State<SearchScreen> {
           margin: const EdgeInsets.only(right: 4),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF221C30) : const Color(0xFFF3F0FF),
+            color: isDark ? const Color(0xFF2B3832) : const Color(0xFFF6F5FA),
             borderRadius: BorderRadius.circular(22),
           ),
           child: Row(
             children: [
- Icon(Icons.search_rounded, size: 20, color: Colors.grey.shade500),
+              Icon(Icons.search_rounded, size: 20, color: Colors.grey.shade500),
               const SizedBox(width: 8),
- Expanded(
+              Expanded(
                 child: TextField(
                   controller: _searchController,
                   focusNode: _searchFocus,
@@ -1268,7 +1313,8 @@ class _SearchScreenState extends State<SearchScreen> {
                   ),
                   textInputAction: TextInputAction.search,
                   onTap: () {
-                    if (_searchQuery.trim().isEmpty) {
+                    if (_searchQuery.trim().isEmpty &&
+                        _searchScope != 'title') {
                       setState(() => _showRecent = true);
                     }
                   },
@@ -1279,13 +1325,14 @@ class _SearchScreenState extends State<SearchScreen> {
                       _showRecent = value.trim().isEmpty;
                     });
                     _searchDebounce = Timer(
-                      const Duration(milliseconds: 300),
+                      const Duration(milliseconds: 500),
                       () {
                         if (mounted) _runSearch(recordHistory: false);
                       },
                     );
                   },
                   onSubmitted: (value) {
+                    _searchDebounce?.cancel();
                     setState(() {
                       _searchQuery = value;
                       _showRecent = false;
@@ -1295,8 +1342,9 @@ class _SearchScreenState extends State<SearchScreen> {
                 ),
               ),
               if (_searchQuery.isNotEmpty)
- GestureDetector(
+                GestureDetector(
                   onTap: () {
+                    _searchDebounce?.cancel();
                     setState(() {
                       _searchQuery = '';
                       _showRecent = true;
@@ -1314,8 +1362,8 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ),
         actions: [
- IconButton(
-            icon: const Icon(Icons.tune_rounded, color: Color(0xFF8B5CF6)),
+          IconButton(
+            icon: const Icon(Icons.tune_rounded, color: Color(0xFF16856A)),
             onPressed: () async {
               final selected = await showModalBottomSheet<_SearchFilters>(
                 context: context,
@@ -1337,7 +1385,7 @@ class _SearchScreenState extends State<SearchScreen> {
       body: Column(
         children: [
           // Scope chips
- Padding(
+          Padding(
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
             child: Row(
               children: [
@@ -1346,7 +1394,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   {'id': 'tag', 'label': 'Tag'},
                   {'id': 'profile', 'label': 'Profile'},
                 ]) ...[
- Padding(
+                  Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: ChoiceChip(
                       label: Text(entry['label']!),
@@ -1358,7 +1406,9 @@ class _SearchScreenState extends State<SearchScreen> {
                         });
                         await _reloadRecentForScope();
                         if (_searchQuery.trim().isEmpty) {
-                          if (mounted) {
+                          if (_searchScope == 'title') {
+                            _runSearch(recordHistory: false);
+                          } else if (mounted) {
                             setState(() {
                               _results = <Map<String, dynamic>>[];
                               _loading = false;
@@ -1370,23 +1420,23 @@ class _SearchScreenState extends State<SearchScreen> {
                         }
                       },
                       selectedColor: const Color(
-                        0xFF8B5CF6,
+                        0xFF16856A,
                       ).withValues(alpha: 0.18),
                       backgroundColor: isDark
-                          ? const Color(0xFF1A1625)
-                          : const Color(0xFFF7F5FC),
+                          ? AppTheme.surfaceOf(context)
+                          : const Color(0xFFF6F5FA),
                       side: BorderSide(
                         color: _searchScope == entry['id']
-                            ? const Color(0xFF8B5CF6)
+                            ? const Color(0xFF16856A)
                             : (isDark
                                   ? const Color(0xFF2C2C2C)
-                                  : const Color(0xFFEDE9FE)),
+                                  : const Color(0xFFDDE2DF)),
                       ),
                       labelStyle: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 13,
                         color: _searchScope == entry['id']
-                            ? const Color(0xFF8B5CF6)
+                            ? const Color(0xFF16856A)
                             : muted,
                       ),
                     ),
@@ -1396,8 +1446,8 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
           ),
           // Empty query: recent + browse genres + trending
-          if (_showRecent || _searchQuery.trim().isEmpty)
- Expanded(
+          if (_showRecent)
+            Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
                   await _reloadRecentForScope();
@@ -1405,7 +1455,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                   children: [
- Text(
+                    Text(
                       'Recent searches',
                       style: TextStyle(
                         fontSize: 16,
@@ -1415,17 +1465,17 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     const SizedBox(height: 10),
                     if (recent.isEmpty)
- Text(
+                      Text(
                         'No recent searches yet',
                         style: TextStyle(fontSize: 13, color: muted),
                       )
                     else
- Wrap(
+                      Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
                           for (final term in recent.take(5))
- ActionChip(
+                            ActionChip(
                               avatar: Icon(
                                 Icons.history,
                                 size: 16,
@@ -1433,12 +1483,12 @@ class _SearchScreenState extends State<SearchScreen> {
                               ),
                               label: Text(term),
                               backgroundColor: isDark
-                                  ? const Color(0xFF1A1625)
-                                  : const Color(0xFFF7F5FC),
+                                  ? AppTheme.surfaceOf(context)
+                                  : const Color(0xFFF6F5FA),
                               side: BorderSide(
                                 color: isDark
                                     ? const Color(0xFF2C2C2C)
-                                    : const Color(0xFFEDE9FE),
+                                    : const Color(0xFFDDE2DF),
                               ),
                               onPressed: () {
                                 _searchController.text = term;
@@ -1452,7 +1502,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         ],
                       ),
                     const SizedBox(height: 22),
- Text(
+                    Text(
                       'Browse genres',
                       style: TextStyle(
                         fontSize: 16,
@@ -1470,7 +1520,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       childAspectRatio: 1.15,
                       children: [
                         for (final g in browseGenres)
- GestureDetector(
+                          GestureDetector(
                             onTap: () {
                               setState(() {
                                 _genre = g.$1;
@@ -1483,25 +1533,25 @@ class _SearchScreenState extends State<SearchScreen> {
                             child: Container(
                               decoration: BoxDecoration(
                                 color: isDark
-                                    ? const Color(0xFF1A1625)
-                                    : const Color(0xFFF7F5FC),
+                                    ? AppTheme.surfaceOf(context)
+                                    : const Color(0xFFF6F5FA),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
                                   color: isDark
                                       ? const Color(0xFF2C2C2C)
-                                      : const Color(0xFFEDE9FE),
+                                      : const Color(0xFFDDE2DF),
                                 ),
                               ),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
- Icon(
+                                  Icon(
                                     g.$2,
-                                    color: const Color(0xFF8B5CF6),
+                                    color: const Color(0xFF16856A),
                                     size: 26,
                                   ),
                                   const SizedBox(height: 8),
- Text(
+                                  Text(
                                     g.$1,
                                     style: TextStyle(
                                       fontSize: 12,
@@ -1518,7 +1568,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       ],
                     ),
                     const SizedBox(height: 22),
- Text(
+                    Text(
                       'Trending searches',
                       style: TextStyle(
                         fontSize: 16,
@@ -1529,7 +1579,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     const SizedBox(height: 10),
                     ...[
                       for (var i = 0; i < suggestedTrending.length; i++)
- Padding(
+                        Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Material(
                             color: isDark
@@ -1557,21 +1607,21 @@ class _SearchScreenState extends State<SearchScreen> {
                                   border: Border.all(
                                     color: isDark
                                         ? const Color(0xFF2C2C2C)
-                                        : const Color(0xFFEDE9FE),
+                                        : const Color(0xFFDDE2DF),
                                   ),
                                 ),
                                 child: Row(
                                   children: [
- Container(
+                                    Container(
                                       width: 26,
                                       height: 26,
                                       alignment: Alignment.center,
                                       decoration: BoxDecoration(
                                         color: i < 3
-                                            ? const Color(0xFF8B5CF6)
+                                            ? const Color(0xFF16856A)
                                             : (isDark
-                                                  ? const Color(0xFF221C30)
-                                                  : const Color(0xFFF3F0FF)),
+                                                  ? const Color(0xFF2B3832)
+                                                  : const Color(0xFFF6F5FA)),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
@@ -1581,12 +1631,12 @@ class _SearchScreenState extends State<SearchScreen> {
                                           fontSize: 12,
                                           color: i < 3
                                               ? Colors.white
-                                              : const Color(0xFF8B5CF6),
+                                              : const Color(0xFF16856A),
                                         ),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
- Expanded(
+                                    Expanded(
                                       child: Text(
                                         suggestedTrending[i],
                                         style: TextStyle(
@@ -1596,7 +1646,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                         ),
                                       ),
                                     ),
- Icon(
+                                    Icon(
                                       Icons.north_east_rounded,
                                       size: 16,
                                       color: muted,
@@ -1613,7 +1663,7 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             )
           else
- Expanded(
+            Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
                   await _reloadRecentForScope();
@@ -1621,26 +1671,26 @@ class _SearchScreenState extends State<SearchScreen> {
                     await _runSearch(recordHistory: false);
                   }
                 },
-                child: _loading
+                child: _loading && _results.isEmpty
                     ? ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         children: const [
- SizedBox(height: 120),
- Center(child: CircularProgressIndicator()),
+                          SizedBox(height: 120),
+                          Center(child: CircularProgressIndicator()),
                         ],
                       )
                     : _results.isEmpty
                     ? ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         children: [
- SizedBox(height: 80),
- Icon(
+                          SizedBox(height: 80),
+                          Icon(
                             Icons.search_off_rounded,
                             size: 48,
                             color: muted,
                           ),
                           const SizedBox(height: 12),
- Center(
+                          Center(
                             child: Text(
                               'No results found',
                               style: TextStyle(
@@ -1651,7 +1701,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             ),
                           ),
                           const SizedBox(height: 6),
- Center(
+                          Center(
                             child: Text(
                               'Try a different keyword or filter',
                               style: TextStyle(fontSize: 13, color: muted),
@@ -1660,11 +1710,22 @@ class _SearchScreenState extends State<SearchScreen> {
                         ],
                       )
                     : ListView.separated(
+                        key: const PageStorageKey<String>(
+                          'discover-search-results',
+                        ),
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
-                        itemCount: _results.length,
+                        itemCount: _results.length + (_loading ? 1 : 0),
                         separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
+                          if (_loading && index == _results.length) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: LinearProgressIndicator(
+                                color: Color(0xFF16856A),
+                              ),
+                            );
+                          }
                           final item = _results[index];
                           final kind =
                               (item['kind'] ??
@@ -1685,14 +1746,14 @@ class _SearchScreenState extends State<SearchScreen> {
                           Widget leading;
                           if (kind == 'profile') {
                             leading = CircleAvatar(
-                              backgroundColor: const Color(0xFFEDE9FE),
+                              backgroundColor: const Color(0xFFDDE2DF),
                               backgroundImage: coverUrl.isNotEmpty
                                   ? NetworkImage(coverUrl)
                                   : null,
                               child: coverUrl.isEmpty
                                   ? const Icon(
                                       Icons.person,
-                                      color: Color(0xFF8B5CF6),
+                                      color: Color(0xFF16856A),
                                     )
                                   : null,
                             );
@@ -1702,12 +1763,12 @@ class _SearchScreenState extends State<SearchScreen> {
                               height: 44,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEDE9FE),
+                                color: const Color(0xFFDDE2DF),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
                                 Icons.tag,
-                                color: Color(0xFF8B5CF6),
+                                color: Color(0xFF16856A),
                               ),
                             );
                           } else {
@@ -1721,12 +1782,12 @@ class _SearchScreenState extends State<SearchScreen> {
                                         coverUrl,
                                         fit: BoxFit.cover,
                                         errorBuilder: (_, _, _) => Container(
-                                          color: const Color(0xFFEDE9FE),
+                                          color: const Color(0xFFDDE2DF),
                                           child: const Icon(Icons.menu_book),
                                         ),
                                       )
                                     : Container(
-                                        color: const Color(0xFFEDE9FE),
+                                        color: const Color(0xFFDDE2DF),
                                         child: const Icon(Icons.menu_book),
                                       ),
                               ),
@@ -1740,6 +1801,9 @@ class _SearchScreenState extends State<SearchScreen> {
                             child: InkWell(
                               borderRadius: BorderRadius.circular(14),
                               onTap: () {
+                                if (_searchQuery.trim().isNotEmpty) {
+                                  unawaited(_saveSearchHistory(_searchQuery));
+                                }
                                 if (kind == 'tag') {
                                   final tag =
                                       (item['tag_name'] ?? item['title'] ?? '')
@@ -1812,19 +1876,19 @@ class _SearchScreenState extends State<SearchScreen> {
                                   border: Border.all(
                                     color: isDark
                                         ? const Color(0xFF2C2C2C)
-                                        : const Color(0xFFEDE9FE),
+                                        : const Color(0xFFDDE2DF),
                                   ),
                                 ),
                                 child: Row(
                                   children: [
                                     leading,
                                     const SizedBox(width: 12),
- Expanded(
+                                    Expanded(
                                       child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
- Text(
+                                          Text(
                                             item['title']?.toString() ?? '',
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
@@ -1835,7 +1899,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                             ),
                                           ),
                                           const SizedBox(height: 4),
- Text(
+                                          Text(
                                             item['author']?.toString() ?? '',
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
@@ -1852,15 +1916,15 @@ class _SearchScreenState extends State<SearchScreen> {
                                             item['rating']
                                                 .toString()
                                                 .isNotEmpty))
- Row(
+                                      Row(
                                         children: [
- Icon(
+                                          Icon(
                                             Icons.star_rounded,
                                             size: 14,
-                                            color: Colors.amber.shade600,
+                                            color: AppTheme.amber,
                                           ),
                                           const SizedBox(width: 2),
- Text(
+                                          Text(
                                             item['rating'].toString(),
                                             style: TextStyle(
                                               fontSize: 12,
@@ -1871,7 +1935,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                         ],
                                       )
                                     else
- Icon(
+                                      Icon(
                                         kind == 'profile'
                                             ? Icons.person_outline
                                             : Icons.chevron_right,
@@ -1919,11 +1983,11 @@ class _FilterSheetState extends State<_FilterSheet> {
         controller: scrollController,
         padding: const EdgeInsets.all(16),
         children: [
- Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
- Text('Filter', style: Theme.of(context).textTheme.headlineSmall),
- IconButton(
+              Text('Filter', style: Theme.of(context).textTheme.headlineSmall),
+              IconButton(
                 icon: const Icon(Icons.close_rounded),
                 onPressed: () => Navigator.pop(context),
               ),
@@ -1931,14 +1995,14 @@ class _FilterSheetState extends State<_FilterSheet> {
           ),
           const Divider(),
           const SizedBox(height: 16),
- Text(
+          Text(
             'Genre',
             style: Theme.of(
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
- Wrap(
+          Wrap(
             spacing: 8,
             children: ['Romance', 'Fantasy', 'Mystery', 'Horror', 'Sci-Fi']
                 .map(
@@ -1953,14 +2017,14 @@ class _FilterSheetState extends State<_FilterSheet> {
                 .toList(),
           ),
           const SizedBox(height: 24),
- Text(
+          Text(
             'Star Rating',
             style: Theme.of(
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
- Slider(
+          Slider(
             value: _ratingFilter,
             min: 0,
             max: 5,
@@ -1968,14 +2032,14 @@ class _FilterSheetState extends State<_FilterSheet> {
             onChanged: (value) => setState(() => _ratingFilter = value),
           ),
           const SizedBox(height: 24),
- Text(
+          Text(
             'Status',
             style: Theme.of(
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
- Wrap(
+          Wrap(
             spacing: 8,
             children: ['Complete', 'Ongoing', 'Hiatus']
                 .map(
@@ -1992,7 +2056,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                 .toList(),
           ),
           const SizedBox(height: 24),
- SizedBox(
+          SizedBox(
             width: double.infinity,
             child: FilledButton(
               onPressed: () => Navigator.pop(
@@ -2003,7 +2067,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                 ),
               ),
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF8B5CF6),
+                backgroundColor: const Color(0xFF16856A),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(

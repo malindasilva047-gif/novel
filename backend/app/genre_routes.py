@@ -30,8 +30,9 @@ def register_genre_routes(
 
     def _public_clause():
         return """
-            LOWER(COALESCE(status_text, 'draft')) NOT IN
-            ('draft', 'unpublished', 'private', 'unlisted', '')
+            LOWER(TRIM(COALESCE(status_text, ''))) IN
+            ('ongoing', 'completed', 'complete', 'finished', 'published',
+             'publish', 'live', 'public', 'submitted')
         """
 
     @app.get("/api/genres")
@@ -82,13 +83,53 @@ def register_genre_routes(
             LOGGER.warning("genres from books: %s", exc)
         return {"items": names}
 
+    @app.get("/api/genres/counts")
+    def list_genre_story_counts():
+        """Return uncached public-story counts using the genre page's matching rules."""
+        try:
+            rows = fetch_all(
+                f"""
+                WITH public_books AS (
+                  SELECT id,
+                         TRIM(COALESCE(NULLIF(primary_genre, ''),
+                                       NULLIF(genre, ''), '')) AS primary_genre,
+                         TRIM(COALESCE(secondary_genre, '')) AS secondary_genre
+                  FROM books
+                  WHERE {_public_clause()}
+                ),
+                genre_entries AS (
+                  SELECT id, primary_genre AS name, LOWER(primary_genre) AS name_key FROM public_books
+                  WHERE primary_genre <> ''
+                  UNION ALL
+                  SELECT id, secondary_genre AS name, LOWER(secondary_genre) AS name_key FROM public_books
+                  WHERE secondary_genre <> ''
+                )
+                SELECT MIN(name) AS name, COUNT(DISTINCT id) AS story_count
+                FROM genre_entries
+                GROUP BY name_key
+                ORDER BY story_count DESC, name ASC
+                """
+            ) or []
+        except Exception as exc:
+            LOGGER.exception("genre story counts failed: %s", exc)
+            raise HTTPException(status_code=500, detail="Could not load genre story counts") from exc
+        return {
+            "items": [
+                {
+                    "name": str(row.get("name") or "").strip(),
+                    "story_count": int(row.get("story_count") or 0),
+                }
+                for row in rows
+                if str(row.get("name") or "").strip()
+            ]
+        }
+
     @app.get("/api/genres/{genre_name:path}/books")
     def list_books_by_genre(genre_name: str, sort: str | None = None):
         from urllib.parse import unquote
         clean = unquote(genre_name or "").strip()
         if not clean:
             raise HTTPException(status_code=400, detail="Genre required")
-        like = f"%{clean}%"
         order = "COALESCE(b.rating, 0) DESC, b.id DESC"
         s = (sort or "top").strip().lower()
         if s in ("recent", "new"):
@@ -101,17 +142,14 @@ def register_genre_routes(
                 SELECT b.* FROM books b
                 WHERE {_public_clause()}
                   AND (
-                    LOWER(COALESCE(b.primary_genre, '')) = LOWER(%s)
-                    OR LOWER(COALESCE(b.genre, '')) = LOWER(%s)
-                    OR LOWER(COALESCE(b.secondary_genre, '')) = LOWER(%s)
-                    OR LOWER(COALESCE(b.primary_genre, '')) LIKE LOWER(%s)
-                    OR LOWER(COALESCE(b.genre, '')) LIKE LOWER(%s)
-                    OR LOWER(COALESCE(b.secondary_genre, '')) LIKE LOWER(%s)
+                    LOWER(TRIM(COALESCE(NULLIF(b.primary_genre, ''),
+                                        NULLIF(b.genre, ''), ''))) = LOWER(%s)
+                    OR LOWER(TRIM(COALESCE(b.secondary_genre, ''))) = LOWER(%s)
                   )
                 ORDER BY {order}
                 LIMIT 100
                 """,
-                (clean, clean, clean, like, like, like),
+                (clean, clean),
             ) or []
         except Exception as exc:
             LOGGER.warning("books by genre: %s", exc)

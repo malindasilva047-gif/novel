@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Wingsaga and Contabo IP TLS certificate renewal
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

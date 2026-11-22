@@ -22,6 +22,7 @@ def register_chapter_reaction_routes(
     require_user,
     fetch_all,
     execute_write,
+    bump_content_version,
     LOGGER,
     USE_SQLITE: bool,
 ):
@@ -171,4 +172,5 @@ def register_chapter_reaction_routes(
             (book_id, chapter_number, label),
         )
         count = int(count_rows[0]["c"]) if count_rows else 0
+        bump_content_version()
         return {"ok": True, "label": label, "selected": selected, "count": count}

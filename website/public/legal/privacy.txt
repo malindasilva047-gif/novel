@@ -1,0 +1,202 @@
+Wingsaga — Privacy Policy
+
+Last Updated: 27 October 2026
+
+1. Introduction
+
+Wingsaga respects the privacy of its users. This Privacy Policy explains how information may be collected, used, stored, disclosed, and deleted when you visit https://wingsaga.com or use the Wingsaga mobile application.
+
+Wingsaga provides a platform for reading stories and, where available, publishing original writing. This Policy is intended to help users understand what information may be handled and how privacy-related requests can be made.
+
+By using Wingsaga, you acknowledge that you have had the opportunity to read this Policy. Where applicable law requires consent for a particular type of processing, we will seek that consent as required.
+
+2. Information We May Collect
+
+The information handled by Wingsaga depends on the features you use and the technical systems supporting the service.
+
+2.1 Account Information
+
+When you register or sign in, we may process information such as your email address, username, display name, and authentication-related information necessary to provide account access.
+
+If you choose Google sign-in, Wingsaga may receive information made available through the Google authentication process, depending on the permissions and configuration, such as your email address and basic profile information.
+
+Wingsaga does not need to receive your Google account password to provide Google sign-in.
+
+2.2 Stories and Profile Information
+
+When you publish content or create a profile, we may process the information you choose to submit, including:
+
+- Stories, chapters, titles, descriptions, and categories.
+- Username, biography, and profile information.
+- Profile pictures or other content, where those features are available.
+- Age classifications and content labels associated with your submissions.
+- Reports, feedback, and communications sent to Wingsaga.
+
+Content published on Wingsaga may be visible to other users depending on the features and settings available. Users should avoid including sensitive personal information in public stories or profiles.
+
+2.3 Technical and Security Information
+
+Depending on the website, application, hosting provider, and security tools used, technical information may be processed to operate and protect the service. This may include IP addresses, device or browser information, error reports, access logs, and security-related events.
+
+The actual information collected will depend on the systems in operation. Wingsaga's published privacy disclosures and Google Play Data safety declarations should accurately reflect those systems.
+
+2.4 Communications and Support Requests
+
+If you contact Wingsaga, we may process your email address, the contents of your message, attachments you provide, and related information needed to respond to your enquiry or investigate a complaint.
+
+Please do not include passwords or unnecessary sensitive personal information in support communications.
+
+3. How We Use Information
+
+Depending on the features you use, Wingsaga may process information to:
+
+- Create and maintain user accounts.
+- Authenticate users through email/password or Google sign-in.
+- Display stories, profiles, and other content.
+- Operate, maintain, troubleshoot, and secure the service.
+- Respond to questions, reports, copyright complaints, and deletion requests.
+- Detect spam, fraud, abuse, security incidents, or violations of our Terms.
+- Apply age restrictions and content rules where relevant safeguards are implemented.
+- Comply with legal obligations and respond to lawful requests.
+- Protect users, the service, and the rights of others.
+
+We will not process personal information for purposes incompatible with this Policy unless an appropriate legal basis exists and any required notice or consent has been provided.
+
+4. Legal Basis for Processing
+
+Where applicable privacy law requires a legal basis for processing personal information, the relevant basis may include providing the service you request, complying with legal obligations, protecting legitimate interests such as security and fraud prevention, or obtaining consent where required.
+
+The applicable basis depends on the particular activity, the information involved, and the law that applies to the processing.
+
+Where processing relies on consent, you may withdraw that consent as permitted by law. Withdrawal does not affect the lawfulness of processing carried out before withdrawal.
+
+5. Advertising and Analytics
+
+Wingsaga does not currently offer advertising or advertising-based monetization features. Wingsaga also does not currently intend to use analytics for advertising or audience-tracking purposes.
+
+However, technical information may be processed by hosting, authentication, security, or other infrastructure providers used to operate the service. Their actual practices should be reviewed to ensure this Policy accurately describes the data handling that occurs.
+
+If Wingsaga introduces advertising, analytics, or other materially different processing in the future, this Policy will be updated and any notices, choices, or consents required by applicable law will be provided.
+
+6. Google Sign-In and Third-Party Providers
+
+If you choose Google sign-in, Google processes information under its own terms and privacy policy. Wingsaga may receive information made available through the authentication process, depending on the permissions granted and the configuration in use.
+
+Wingsaga may also use third-party providers for services such as hosting, database storage, authentication, communications, or security. The information accessible to each provider depends on the service it performs and the arrangements in place.
+
+We aim to limit provider access to what is reasonably necessary for the relevant service. The actual providers and data-sharing arrangements should be reflected accurately in Wingsaga's privacy disclosures.
+
+Google Privacy Policy: https://policies.google.com/privacy
+
+7. How Information May Be Shared
+
+Wingsaga does not sell users' personal information as a business practice.
+
+Information may be shared or made accessible in the following circumstances, where applicable:
+
+Service providers: Providers that help operate, host, maintain, or secure Wingsaga may process information necessary to perform their services.
+
+Public or user-visible content: Stories, profile details, and other material you choose to publish may be visible to other users according to the service's functionality.
+
+Legal obligations: Information may be disclosed where required by applicable law, a valid legal process, or a lawful request from a competent authority.
+
+Safety and protection: Information may be used or disclosed where reasonably necessary to investigate suspected fraud, security incidents, rights violations, or serious threats to users or the service, subject to applicable law.
+
+Business changes: If the service undergoes a restructuring, transfer, or similar business change, information may be handled as part of that process subject to applicable legal requirements and appropriate safeguards.
+
+We will not share personal information for unrelated purposes without an appropriate legal basis.
+
+8. International Data Processing
+
+Wingsaga may be accessed by users in different countries. Depending on the hosting, database, authentication, and other providers used, information may be processed or stored outside your country of residence.
+
+Where applicable law requires safeguards for international transfers of personal information, we will take the steps required by that law.
+
+The locations where information is stored and the safeguards used for transfers depend on Wingsaga's actual infrastructure and service-provider arrangements.
+
+9. Data Security
+
+Wingsaga takes the protection of personal information seriously and should maintain appropriate technical and organisational safeguards to protect information against unauthorized access, loss, misuse, alteration, or disclosure.
+
+No online service can guarantee absolute security. Users should protect their login credentials and contact Wingsaga promptly if they suspect unauthorized access to their accounts.
+
+The specific security measures used by Wingsaga depend on its actual systems. Any statements about encryption, access controls, backups, or other security practices must accurately reflect the measures in place.
+
+10. Data Retention
+
+Wingsaga retains personal information only for as long as reasonably necessary for the purposes described in this Policy, subject to applicable law.
+
+Retention periods may vary depending on the type of information, the reason it is held, account status, security needs, and legal obligations. Account details, published stories, support communications, and security records may require different retention periods.
+
+When information is no longer needed, it should be deleted or otherwise handled in accordance with applicable law and Wingsaga's retention procedures.
+
+Where information must be retained for a lawful reason, access and use should remain limited to what is necessary for that purpose.
+
+11. Account Deletion and Data Removal
+
+Users may request deletion of their Wingsaga accounts through the account-deletion option provided within the app and through the external account-deletion webpage designated by Wingsaga.
+
+For assistance, contact Wingsaga77@gmail.com.
+
+When an account deletion request is completed, Wingsaga will delete the associated personal information that it is required to delete, subject to applicable law and legitimate, limited retention exceptions.
+
+Certain information may need to be retained where legally required or reasonably necessary for security, fraud prevention, dispute resolution, or establishing or defending legal claims. Any such retention must comply with applicable law and the disclosures provided to users.
+
+Deleting an account may result in the loss of access to the user's profile, published stories, and other account-related features. Users should keep their own copies of writing they wish to preserve.
+
+12. Your Privacy Rights
+
+Depending on your location and the laws that apply, you may have the right to:
+
+- Request access to personal information held about you.
+- Request correction of inaccurate information.
+- Request deletion of personal information.
+- Object to or request restriction of certain processing.
+- Request a portable copy of certain information.
+- Withdraw consent where processing is based on consent.
+- Lodge a complaint with a relevant privacy or data protection authority.
+
+These rights are subject to applicable legal conditions and exceptions.
+
+To make a privacy request, contact Wingsaga77@gmail.com. Please explain the request clearly. We may need to verify your identity before acting on it, and we will respond in accordance with applicable law.
+
+13. Age Requirements and Children's Privacy
+
+Wingsaga is intended for users aged 16 or older. Users must not create or use an account if they do not meet the minimum age requirement applicable to them.
+
+Stories marked 18+ are intended only for adults aged 18 or older. Users must not bypass age restrictions or other content safeguards.
+
+Wingsaga does not intend to collect personal information from individuals who are not permitted to use the service. If we become aware that an account has been created by a person who is below the applicable minimum age, we may take appropriate action, including restricting the account and handling the associated information in accordance with applicable law.
+
+Age screening, content controls, and reporting safeguards must be implemented in practice where required. This statement does not replace those safeguards.
+
+14. Cookies and Similar Technologies
+
+The Wingsaga website may use cookies or similar technologies for functions such as account authentication, session management, security, or remembering preferences, depending on its implementation.
+
+The actual cookies and technologies used depend on the website and integrated third-party services. Wingsaga's published disclosures should reflect the cookies and technologies that are actually in use.
+
+Where consent is required for non-essential cookies or similar technologies, an appropriate consent mechanism should be provided. You may also be able to manage cookies through your browser settings, although disabling certain cookies may affect website functionality.
+
+15. External Links
+
+Wingsaga may contain links to third-party websites or services. Those websites operate independently and may have their own privacy policies and practices.
+
+We encourage users to review the privacy information of external services before providing personal information. Wingsaga is not responsible for privacy practices of websites that it does not operate or control.
+
+16. Changes to This Policy
+
+We may update this Privacy Policy when the service, its features, its providers, its data practices, or applicable legal requirements change.
+
+The current version will be published on the Wingsaga website with an updated revision date. Where a change materially affects users, we will provide appropriate notice or seek consent where required by applicable law.
+
+17. Contact Us
+
+For questions about this Privacy Policy, requests concerning personal information, or concerns about data handling, please contact:
+
+Wingsaga
+Website: https://wingsaga.com
+Privacy Policy: https://wingsaga.com/privacy
+Email: Wingsaga77@gmail.com
+
+We appreciate your trust in Wingsaga and are committed to handling personal information responsibly.

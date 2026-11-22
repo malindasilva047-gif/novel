@@ -13,14 +13,19 @@ Security model:
 from __future__ import annotations
 
 import logging
+import os
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
+from urllib.parse import urlsplit
 
-from fastapi import Body, Depends, Header, HTTPException
+from fastapi import Body, Depends, Header, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 LOGGER = logging.getLogger(__name__)
+_SESSION_COOKIE = "novelhub_session"
+_CSRF_COOKIE = "novelhub_csrf"
+_SESSION_MAX_AGE = 14 * 24 * 60 * 60
 
 
 class EmailPasswordAuthRequest(BaseModel):
@@ -32,6 +37,10 @@ class EmailPasswordAuthRequest(BaseModel):
 
 class GuestAuthRequestV2(BaseModel):
     device_id: str = Field(min_length=8, max_length=128)
+
+
+class FacebookAuthRequest(BaseModel):
+    access_token: str = Field(min_length=20, max_length=4096)
 
 
 def _hash_password(password: str) -> str:
@@ -88,10 +97,14 @@ def apply_professional_auth(main_mod) -> None:
     execute_write = main_mod.execute_write
     _row_get = main_mod._row_get
     _assert_user_can_login = main_mod._assert_user_can_login
+    _restore_account_on_login = main_mod._restore_account_on_login
     _user_access_block_reason = main_mod._user_access_block_reason
     _sign_token = main_mod._sign_token
     original_require_user = main_mod.require_user
+    original_optional_user = main_mod.optional_user
     sessions_table_ready = False
+    global _WEB_GOOGLE_AUTH_REQUEST
+    _WEB_GOOGLE_AUTH_REQUEST = main_mod.GoogleAuthRequest
 
     def _ensure_sessions_table() -> None:
         nonlocal sessions_table_ready
@@ -115,7 +128,10 @@ def apply_professional_auth(main_mod) -> None:
                 pass
         _ensure_sessions_table()
 
-    _ensure_auth_columns()
+    # Apply schema setup after the main database readiness/migration hook.
+    # Running DDL while importing route modules can block or fail when MySQL is
+    # still starting, which would leave the professional auth routes unmounted.
+    app.add_event_handler("startup", _ensure_auth_columns)
 
     def create_user_token(user_id: int) -> str:
         # Read token_version so ban can invalidate outstanding sessions
@@ -148,13 +164,107 @@ def apply_professional_auth(main_mod) -> None:
         )
 
     main_mod.create_user_token = create_user_token
+    web_auth_origins = {
+        origin.strip().rstrip("/")
+        for origin in os.getenv(
+            "WEB_AUTH_ORIGINS",
+            "https://novel-v7-web.vercel.app,https://novel-v7.vercel.app,http://localhost:5173,http://127.0.0.1:5173",
+        ).split(",")
+        if origin.strip()
+    }
 
-    def require_user(authorization: str | None = Header(default=None)) -> dict[str, Any]:
-        if not authorization or not authorization.lower().startswith("bearer "):
-            raise HTTPException(status_code=401, detail="Missing user token")
-        token = authorization.split(" ", 1)[1].strip()
+    def require_web_origin(request: Request) -> None:
+        origin = request.headers.get("origin", "").rstrip("/")
+        if not origin:
+            referer = urlsplit(request.headers.get("referer", ""))
+            if referer.scheme and referer.netloc:
+                origin = f"{referer.scheme}://{referer.netloc}"
+        if origin in web_auth_origins:
+            return
+        parsed_origin = urlsplit(origin)
+        if (
+            not getattr(main_mod, "_is_production_runtime", False)
+            and parsed_origin.scheme == "https"
+            and (parsed_origin.hostname or "").endswith(".trycloudflare.com")
+        ):
+            return
+        raise HTTPException(status_code=403, detail="Web sign-in origin is not allowed")
+
+    def set_web_session(response: Response, request: Request, token: str) -> str:
+        require_web_origin(request)
+        origin = request.headers.get("origin", "")
+        secure = origin.lower().startswith("https://") or request.url.scheme == "https"
+        same_site = "none" if secure else "lax"
+        csrf_token = secrets.token_urlsafe(32)
+        response.set_cookie(
+            _SESSION_COOKIE,
+            token,
+            max_age=_SESSION_MAX_AGE,
+            httponly=True,
+            secure=secure,
+            samesite=same_site,
+            path="/",
+        )
+        response.set_cookie(
+            _CSRF_COOKIE,
+            csrf_token,
+            max_age=_SESSION_MAX_AGE,
+            httponly=False,
+            secure=secure,
+            samesite=same_site,
+            path="/",
+        )
+        return csrf_token
+
+    def complete_web_auth(
+        result: dict[str, Any],
+        request: Request,
+        response: Response,
+        auth_mode: str | None,
+    ) -> dict[str, Any]:
+        if (auth_mode or "").lower() != "cookie":
+            return result
+        token = result.pop("token", None)
+        if not token:
+            raise HTTPException(status_code=500, detail="Could not create a secure session")
+        csrf_token = set_web_session(response, request, str(token))
+        result["cookie_session"] = True
+        result["csrf_token"] = csrf_token
+        return result
+
+    @app.get("/api/auth/csrf")
+    def issue_csrf_token(request: Request, response: Response):
+        require_web_origin(request)
+        origin = request.headers.get("origin", "")
+        secure = origin.lower().startswith("https://") or request.url.scheme == "https"
+        csrf_token = secrets.token_urlsafe(32)
+        response.set_cookie(
+            _CSRF_COOKIE,
+            csrf_token,
+            max_age=_SESSION_MAX_AGE,
+            httponly=False,
+            secure=secure,
+            samesite="none" if secure else "lax",
+            path="/",
+        )
+        return {"csrf_token": csrf_token}
+
+    def require_user(
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        bearer_token = ""
+        if authorization and authorization.lower().startswith("bearer "):
+            bearer_token = authorization.split(" ", 1)[1].strip()
+        using_cookie = not bearer_token
+        token = bearer_token or request.cookies.get(_SESSION_COOKIE, "")
         if not token:
             raise HTTPException(status_code=401, detail="Missing user token")
+        if using_cookie and request.method.upper() not in {"GET", "HEAD", "OPTIONS"}:
+            csrf_cookie = request.cookies.get(_CSRF_COOKIE, "")
+            csrf_header = request.headers.get("x-csrf-token", "")
+            if not csrf_cookie or not csrf_header or not secrets.compare_digest(csrf_cookie, csrf_header):
+                raise HTTPException(status_code=403, detail="CSRF validation failed")
         try:
             encoded_payload, provided_signature = token.split(".", 1)
         except ValueError as exc:
@@ -228,17 +338,180 @@ def apply_professional_auth(main_mod) -> None:
                 raise HTTPException(status_code=401, detail="Session revoked. Please sign in again.")
         return {"user_id": uid, "session_id": session_id}
 
+    def optional_user(
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any] | None:
+        """Resolve cookie or bearer sessions for public endpoints that personalize results."""
+        try:
+            return require_user(request, authorization)
+        except HTTPException:
+            return None
+
     main_mod.require_user = require_user
+    main_mod.optional_user = optional_user
+    app.dependency_overrides[original_require_user] = require_user
+    app.dependency_overrides[original_optional_user] = optional_user
+
+    @app.post("/api/auth/web/session")
+    def migrate_web_session(
+        request: Request,
+        response: Response,
+        user: dict[str, Any] = Depends(require_user),
+    ):
+        require_web_origin(request)
+        authorization = request.headers.get("authorization", "")
+        if not authorization.lower().startswith("bearer "):
+            raise HTTPException(status_code=401, detail="A legacy bearer session is required")
+        session_id = user.get("session_id")
+        new_token = create_user_token(int(user["user_id"]))
+        if session_id:
+            execute_write(
+                "UPDATE auth_sessions SET revoked_at=%s WHERE session_id=%s AND user_id=%s AND revoked_at IS NULL",
+                (datetime.now(timezone.utc).isoformat(), session_id, int(user["user_id"])),
+            )
+        csrf_token = set_web_session(response, request, new_token)
+        return {"cookie_session": True, "csrf_token": csrf_token}
 
     @app.post("/api/auth/logout")
-    def revoke_current_session(user: dict[str, Any] = Depends(require_user)):
+    def revoke_current_session(
+        response: Response,
+        user: dict[str, Any] = Depends(require_user),
+    ):
         session_id = user.get("session_id")
         if session_id:
             execute_write(
                 "UPDATE auth_sessions SET revoked_at=%s WHERE session_id=%s AND user_id=%s AND revoked_at IS NULL",
                 (datetime.now(timezone.utc).isoformat(), session_id, int(user["user_id"])),
             )
+        response.delete_cookie(_SESSION_COOKIE, path="/")
+        response.delete_cookie(_CSRF_COOKIE, path="/")
         return {"ok": True}
+
+    @app.post("/api/auth/web/google")
+    def authenticate_google_web(
+        payload: _WEB_GOOGLE_AUTH_REQUEST,
+        request: Request,
+        response: Response,
+    ):
+        require_web_origin(request)
+        result = main_mod.authenticate_google(payload)
+        return complete_web_auth(result, request, response, "cookie")
+
+    @app.post("/api/auth/facebook")
+    def authenticate_facebook(payload: FacebookAuthRequest):
+        """Validate a Facebook mobile access token and create/link the app account."""
+        app_id = os.getenv("FACEBOOK_APP_ID", "").strip()
+        app_secret = os.getenv("FACEBOOK_APP_SECRET", "").strip()
+        if not app_id or not app_secret:
+            raise HTTPException(
+                status_code=503,
+                detail="Facebook sign-in is not configured on the server.",
+            )
+
+        access_token = payload.access_token.strip()
+        try:
+            import hashlib
+            import hmac
+            from urllib.parse import urlencode
+            from urllib.error import HTTPError
+            from urllib.request import urlopen
+            import json
+
+            debug_query = urlencode({
+                "input_token": access_token,
+                "access_token": f"{app_id}|{app_secret}",
+            })
+            with urlopen(f"https://graph.facebook.com/debug_token?{debug_query}", timeout=12) as response:
+                debug = json.loads(response.read().decode("utf-8"))
+            token_info = debug.get("data") or {}
+            if (
+                not token_info.get("is_valid")
+                or str(token_info.get("app_id") or "") != app_id
+                or not token_info.get("user_id")
+            ):
+                raise HTTPException(status_code=401, detail="Facebook sign-in token is invalid or expired.")
+
+            proof = hmac.new(app_secret.encode(), access_token.encode(), hashlib.sha256).hexdigest()
+            profile_query = urlencode({
+                "fields": "id,name,email,picture.type(large)",
+                "access_token": access_token,
+                "appsecret_proof": proof,
+            })
+            with urlopen(f"https://graph.facebook.com/me?{profile_query}", timeout=12) as response:
+                profile = json.loads(response.read().decode("utf-8"))
+        except HTTPException:
+            raise
+        except HTTPError as exc:
+            if exc.code in (400, 401):
+                raise HTTPException(status_code=401, detail="Facebook sign-in token is invalid or expired.") from exc
+            LOGGER.warning("Facebook verification service returned HTTP %s", exc.code)
+            raise HTTPException(status_code=503, detail="Facebook sign-in could not be verified right now.") from exc
+        except Exception as exc:
+            LOGGER.warning("Facebook token verification failed: %s", type(exc).__name__)
+            raise HTTPException(status_code=503, detail="Facebook sign-in could not be verified right now.") from exc
+
+        facebook_id = str(profile.get("id") or "").strip()
+        email = str(profile.get("email") or "").strip().lower()
+        if not facebook_id or facebook_id != str(token_info.get("user_id")):
+            raise HTTPException(status_code=401, detail="Facebook sign-in token is invalid.")
+        if not email:
+            raise HTTPException(status_code=400, detail="Your Facebook account must provide an email address to sign in.")
+
+        rows = fetch_all(
+            "SELECT id FROM app_users WHERE provider=%s AND provider_subject=%s LIMIT 1",
+            ("facebook", facebook_id),
+        )
+        is_new_user = not bool(rows)
+        user_id = int(_row_get(rows[0], "id")) if rows else None
+        photo = str(((profile.get("picture") or {}).get("data") or {}).get("url") or "")
+        display_name = str(profile.get("name") or email.split("@", 1)[0]).strip()
+
+        if user_id is None:
+            email_rows = fetch_all("SELECT id, provider, provider_subject FROM app_users WHERE LOWER(email)=%s LIMIT 1", (email,))
+            if email_rows:
+                existing = email_rows[0]
+                existing_provider = str(_row_get(existing, "provider") or "").lower()
+                existing_subject = str(_row_get(existing, "provider_subject") or "")
+                if existing_provider not in {"", "facebook"} or (existing_subject and existing_subject != facebook_id):
+                    raise HTTPException(status_code=409, detail="This email is already linked to another sign-in method.")
+                user_id = int(_row_get(existing, "id"))
+                is_new_user = False
+                execute_write(
+                    "UPDATE app_users SET provider=%s, provider_subject=%s, photo_url=COALESCE(NULLIF(%s,''), photo_url), last_login_at=CURRENT_TIMESTAMP WHERE id=%s",
+                    ("facebook", facebook_id, photo, user_id),
+                )
+            else:
+                user_id, _ = execute_write(
+                    "INSERT INTO app_users (email, provider, provider_subject, display_name, photo_url, profile_complete) VALUES (%s,%s,%s,%s,%s,0)",
+                    (email, "facebook", facebook_id, display_name, photo),
+                )
+                if not user_id:
+                    rows = fetch_all("SELECT id FROM app_users WHERE provider=%s AND provider_subject=%s LIMIT 1", ("facebook", facebook_id))
+                    user_id = int(_row_get(rows[0], "id")) if rows else None
+                if not user_id:
+                    raise HTTPException(status_code=500, detail="Facebook sign-in succeeded but the account could not be created.")
+        else:
+            execute_write(
+                "UPDATE app_users SET email=%s, display_name=COALESCE(NULLIF(display_name,''),%s), photo_url=COALESCE(NULLIF(%s,''), photo_url), last_login_at=CURRENT_TIMESTAMP WHERE id=%s",
+                (email, display_name, photo, user_id),
+            )
+
+        user_id = int(user_id)
+        _restore_account_on_login(user_id)
+        _assert_user_can_login(user_id)
+        profile_rows = fetch_all("SELECT COALESCE(profile_complete,0) AS pc FROM app_users WHERE id=%s LIMIT 1", (user_id,))
+        profile_complete = bool(int(_row_get(profile_rows[0], "pc") or 0)) if profile_rows else False
+        return {
+            "id": user_id,
+            "email": email,
+            "display_name": display_name,
+            "photo_url": photo,
+            "provider": "facebook",
+            "profile_complete": profile_complete,
+            "is_new_user": is_new_user,
+            "token": create_user_token(user_id),
+        }
 
     def bump_token_version(user_id: int) -> None:
         try:
@@ -281,7 +554,14 @@ def apply_professional_auth(main_mod) -> None:
     _remove_routes({"/api/auth/email", "/api/auth/guest"})
 
     @app.post("/api/auth/email")
-    def authenticate_email_secure(payload: EmailPasswordAuthRequest):
+    def authenticate_email_secure(
+        payload: EmailPasswordAuthRequest,
+        request: Request,
+        response: Response,
+        x_auth_mode: str | None = Header(default=None),
+    ):
+        if (x_auth_mode or "").lower() == "cookie":
+            require_web_origin(request)
         email = payload.email.strip().lower()
         password = payload.password or ""
         if not email or "@" not in email:
@@ -290,29 +570,12 @@ def apply_professional_auth(main_mod) -> None:
             raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
 
         mode = (payload.mode or "login").strip().lower()
-        rows = fetch_all("SELECT * FROM app_users WHERE email=%s LIMIT 1", (email,))
-
         if mode == "register":
-            if rows:
-                raise HTTPException(status_code=400, detail="An account with this email already exists. Sign in instead.")
-            display_name = (payload.display_name or "").strip() or email.split("@")[0]
-            pw_hash = _hash_password(password)
-            user_id, _ = execute_write(
-                """
-                INSERT INTO app_users (email, provider, display_name, photo_url, password_hash, token_version)
-                VALUES (%s, 'email', %s, '', %s, 0)
-                """,
-                (email, display_name, pw_hash),
+            raise HTTPException(
+                status_code=400,
+                detail="Email registration requires verification. Use /api/auth/register.",
             )
-            _assert_user_can_login(user_id)
-            return {
-                "id": user_id,
-                "email": email,
-                "display_name": display_name,
-                "photo_url": "",
-                "provider": "email",
-                "token": create_user_token(user_id),
-            }
+        rows = fetch_all("SELECT * FROM app_users WHERE email=%s LIMIT 1", (email,))
 
         # login
         if not rows:
@@ -328,7 +591,24 @@ def apply_professional_auth(main_mod) -> None:
         if not _verify_password(password, str(pw_hash)):
             raise HTTPException(status_code=401, detail="Invalid email or password")
 
+        _restore_account_on_login(user_id)
         _assert_user_can_login(user_id)
+        if str(pw_hash).startswith("sha256:"):
+            try:
+                execute_write(
+                    "UPDATE app_users SET password_hash=%s WHERE id=%s",
+                    (_hash_password(password), user_id),
+                )
+            except Exception as exc:
+                LOGGER.exception(
+                    "Could not upgrade legacy password hash for user %s",
+                    user_id,
+                )
+                raise HTTPException(
+                    status_code=503,
+                    detail="Unable to secure the password record right now. Please try again.",
+                ) from exc
+
         display_name = _row_get(user, "display_name") or email.split("@")[0]
         try:
             execute_write(
@@ -337,17 +617,24 @@ def apply_professional_auth(main_mod) -> None:
             )
         except Exception:
             pass
-        return {
+        return complete_web_auth({
             "id": user_id,
             "email": email,
             "display_name": display_name,
             "photo_url": _row_get(user, "photo_url") or "",
             "provider": "email",
             "token": create_user_token(user_id),
-        }
+        }, request, response, x_auth_mode)
 
     @app.post("/api/auth/guest")
-    def authenticate_guest_secure(payload: GuestAuthRequestV2 = Body(default=None)):
+    def authenticate_guest_secure(
+        request: Request,
+        response: Response,
+        payload: GuestAuthRequestV2 = Body(default=None),
+        x_auth_mode: str | None = Header(default=None),
+    ):
+        if (x_auth_mode or "").lower() == "cookie":
+            require_web_origin(request)
         # Unique guest per device — never share one global guest@novel.app account
         device_id = ""
         if isinstance(payload, GuestAuthRequestV2):
@@ -398,7 +685,7 @@ def apply_professional_auth(main_mod) -> None:
 
         user_id = int(user_id)
         # Do NOT call _assert_user_can_login — guests must always be able to continue
-        return {
+        return complete_web_auth({
             "id": user_id,
             "email": email,
             "display_name": "Guest",
@@ -406,7 +693,7 @@ def apply_professional_auth(main_mod) -> None:
             "provider": "guest",
             "token": create_user_token(user_id),
             "is_guest": True,
-        }
+        }, request, response, x_auth_mode)
 
     # Hook ban/unban/suspend to bump token_version via wrapping known admin handlers
     for name in (

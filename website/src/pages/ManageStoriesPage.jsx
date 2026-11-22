@@ -1,35 +1,85 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { createChapter, createStory, deleteStory, getMyStories, resolveAssetUrl } from "../api";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { deleteStory, getMyStories, resolveAssetUrl } from "../api";
 import { isGuestUser } from "../utils/guest";
 
-const SIDE_NAV = [
-  { id: "manage", label: "Manage Stories", to: "/manage-stories" },
-];
+function getStoryCounts(stories) {
+  return stories.reduce((counts, story) => {
+    const status = String(story.status_text || story.status || "").toLowerCase();
+    const publishedCount = Number(story.published_chapter_count || 0);
+    const isPublished = publishedCount > 0;
+    counts.total += 1;
+    if (isPublished) counts.published += 1;
+    else counts.drafts += 1;
+    if (story.is_completed === true || Number(story.is_completed) === 1 || /complete|finished/.test(status)) {
+      counts.completed += 1;
+    }
+    return counts;
+  }, { total: 0, published: 0, drafts: 0, completed: 0 });
+}
+
+function formatUpdated(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : `Updated ${date.toLocaleDateString()}`;
+}
 
 export default function ManageStoriesPage({ user }) {
   const guest = isGuestUser(user);
   const navigate = useNavigate();
-  const [tab, setTab] = useState("submitted");
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(() =>
+    searchParams.get("tab") === "drafts"
+      ? "drafts"
+      : searchParams.get("tab") === "all"
+        ? "all"
+        : "submitted",
+  );
   const [stories, setStories] = useState([]);
   const [q, setQ] = useState("");
-  const [sort, setSort] = useState("recent");
   const [filter, setFilter] = useState("all");
+  const [sort, setSort] = useState("recent");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
+  const [loading, setLoading] = useState(!guest);
 
   async function load() {
     setLoading(true);
     setError("");
     try {
       const res = await getMyStories();
-      setStories(res?.items || res || []);
+      const items = res?.items || res || [];
+      setStories(items);
+      const requestedTab = searchParams.get("tab");
+      if (!["all", "drafts", "submitted"].includes(requestedTab)) {
+        setTab(getStoryCounts(items).published > 0 ? "submitted" : "drafts");
+      }
     } catch (e) {
       setError(String(e.message || e));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function removeEmptyStory(story) {
+    const chapterCount = Number(story.chapter_count || 0);
+    const status = String(story.status_text || story.status || "").toLowerCase();
+    if (chapterCount !== 0) {
+      setError("Delete every chapter before deleting the story.");
+      return;
+    }
+    if (!/draft|private|unpublish|hidden/.test(status)) {
+      setError("Move the story to Draft before deleting it.");
+      return;
+    }
+    if (!window.confirm("All chapters have been deleted. Delete this story and its details page? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      setError("");
+      await deleteStory(story.id);
+      await load();
+    } catch (e) {
+      setError(String(e.message || e));
     }
   }
 
@@ -38,84 +88,46 @@ export default function ManageStoriesPage({ user }) {
     load();
   }, [guest, user?.id, user?.user_id]);
 
-  async function onCreate() {
-    if (creating) return;
-    setCreating(true);
-    setError("");
-    try {
-      const res = await createStory({
-        title: "Untitled Story",
-        author: user?.display_name || user?.username || user?.email || "Author",
-        description: "",
-        status_text: "Draft",
-        genre: "Romance",
-      });
-      const id = res?.id || res?.story_id || res?.item?.id;
-      if (id) {
-        try {
-          await createChapter(id, {
-            title: "Chapter 1",
-            content: "",
-            chapter_number: 1,
-            status_text: "Draft",
-          });
-        } catch (_) {
-          /* chapter may be auto-created by backend */
-        }
-        navigate(`/write/${id}`);
-      } else {
-        await load();
-        navigate("/manage-stories");
-      }
-    } catch (e) {
-      setError(String(e.message || e));
-    } finally {
-      setCreating(false);
+  useEffect(() => {
+    const requestedTab = searchParams.get("tab");
+    if (["all", "drafts", "submitted"].includes(requestedTab)) {
+      setTab(requestedTab);
     }
-  }
+  }, [searchParams]);
 
-  async function onDeleteStory(story) {
-    if (!window.confirm(`Permanently delete “${story.title || "Untitled story"}” and its chapters?`)) return;
-    setDeletingId(story.id);
-    setError("");
-    try {
-      await deleteStory(story.id);
-      setStories((current) => current.filter((item) => item.id !== story.id));
-    } catch (e) {
-      setError(String(e.message || e));
-    } finally {
-      setDeletingId(null);
-    }
+  function onCreate() {
+    navigate("/write/new");
   }
 
   const filtered = useMemo(() => {
     let list = [...stories];
     list = list.filter((s) => {
-      const status = String(s.status_text || s.status || "Published").toLowerCase();
-      const isDraft = status.includes("draft") || status === "draft";
-      const isCompleted = s.is_completed === true || Number(s.is_completed) === 1 || /complete|finished/.test(status);
-      if (tab === "drafts" && !isDraft) return false;
-      if (tab === "submitted" && isDraft) return false;
-      if (filter === "completed" && !isCompleted) return false;
-      if (q && !String(s.title || "").toLowerCase().includes(q.toLowerCase())) return false;
+      const publishedCount = Number(s.published_chapter_count || 0);
+      const isSubmitted = publishedCount > 0;
+      const status = String(s.status_text || s.status || "").toLowerCase();
+      if (tab === "drafts" && isSubmitted) return false;
+      if (tab === "submitted" && !isSubmitted) return false;
+      if (filter === "ongoing" && !/ongoing|publish/.test(status)) return false;
+      if (filter === "completed" && !/complete/.test(status)) return false;
+      const query = q.trim().toLowerCase();
+      if (query && !`${s.title || ""} ${s.author || ""}`.toLowerCase().includes(query)) return false;
       return true;
     });
-    if (sort === "title") {
-      list.sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
-    } else if (sort === "rating") {
-      list.sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0));
-    } else {
-      list.sort((a, b) => String(b.last_updated_at || "").localeCompare(String(a.last_updated_at || "")) || Number(b.id || 0) - Number(a.id || 0));
-    }
+    list.sort((a, b) => {
+      if (sort === "title") return String(a.title || "").localeCompare(String(b.title || ""));
+      if (sort === "reads") return Number(b.view_count || b.read_count || 0) - Number(a.view_count || a.read_count || 0);
+      return String(b.last_updated_at || b.updated_at || "").localeCompare(String(a.last_updated_at || a.updated_at || "")) || Number(b.id || 0) - Number(a.id || 0);
+    });
     return list;
-  }, [stories, tab, q, sort, filter]);
+  }, [stories, tab, q, filter, sort]);
+  const counts = useMemo(() => getStoryCounts(stories), [stories]);
 
   if (guest) {
     return (
       <div className="container page">
         <div className="guest-lock">
           <h3>Sign in to manage stories</h3>
-          <Link className="btn btn-primary" to="/login">
+          <Link className="btn btn-primary" to="/login" state={{ returnTo: "/manage-stories" }}>
             Sign in
           </Link>
         </div>
@@ -125,58 +137,49 @@ export default function ManageStoriesPage({ user }) {
 
   return (
     <div className="manage-page-inkitt">
-      <div className="manage-banner" aria-hidden />
-
-      <div className="manage-body">
-        <aside className="manage-side">
-          {SIDE_NAV.map((item) =>
-            item.soon ? (
-              <span key={item.id} className="manage-side-item muted">
-                {item.label}
-              </span>
-            ) : (
-              <Link
-                key={item.id}
-                to={item.to}
-                className={`manage-side-item ${item.id === "manage" ? "active" : ""}`}
-              >
-                {item.label}
-              </Link>
-            )
-          )}
-        </aside>
-
-        <main className="manage-content">
-          <h1 className="manage-title">Manage Stories</h1>
-
-          <div className="streak-card">
-            <h3>Start your streak today</h3>
-            <p>
-              Your first writing session builds your chain. Looking forward to seeing it grow.{" "}
-              <Link to="/write">See All →</Link>
-            </p>
+      <main className="manage-content">
+        <header className="manage-page-heading">
+          <div>
+            <span className="manage-eyebrow">WRITER WORKSPACE</span>
+            <h1 className="manage-title">Your stories</h1>
+            <p>Keep drafts moving, check on published work, and jump back into writing.</p>
           </div>
+          <button type="button" className="btn btn-primary create-story-btn" onClick={onCreate}>
+            <span aria-hidden="true">＋</span> Create a story
+          </button>
+        </header>
+
+        <section className="manage-overview" aria-label="Story overview">
+          <div><span>All stories</span><strong>{counts.total}</strong></div>
+          <div><span>Published</span><strong>{counts.published}</strong></div>
+          <div><span>Drafts</span><strong>{counts.drafts}</strong></div>
+          <div><span>Completed</span><strong>{counts.completed}</strong></div>
+        </section>
 
           <div className="manage-toolbar">
             <div className="manage-tabs">
               <button
                 type="button"
+                className={tab === "all" ? "active" : ""}
+                onClick={() => setTab("all")}
+              >
+                All Stories <span>{counts.total}</span>
+              </button>
+              <button
+                type="button"
                 className={tab === "submitted" ? "active" : ""}
                 onClick={() => setTab("submitted")}
               >
-                Submitted
+                Published <span>{counts.published}</span>
               </button>
               <button
                 type="button"
                 className={tab === "drafts" ? "active" : ""}
                 onClick={() => setTab("drafts")}
               >
-                Drafts
+                Drafts <span>{counts.drafts}</span>
               </button>
             </div>
-            <button type="button" className="btn btn-primary create-story-btn" onClick={onCreate} disabled={creating}>
-              {creating ? "Creating…" : "CREATE NEW STORY"}
-            </button>
           </div>
 
           <div className="manage-filters">
@@ -185,22 +188,23 @@ export default function ManageStoriesPage({ user }) {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search"
+                placeholder="Search your stories..."
               />
-            </label>
-            <label>
-              <span>Sort by</span>
-              <select value={sort} onChange={(e) => setSort(e.target.value)}>
-                <option value="recent">Recently updated</option>
-                <option value="title">Title</option>
-                <option value="rating">Rating</option>
-              </select>
             </label>
             <label>
               <span>Filter by</span>
               <select value={filter} onChange={(e) => setFilter(e.target.value)}>
                 <option value="all">All stories</option>
+                <option value="ongoing">Ongoing</option>
                 <option value="completed">Completed</option>
+              </select>
+            </label>
+            <label>
+              <span>Sort by</span>
+              <select value={sort} onChange={(e) => setSort(e.target.value)}>
+                <option value="recent">Recently updated</option>
+                <option value="title">Title (A-Z)</option>
+                <option value="reads">Most reads</option>
               </select>
             </label>
           </div>
@@ -210,58 +214,87 @@ export default function ManageStoriesPage({ user }) {
 
           {!loading && filtered.length === 0 && (
             <div className="manage-empty">
-              <div className="manage-empty-icon">📚</div>
-              <h3>{tab === "drafts" ? "No drafts yet" : "No submitted stories yet"}</h3>
+              <div className="manage-empty-icon" aria-hidden="true">✦</div>
+              <h3>{q || filter !== "all" ? "No stories match these filters" : tab === "drafts" ? "Your drafts will be waiting here" : "Your published stories will appear here"}</h3>
               <p>
-                {tab === "drafts"
-                  ? "Save a draft and it will appear here."
-                  : "Once you submit a story, you'll find it here."}
+                {q || filter !== "all"
+                  ? "Try a different search or update the selected filters."
+                  : tab === "drafts"
+                    ? "Start a story or save your first chapter as a draft."
+                    : "Publish a chapter to share your story with readers."}
               </p>
-              <button type="button" className="btn btn-primary" onClick={onCreate} disabled={creating}>
-                CREATE NEW STORY
-              </button>
+              {q || filter !== "all" ? <button type="button" className="btn btn-secondary" onClick={() => { setQ(""); setFilter("all"); }}>Clear filters</button> : <button type="button" className="btn btn-primary" onClick={onCreate}>Create a story</button>}
             </div>
           )}
 
           <div className="manage-story-grid">
             {filtered.map((s) => {
               const cover = resolveAssetUrl(s.cover_path || s.coverPath || "");
+              const status = String(s.status_text || s.status || "").toLowerCase();
+              const isCompleted = s.is_completed === true || Number(s.is_completed) === 1 || /complete|finished/.test(status);
+              const isPublished = Number(s.published_chapter_count || 0) > 0;
+              const title = s.title || "Untitled story";
+              const rating = Number(s.rating);
+              const reads = Number(s.view_count || s.read_count || 0);
+              const chapterCount = Number(s.chapter_count || 0);
+              const genre = s.secondary_genre || s.genre || s.primary_genre || "";
               return (
                 <article key={s.id} className="manage-story-card">
-                  <Link to={`/write/${s.id}`} className="manage-cover">
+                  <Link to={`/stories/${s.id}`} className="manage-cover" aria-label={`View ${title}`}>
                     {cover ? (
-                      <img src={cover} alt="" />
+                      <img src={cover} alt={`${title} cover`} loading="lazy" decoding="async" />
                     ) : (
-                      <div className="manage-cover-ph" style={{ background: s.accent_hex || "var(--bg-elevated)" }}>
-                        {(s.title || "?")[0]}
+                      <div className="manage-cover-ph" role="img" aria-label={`Default cover for ${title}`}>
+                        <span className="manage-cover-ph-mark" aria-hidden="true">W</span>
+                        <strong>{title}</strong>
+                        <small>{s.author || user?.display_name || user?.username || "Wingsaga author"}</small>
                       </div>
                     )}
+                    <span className={`manage-cover-status${isPublished ? " is-published" : ""}`}>
+                      {isCompleted ? "Completed" : isPublished ? "Published" : "Draft"}
+                    </span>
+                    {Number.isFinite(rating) && rating > 0 ? <span className="manage-cover-rating"><span aria-hidden="true">★</span> {rating.toFixed(1)}</span> : null}
+                    {genre ? <span className="manage-cover-genre">{genre}</span> : null}
                   </Link>
                   <div className="manage-story-meta">
-                    <Link to={`/write/${s.id}`}>
-                      <h3>{s.title || "Untitled"}</h3>
+                    <Link to={`/stories/${s.id}`}>
+                      <h3>{title}</h3>
                     </Link>
-                    <p className="meta">
-                      {s.status_text || "Published"} · {s.genre || s.primary_genre || "—"}
-                    </p>
+                    <p className="manage-story-author">by {s.author || user?.display_name || user?.username || "You"}</p>
+                    <div className="manage-story-stats">
+                      <span>{chapterCount} {chapterCount === 1 ? "chapter" : "chapters"}</span>
+                      <span>{reads.toLocaleString()} reads</span>
+                      {Number.isFinite(rating) && rating > 0 ? <span>★ {rating.toFixed(1)}</span> : null}
+                    </div>
+                    <div className="manage-story-details">
+                      <span className={`manage-story-status${isPublished ? " is-published" : ""}`}>{isCompleted ? "Completed" : isPublished ? "Published" : "Draft"}</span>
+                      <span>{s.genre || s.primary_genre || "Genre not set"}</span>
+                      <span>{formatUpdated(s.last_updated_at || s.updated_at)}</span>
+                    </div>
                     <div className="manage-story-actions">
-                      <Link className="btn" to={`/write/${s.id}`}>
-                        Edit
+                      <Link className="btn btn-primary" to={`/write/${s.id}`}>
+                        Chapters
                       </Link>
-                      <Link className="btn" to={`/stories/${s.id}`}>
-                        View
+                      <Link className="btn btn-secondary" to={`/write/new?story=${s.id}&returnTo=${encodeURIComponent(`/manage-stories?tab=${tab}`)}`}>
+                        Edit details
                       </Link>
-                      <button type="button" className="btn btn-danger manage-delete-story" onClick={() => onDeleteStory(s)} disabled={deletingId === s.id}>
-                        {deletingId === s.id ? "Deleting…" : "Delete"}
-                      </button>
+                      {Number(s.chapter_count || 0) === 0 &&
+                      /draft|private|unpublish|hidden/i.test(String(s.status_text || s.status || "")) ? (
+                        <button
+                          type="button"
+                          className="btn manage-delete-story"
+                          onClick={() => removeEmptyStory(s)}
+                        >
+                          Delete story
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 </article>
               );
             })}
           </div>
-        </main>
-      </div>
+      </main>
     </div>
   );
 }

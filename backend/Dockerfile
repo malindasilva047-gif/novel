@@ -26,4 +26,4 @@ RUN mkdir -p /app/uploads
 # SnapDeploy can route to this port; PORT can still override it at runtime.
 EXPOSE 8000
 
-CMD ["sh", "-c", "mkdir -p \"${UPLOAD_DIR:-/app/uploads}\" && uvicorn app.main:app --host 0.0.0.0 --port \"${PORT:-8000}\""]
+CMD ["sh", "-c", "mkdir -p \"${UPLOAD_DIR:-/app/uploads}\" && uvicorn app.main:app --host 0.0.0.0 --port \"${PORT:-8000}\" --proxy-headers --forwarded-allow-ips='*'"]

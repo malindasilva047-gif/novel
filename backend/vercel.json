@@ -4,13 +4,16 @@
     "api/index.py": { "maxDuration": 60 },
     "app/main.py": { "maxDuration": 60 }
   },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index.py" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Credentials", "value": "true" },
         { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
-        { "key": "Access-Control-Allow-Headers", "value": "Authorization,Content-Type,X-Requested-With,Accept,Origin" }
+        { "key": "Access-Control-Allow-Headers", "value": "Authorization,Content-Type,X-Requested-With,Accept,Origin,X-Auth-Mode,X-CSRF-Token" }
       ]
     }
   ]

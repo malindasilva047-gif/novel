@@ -54,10 +54,10 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
   List<Map<String, dynamic>> _related = const [];
   bool _loading = true;
   bool _following = false;
-  bool _notify = false;
   bool _followBusy = false;
   int _followerCount = 0;
-  int _readerCount = 0;
+  int _storyCount = 0;
+  int _booksRequestId = 0;
   String _tagDescription = '';
   String _tagCoverPath = '';
 
@@ -83,7 +83,10 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
     super.initState();
     _tabs = TabController(length: 4, vsync: this);
     _tabs.addListener(() {
-      if (!_tabs.indexIsChanging) setState(() {});
+      if (!_tabs.indexIsChanging) {
+        setState(() {});
+        _loadBooksForSelectedSort();
+      }
     });
     _load();
   }
@@ -97,7 +100,10 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final books = await widget.apiService.fetchBooksByTag(_tagName);
+      final books = await widget.apiService.fetchBooksByTag(
+        _tagName,
+        sort: _selectedSort,
+      );
       final tagList = await widget.apiService.fetchTags();
       final tagMeta = tagList.firstWhere(
         (t) {
@@ -121,6 +127,7 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
               .trim();
       final tagCover = HashtagDetailScreen.resolveTagCover(tagMeta, books);
       final tagFollowers = (tagMeta['followers_count'] as num?)?.toInt() ?? 0;
+      final tagBooksCount = (tagMeta['book_count'] as num?)?.toInt();
       final related = tagList
           .where((t) {
             final n = (t['name'] ?? t['tag'] ?? '').toString().trim();
@@ -128,10 +135,6 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
           })
           .take(8)
           .toList();
-      final readers = books.fold<int>(
-        0,
-        (sum, book) => sum + ((book['view_count'] as num?)?.toInt() ?? 0),
-      );
       Map<String, dynamic> follow = const {};
       try {
         follow = await widget.apiService.checkTagFollow(_tagName);
@@ -141,13 +144,12 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
         _books = books;
         _related = related;
         _following = (follow['following'] as bool?) ?? false;
-        _notify = (follow['notify'] as bool?) ?? false;
         _tagCoverPath = tagCover;
+        _storyCount = tagBooksCount ?? books.length;
         _followerCount =
             ((follow['followers'] as num?)?.toInt() ?? tagFollowers) > 0
             ? ((follow['followers'] as num?)?.toInt() ?? tagFollowers)
             : tagFollowers;
-        _readerCount = readers;
         _tagDescription = description.isNotEmpty
             ? description
             : 'Stories tagged #$_tagName from the live public catalog and community picks.';
@@ -158,56 +160,39 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
       setState(() {
         _books = const [];
         _related = const [];
+        _storyCount = 0;
         _tagCoverPath = '';
         _tagDescription =
             'Stories tagged #$_tagName from the live public catalog.';
-        _readerCount = 0;
         _loading = false;
       });
     }
   }
 
+  String get _selectedSort => switch (_tabs.index) {
+    1 => 'recent',
+    2 => 'trending',
+    3 => 'liked',
+    _ => 'top',
+  };
+
+  Future<void> _loadBooksForSelectedSort() async {
+    final requestId = ++_booksRequestId;
+    final books = await widget.apiService.fetchBooksByTag(
+      _tagName,
+      sort: _selectedSort,
+    );
+    if (!mounted || requestId != _booksRequestId) return;
+    setState(() {
+      _books = books;
+      _tagCoverPath = HashtagDetailScreen.resolveTagCover({
+        'cover_path': _tagCoverPath,
+      }, books);
+    });
+  }
+
   List<Map<String, dynamic>> get _sorted {
-    final list = List<Map<String, dynamic>>.from(_books);
-    switch (_tabs.index) {
-      case 1: // Recent — reverse id order approx
-        list.sort(
-          (a, b) => ((b['id'] as num?)?.toInt() ?? 0).compareTo(
-            (a['id'] as num?)?.toInt() ?? 0,
-          ),
-        );
-        break;
-      case 2: // Trending — views
-        list.sort(
-          (a, b) => ((b['view_count'] as num?)?.toInt() ?? 0).compareTo(
-            (a['view_count'] as num?)?.toInt() ?? 0,
-          ),
-        );
-        break;
-      case 3: // Most liked
-        list.sort(
-          (a, b) =>
-              ((b['likes_count'] as num?)?.toInt() ??
-                      (b['rating'] as num?)?.toDouble() ??
-                      0)
-                  .compareTo(
-                    (a['likes_count'] as num?)?.toInt() ??
-                        (a['rating'] as num?)?.toDouble() ??
-                        0,
-                  ),
-        );
-        break;
-      default: // Top — rating then views
-        list.sort((a, b) {
-          final ra = (a['rating'] as num?)?.toDouble() ?? 0;
-          final rb = (b['rating'] as num?)?.toDouble() ?? 0;
-          if (rb != ra) return rb.compareTo(ra);
-          return ((b['view_count'] as num?)?.toInt() ?? 0).compareTo(
-            (a['view_count'] as num?)?.toInt() ?? 0,
-          );
-        });
-    }
-    return list;
+    return List<Map<String, dynamic>>.from(_books);
   }
 
   void _openBook(Map<String, dynamic> m) {
@@ -242,7 +227,6 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
         if (!mounted) return;
         setState(() {
           _following = false;
-          _notify = false;
           _followerCount =
               (res['followers'] as num?)?.toInt() ?? _followerCount;
         });
@@ -296,9 +280,7 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
                             controller: _tabs,
                             isScrollable: true,
                             labelColor: AppTheme.brand,
-                            unselectedLabelColor: isDark
-                                ? const Color(0xFFC4B8D9)
-                                : AppTheme.mutedOf(context),
+                            unselectedLabelColor: AppTheme.mutedOf(context),
                             indicatorColor: AppTheme.brand,
                             indicatorWeight: 3,
                             tabs: const [
@@ -324,18 +306,7 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
   }
 
   Color _tagAccent() {
-    const palette = <Color>[
-      Color(0xFF8B6FE8),
-      Color(0xFFD9678F),
-      Color(0xFFE8A33D),
-      Color(0xFF4FB8AE),
-      Color(0xFFC2554B),
-    ];
-    final idx = _tagName.isEmpty
-        ? 0
-        : (_tagName.codeUnits.fold<int>(0, (sum, v) => sum + v) %
-              palette.length);
-    return palette[idx];
+    return AppTheme.brand;
   }
 
   Widget _header(bool isDark) {
@@ -345,28 +316,16 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
     final coverUrl = cover.isEmpty
         ? null
         : widget.apiService.resolveAssetUrl(cover);
-    final count = _books.length;
+    final count = _storyCount;
     final accent = _tagAccent();
-    final deep = isDark
-        ? Color.alphaBlend(
-            const Color(0xFF1A1228),
-            accent.withValues(alpha: 0.45),
-          )
-        : Color.alphaBlend(
-            const Color(0xFFFFF7EC),
-            accent.withValues(alpha: 0.18),
-          );
-    final textColor = isDark
-        ? const Color(0xFFF8F5FF)
-        : AppTheme.inkOf(context);
-    // High-contrast muted (readable on purple gradients)
-    final mutedText = isDark
-        ? const Color(0xFFE0D6F5)
-        : const Color(0xFF5C5470);
-    final tileBg = isDark ? Colors.black.withValues(alpha: 0.15) : Colors.white;
-    final tileBorder = isDark
-        ? Colors.white.withValues(alpha: 0.16)
-        : const Color(0xFFE9E1F6);
+    final deep = Color.alphaBlend(
+      accent.withValues(alpha: isDark ? 0.18 : 0.08),
+      AppTheme.bgOf(context),
+    );
+    final textColor = AppTheme.inkOf(context);
+    final mutedText = AppTheme.mutedOf(context);
+    final tileBg = AppTheme.surfaceOf(context);
+    final tileBorder = AppTheme.borderOf(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -440,7 +399,7 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
               colors: [
                 accent.withValues(alpha: isDark ? 0.95 : 0.18),
                 deep,
-                isDark ? const Color(0xFF14111F) : Colors.white,
+                AppTheme.bgOf(context),
               ],
             ),
           ),
@@ -467,10 +426,10 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
                     style: FilledButton.styleFrom(
                       backgroundColor: _following
                           ? AppTheme.borderOf(context)
-                          : const Color(0xFFE8A33D),
+                          : AppTheme.brand,
                       foregroundColor: _following
                           ? AppTheme.inkOf(context)
-                          : const Color(0xFF241804),
+                          : Colors.white,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 18,
                         vertical: 10,
@@ -588,9 +547,7 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w800,
-                  color: isDark
-                      ? const Color(0xFFF5F0FF)
-                      : AppTheme.inkOf(context),
+                  color: AppTheme.inkOf(context),
                 ),
               ),
               const Spacer(),
@@ -635,8 +592,8 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
                               child: Container(
                                 width: 120,
                                 color: isDark
-                                    ? const Color(0xFF2A2140)
-                                    : const Color(0xFFF3F0FF),
+                                    ? const Color(0xFF2B3832)
+                                    : const Color(0xFFF6F5FA),
                                 child: url == null
                                     ? const Icon(Icons.menu_book)
                                     : Image.network(
@@ -690,7 +647,7 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 11,
-                          color: const Color(0xFFD4CBE8),
+                          color: AppTheme.mutedOf(context),
                         ),
                       ),
                     ],
@@ -719,15 +676,16 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w800,
-                  color: isDark
-                      ? const Color(0xFFF5F0FF)
-                      : AppTheme.inkOf(context),
+                  color: AppTheme.inkOf(context),
                 ),
               ),
               const Spacer(),
               Text(
                 'Sort by Top',
-                style: TextStyle(color: const Color(0xFFD4CBE8), fontSize: 12),
+                style: TextStyle(
+                  color: AppTheme.mutedOf(context),
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -761,8 +719,8 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: isDark
-                          ? const Color(0xFF2A2140)
-                          : const Color(0xFFF3F0FF),
+                          ? const Color(0xFF2B3832)
+                          : const Color(0xFFF6F5FA),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -780,8 +738,8 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
                       width: 56,
                       height: 72,
                       color: isDark
-                          ? const Color(0xFF2A2140)
-                          : const Color(0xFFF3F0FF),
+                          ? const Color(0xFF2B3832)
+                          : const Color(0xFFF6F5FA),
                       child: url == null
                           ? const Icon(Icons.menu_book, size: 20)
                           : Image.network(
@@ -804,16 +762,14 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
                           style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 14,
-                            color: isDark
-                                ? const Color(0xFFF5F0FF)
-                                : AppTheme.inkOf(context),
+                            color: AppTheme.inkOf(context),
                           ),
                         ),
                         Text(
                           'by $author',
                           style: TextStyle(
                             fontSize: 12,
-                            color: const Color(0xFFD4CBE8),
+                            color: AppTheme.mutedOf(context),
                           ),
                         ),
                         if (desc.isNotEmpty)
@@ -823,7 +779,7 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 12,
-                              color: const Color(0xFFC4B8D9),
+                              color: AppTheme.mutedOf(context),
                               height: 1.25,
                             ),
                           ),
@@ -839,14 +795,16 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
                                   if (genre.isNotEmpty)
                                     _chip(
                                       genre,
-                                      const Color(0xFFFCE7F3),
-                                      const Color(0xFFBE185D),
+                                      AppTheme.brand.withValues(alpha: 0.15),
+                                      AppTheme.mint,
                                     ),
                                   if (status.isNotEmpty)
                                     _chip(
                                       status,
-                                      const Color(0xFFD1FAE5),
-                                      const Color(0xFF047857),
+                                      AppTheme.brandDeep.withValues(
+                                        alpha: 0.18,
+                                      ),
+                                      AppTheme.mint,
                                     ),
                                 ],
                               ),
@@ -862,20 +820,20 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
                               '$views',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: const Color(0xFFD4CBE8),
+                                color: AppTheme.mutedOf(context),
                               ),
                             ),
                             const SizedBox(width: 8),
                             const Icon(
                               Icons.star_rounded,
                               size: 14,
-                              color: Color(0xFFF3C623),
+                              color: AppTheme.amber,
                             ),
                             Text(
                               rating.toStringAsFixed(1),
                               style: TextStyle(
                                 fontSize: 11,
-                                color: const Color(0xFFD4CBE8),
+                                color: AppTheme.mutedOf(context),
                               ),
                             ),
                           ],
@@ -956,11 +914,9 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? const Color(0xFF1A1625)
-                        : const Color(0xFFF7F5FC),
+                    color: AppTheme.surfaceOf(context),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFEDE9FE)),
+                    border: Border.all(color: AppTheme.borderOf(context)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -977,7 +933,7 @@ class _HashtagDetailScreenState extends State<HashtagDetailScreen>
                         '$count stories',
                         style: TextStyle(
                           fontSize: 11,
-                          color: const Color(0xFFD4CBE8),
+                          color: AppTheme.mutedOf(context),
                         ),
                       ),
                     ],

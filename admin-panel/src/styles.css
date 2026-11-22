@@ -1,19 +1,19 @@
 /* NovelHub-style Admin — dark theme, responsive */
 :root {
-  --bg: #0B0A12;
-  --bg-elevated: #12101A;
-  --bg-card: #1A1625;
-  --bg-sidebar: #12101A;
-  --border: #2E2640;
-  --text: #F5F3FF;
-  --text-muted: #A89BB8;
-  --accent: #8B5CF6;
-  --accent-hover: #A78BFA;
+  --bg: #0D1914;
+  --bg-elevated: #192A23;
+  --bg-card: #17211D;
+  --bg-sidebar: #192A23;
+  --border: #2B3832;
+  --text: #F5F5F5;
+  --text-muted: #929792;
+  --accent: #16856A;
+  --accent-hover: #35A486;
   --green: #22c55e;
   --orange: #f59e0b;
   --red: #ef4444;
   --purple: #a78bfa;
-  --teal: #8B5CF6;
+  --teal: #16856A;
   --radius: 12px;
   --sidebar-w: 240px;
   --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -100,7 +100,7 @@ a { color: var(--accent); }
 .brand-mark {
   width: 32px; height: 32px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #8B5CF6, #A78BFA);
+  background: linear-gradient(135deg, #16856A, #35A486);
   display: grid; place-items: center;
   font-size: .85rem; color: #fff; font-weight: 800;
 }
@@ -176,6 +176,11 @@ a { color: var(--accent); }
   border-radius: 50%;
   border: 1px solid var(--border);
   background: var(--bg-card);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: 16px;
   cursor: pointer;
   position: relative;
 }
@@ -198,7 +203,7 @@ a { color: var(--accent); }
 .user-chip img, .avatar-fallback {
   width: 32px; height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #8B5CF6, #A78BFA);
+  background: linear-gradient(135deg, #16856A, #35A486);
   object-fit: cover;
 }
 .avatar-fallback {
@@ -770,7 +775,7 @@ table.data tr:hover td { background: rgba(139,92,246,.06); }
 .pro-view-avatar-fallback {
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, #8B5CF6, #A78BFA);
+  background: linear-gradient(135deg, #16856A, #35A486);
   color: #fff;
   font-size: 1.6rem;
   font-weight: 700;

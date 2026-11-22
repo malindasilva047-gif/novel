@@ -1,0 +1,10 @@
+﻿NovelHub client preview
+
+Website: https://pros-britannica-bride-portland.trycloudflare.com
+Admin panel: https://standards-maria-clothing-shut.trycloudflare.com
+API health: https://pros-britannica-bride-portland.trycloudflare.com/api/health
+Android APK: NovelHub-client-preview.apk
+
+Keep this PC, backend, website/admin preview servers, and Cloudflare Tunnel processes running while the client tests.
+The links use temporary Cloudflare Quick Tunnels and may change when the tunnels restart.
+This preview uses the local MySQL database on this PC.

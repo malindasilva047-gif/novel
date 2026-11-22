@@ -13,40 +13,13 @@ import 'story_manage_screen.dart';
 import 'story_detail_screen.dart';
 
 bool storyMatchesWriteTab(Map<String, dynamic> story, int tabIndex) {
-  // Inkitt-style Write tabs:
-  // - Submitted: Ongoing / Completed / Published OR any published chapter
-  // - Drafts: pure draft stories only (no published chapters)
-  // A story with ch1–3 published + ch4 draft belongs under Submitted.
-  final statusText =
-      story['status_text']?.toString().toLowerCase().trim() ?? '';
+  // A story belongs to exactly one tab. Any live chapter owns the whole story
+  // in Published; scheduled and other private chapters remain in Drafts until
+  // at least one chapter is actually live.
   final publishedCount =
       (story['published_chapter_count'] as num?)?.toInt() ?? 0;
-
-  final statusLooksDraft = statusText.isEmpty ||
-      statusText.contains('draft') ||
-      statusText.contains('private') ||
-      statusText.contains('unpublish') ||
-      statusText.contains('hidden');
-
-  final statusLooksSubmitted = statusText.contains('ongoing') ||
-      statusText.contains('submitted') ||
-      statusText.contains('published') ||
-      statusText.contains('complete') ||
-      statusText.contains('live') ||
-      statusText == 'unlisted';
-
-  // Published chapters win over a wrongly-stored "Draft" status_text
-  // (e.g. after an old Edit-details bug forced Draft).
-  final isSubmittedStory =
-      publishedCount > 0 || (statusLooksSubmitted && !statusLooksDraft);
-
-  final isDraftStory = !isSubmittedStory &&
-      (statusLooksDraft || !statusLooksSubmitted);
-
-  if (tabIndex == 0) {
-    return isSubmittedStory;
-  }
-  return isDraftStory;
+  if (tabIndex == 0) return publishedCount > 0;
+  return publishedCount == 0;
 }
 
 class WriteScreen extends StatefulWidget {
@@ -75,16 +48,18 @@ class _WriteScreenState extends State<WriteScreen>
   void initState() {
     super.initState();
     _mainTabs = TabController(length: 2, vsync: this);
-    // ALWAYS use fixed Submitted / Drafts tabs.
+    // ALWAYS use fixed Published / Drafts tabs.
     // Backend bootstrap used to send "Stories,Series" which broke filtering
     // so lists looked empty after creating a chapter.
     _storySubTabs = TabController(
       length: 2,
       vsync: this,
-      initialIndex: 1, // Drafts — where Ongoing/Draft stories land
+      initialIndex:
+          0, // Prefer Published when the author has published stories.
     );
 
-    // After publish from chapter editor → open Submitted tab
+    // Honor an explicit return tab from the editor. Otherwise choose Published
+    // when the author already has at least one live story, Drafts when not.
     Future<void>.microtask(() async {
       try {
         final prefs = await SharedPreferences.getInstance();
@@ -92,7 +67,7 @@ class _WriteScreenState extends State<WriteScreen>
           await prefs.setBool('write_open_submitted', false);
           if (!mounted) return;
           _mainTabs.animateTo(0);
-          _storySubTabs.animateTo(0); // Submitted
+          _storySubTabs.animateTo(0); // Published
           setState(() {});
         } else if (prefs.getBool('write_open_drafts') == true) {
           await prefs.setBool('write_open_drafts', false);
@@ -104,6 +79,13 @@ class _WriteScreenState extends State<WriteScreen>
           setState(() {
             _storiesFuture = widget.apiService.fetchWriterStories();
           });
+        } else {
+          final stories = await _storiesFuture;
+          if (!mounted) return;
+          final hasPublished = stories.any(
+            (story) => storyMatchesWriteTab(story, 0),
+          );
+          _storySubTabs.animateTo(hasPublished ? 0 : 1);
         }
       } catch (_) {}
     });
@@ -134,19 +116,19 @@ class _WriteScreenState extends State<WriteScreen>
   Future<void> _openCreateStory({Map<String, dynamic>? story}) async {
     // Remember which tab this story belongs to BEFORE edit (status must not
     // flip to Draft on details save — that was the chapters-"gone" illusion).
-    final belongedSubmitted = story != null && storyMatchesWriteTab(story, 0);
+    final belongedPublished = story != null && storyMatchesWriteTab(story, 0);
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) =>
- CreateStoryScreen(apiService: widget.apiService, story: story),
+            CreateStoryScreen(apiService: widget.apiService, story: story),
       ),
     );
     if (!mounted) return;
     await _reloadStories();
     if (result != true) return;
     if (_mainTabs.index != 0) _mainTabs.animateTo(0);
-    // Stay on same tab family: Submitted stays Submitted, Draft stays Draft
-    _storySubTabs.animateTo(belongedSubmitted ? 0 : 1);
+    // Stay on the same Published/Drafts tab family.
+    _storySubTabs.animateTo(belongedPublished ? 0 : 1);
   }
 
   Future<void> _readChapter(
@@ -176,59 +158,29 @@ class _WriteScreenState extends State<WriteScreen>
     );
   }
 
-  Future<void> _deleteChapter(Map<String, dynamic> chapter) async {
-    final chapterId = (chapter['id'] as num?)?.toInt();
-    if (chapterId == null) return;
-    final title = chapter['title']?.toString() ?? 'this chapter';
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete chapter?'),
-        content: Text('Delete "$title" permanently?'),
-        actions: [
- TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
- FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    try {
-      await widget.apiService.deleteStoryChapter(chapterId);
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Chapter deleted')));
-      await _reloadStories();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Could not delete chapter: $e')));
-    }
-  }
-
   Future<void> _openEditChapter(Map<String, dynamic> story) async {
     final storyId = (story['id'] as num?)?.toInt();
     if (storyId == null) return;
 
     // Inkitt Manage Stories: full-screen story + all chapters
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => StoryManageScreen(
-          apiService: widget.apiService,
-          story: story,
-        ),
+    final result = await Navigator.of(context).push<Object?>(
+      MaterialPageRoute<Object?>(
+        builder: (_) =>
+            StoryManageScreen(apiService: widget.apiService, story: story),
       ),
     );
     if (!mounted) return;
+    _applyChapterEditorReturn(result);
     await _reloadStories();
+  }
+
+  void _applyChapterEditorReturn(Object? result) {
+    if (result is! Map || result['returnToWriteManager'] != true) return;
+    final openDrafts = result['openDrafts'] != false;
+    _mainTabs.animateTo(0);
+    _storySubTabs.animateTo(openDrafts ? 1 : 0);
+    _storiesFuture = widget.apiService.fetchWriterStories();
+    setState(() {});
   }
 
   Future<void> _editSelectedChapter(
@@ -238,8 +190,8 @@ class _WriteScreenState extends State<WriteScreen>
     final id = (chapter['id'] as num?)?.toInt();
     final chapterNo = (chapter['chapter_number'] as num?)?.toInt();
     final title = (chapter['title'] ?? 'Chapter').toString();
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
+    final result = await Navigator.of(context).push<Object?>(
+      MaterialPageRoute<Object?>(
         builder: (_) => EditChapterScreen(
           apiService: widget.apiService,
           storyId: storyId,
@@ -249,6 +201,8 @@ class _WriteScreenState extends State<WriteScreen>
         ),
       ),
     );
+    if (!mounted) return;
+    _applyChapterEditorReturn(result);
     await _reloadStories();
   }
 
@@ -259,6 +213,48 @@ class _WriteScreenState extends State<WriteScreen>
     final id = (story['id'] as num?)?.toInt() ?? 0;
     if (id <= 0) return;
 
+    if (status == 'Draft') {
+      try {
+        final chapters = await widget.apiService.fetchStoryChapters(id);
+        final live =
+            chapters.where((chapter) {
+              final chapterStatus = (chapter['submission_status'] ?? 'draft')
+                  .toString()
+                  .trim()
+                  .toLowerCase();
+              return {
+                'published',
+                'submitted',
+                'ongoing',
+                'completed',
+              }.contains(chapterStatus);
+            }).toList()..sort((a, b) {
+              final aNumber = (a['chapter_number'] as num?)?.toInt() ?? 0;
+              final bNumber = (b['chapter_number'] as num?)?.toInt() ?? 0;
+              return bNumber.compareTo(aNumber);
+            });
+        if (live.isNotEmpty) {
+          final latestNumber =
+              (live.first['chapter_number'] as num?)?.toInt() ?? 1;
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Please unpublish Chapter $latestNumber first. Unpublish chapters from the latest to the first.',
+              ),
+            ),
+          );
+          return;
+        }
+      } catch (error) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not verify chapter status: $error')),
+        );
+        return;
+      }
+    }
+
     // Professional status transition confirmations (Inkitt-style)
     String confirmMsg;
     if (status == 'Ongoing') {
@@ -266,7 +262,8 @@ class _WriteScreenState extends State<WriteScreen>
     } else if (status == 'Completed') {
       confirmMsg = 'Mark as finished? Chapters stay available.';
     } else if (status == 'Draft') {
-      confirmMsg = 'Unpublish? Story will be hidden from readers. Chapters are kept.';
+      confirmMsg =
+          'Unpublish? Story will be hidden from readers. Chapters are kept.';
     } else {
       confirmMsg = 'Change status to $status?';
     }
@@ -276,11 +273,11 @@ class _WriteScreenState extends State<WriteScreen>
         title: const Text('Change status'),
         content: Text(confirmMsg),
         actions: [
- TextButton(
+          TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
- FilledButton(
+          FilledButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Confirm'),
           ),
@@ -313,36 +310,6 @@ class _WriteScreenState extends State<WriteScreen>
     }
   }
 
-  Future<void> _deleteStory(Map<String, dynamic> story) async {
-    final approved = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Story'),
-        content: Text(
-          'Delete "${story['title']}" permanently?\n\nAll chapters will also be deleted. This cannot be undone.',
-        ),
-        actions: [
- TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
- FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (approved != true) return;
-
-    await widget.apiService.deleteWriterStory(story['id'] as int);
-    if (mounted) {
-      await _reloadStories();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -352,11 +319,14 @@ class _WriteScreenState extends State<WriteScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Header
- Padding(
+        Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
-          child: Row(
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: 8,
             children: [
- Text(
+              Text(
                 'Write',
                 style: TextStyle(
                   fontSize: 28,
@@ -365,44 +335,43 @@ class _WriteScreenState extends State<WriteScreen>
                   color: fg,
                 ),
               ),
-              const Spacer(),
- Container(
+              Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? const Color(0xFF2A2140)
-                      : const Color(0xFFF3EEFF),
+                      ? const Color(0xFF2B3832)
+                      : const Color(0xFFF6F5FA),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isDark
-                        ? const Color(0xFF4C3A7A)
-                        : const Color(0xFFD6C7FF),
+                        ? const Color(0xFF2B3832)
+                        : const Color(0xFFDDE2DF),
                   ),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
- Icon(
+                    Icon(
                       Icons.diamond_outlined,
                       size: 14,
-                      color: Color(0xFF8B5CF6),
+                      color: Color(0xFF16856A),
                     ),
- SizedBox(width: 4),
- Text(
+                    SizedBox(width: 4),
+                    Text(
                       'Premium',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF8B5CF6),
+                        color: Color(0xFF16856A),
                       ),
                     ),
                   ],
                 ),
               ),
- IconButton(
+              IconButton(
                 onPressed: () => _openCreateStory(),
                 icon: Icon(
                   Icons.add_circle_rounded,
@@ -415,7 +384,7 @@ class _WriteScreenState extends State<WriteScreen>
           ),
         ),
         // Hero banner (UI only — same create action)
- Padding(
+        Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
           child: GestureDetector(
             onTap: () => _openCreateStory(),
@@ -428,12 +397,12 @@ class _WriteScreenState extends State<WriteScreen>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: isDark
-                      ? const [Color(0xFF3B2A6B), Color(0xFF1A1228)]
-                      : const [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+                      ? const [Color(0xFF35A486), Color(0xFF192A23)]
+                      : const [Color(0xFF16856A), Color(0xFF35A486)],
                 ),
                 boxShadow: [
- BoxShadow(
-                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.28),
+                  BoxShadow(
+                    color: const Color(0xFF16856A).withValues(alpha: 0.28),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -441,11 +410,11 @@ class _WriteScreenState extends State<WriteScreen>
               ),
               child: Row(
                 children: [
- Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
- Text(
+                        Text(
                           'Start Writing',
                           style: TextStyle(
                             color: Colors.white,
@@ -454,8 +423,8 @@ class _WriteScreenState extends State<WriteScreen>
                             letterSpacing: -0.3,
                           ),
                         ),
- SizedBox(height: 6),
- Text(
+                        SizedBox(height: 6),
+                        Text(
                           'Turn your ideas into stories readers will love.',
                           style: TextStyle(
                             color: Colors.white70,
@@ -463,12 +432,12 @@ class _WriteScreenState extends State<WriteScreen>
                             height: 1.3,
                           ),
                         ),
- SizedBox(height: 12),
+                        SizedBox(height: 12),
                         // CTA chip
                       ],
                     ),
                   ),
- Container(
+                  Container(
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(
@@ -487,11 +456,11 @@ class _WriteScreenState extends State<WriteScreen>
           ),
         ),
         // Writing tools row (visual shortcuts → same create / manage)
- Padding(
+        Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Row(
             children: [
- Expanded(
+              Expanded(
                 child: _WriteToolChip(
                   icon: Icons.add_box_outlined,
                   label: 'New Story',
@@ -499,7 +468,7 @@ class _WriteScreenState extends State<WriteScreen>
                 ),
               ),
               const SizedBox(width: 8),
- Expanded(
+              Expanded(
                 child: _WriteToolChip(
                   icon: Icons.library_books_outlined,
                   label: 'My Stories',
@@ -509,7 +478,7 @@ class _WriteScreenState extends State<WriteScreen>
                 ),
               ),
               const SizedBox(width: 8),
- Expanded(
+              Expanded(
                 child: _WriteToolChip(
                   icon: Icons.insights_outlined,
                   label: 'Analytics',
@@ -521,20 +490,22 @@ class _WriteScreenState extends State<WriteScreen>
             ],
           ),
         ),
- Container(
+        Container(
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
                 color: isDark
                     ? const Color(0xFF2C2C2C)
-                    : const Color(0xFFEDE9FE),
+                    : const Color(0xFFDDE2DF),
               ),
             ),
           ),
           child: TabBar(
             controller: _mainTabs,
             labelColor: AppTheme.brand,
-            unselectedLabelColor: isDark ? Colors.white60 : AppTheme.mutedOf(context),
+            unselectedLabelColor: isDark
+                ? Colors.white60
+                : AppTheme.mutedOf(context),
             indicatorColor: AppTheme.brand,
             indicatorWeight: 3,
             labelStyle: const TextStyle(
@@ -542,12 +513,12 @@ class _WriteScreenState extends State<WriteScreen>
               fontSize: 13,
             ),
             tabs: const [
- Tab(text: 'Manage Stories'),
- Tab(text: 'Analytics'),
+              Tab(text: 'Manage Stories'),
+              Tab(text: 'Analytics'),
             ],
           ),
         ),
- Expanded(
+        Expanded(
           child: _mainTabs.index == 0
               ? _ManageStoriesTab(
                   storySubTabs: _storySubTabs,
@@ -561,7 +532,6 @@ class _WriteScreenState extends State<WriteScreen>
                   onCreateStory: () => _openCreateStory(),
                   onEditStory: (story) => _openCreateStory(story: story),
                   onEditChapter: _openEditChapter,
-                  onDeleteStory: _deleteStory,
                   onStatusChange: _changeStoryStatus,
                   onRefresh: _reloadStories,
                 )
@@ -587,7 +557,7 @@ class _WriteToolChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
-      color: isDark ? const Color(0xFF1A1625) : const Color(0xFFF7F5FC),
+      color: isDark ? AppTheme.surfaceOf(context) : const Color(0xFFF6F5FA),
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
@@ -596,9 +566,9 @@ class _WriteToolChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           child: Column(
             children: [
- Icon(icon, size: 22, color: const Color(0xFF8B5CF6)),
+              Icon(icon, size: 22, color: const Color(0xFF16856A)),
               const SizedBox(height: 6),
- Text(
+              Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -629,7 +599,6 @@ class _ManageStoriesTab extends StatelessWidget {
     required this.onCreateStory,
     required this.onEditStory,
     required this.onEditChapter,
-    required this.onDeleteStory,
     required this.onStatusChange,
     required this.onRefresh,
   });
@@ -645,7 +614,6 @@ class _ManageStoriesTab extends StatelessWidget {
   final VoidCallback onCreateStory;
   final ValueChanged<Map<String, dynamic>> onEditStory;
   final ValueChanged<Map<String, dynamic>> onEditChapter;
-  final ValueChanged<Map<String, dynamic>> onDeleteStory;
   final void Function(Map<String, dynamic> story, String status) onStatusChange;
   final Future<void> Function() onRefresh;
 
@@ -654,13 +622,13 @@ class _ManageStoriesTab extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       children: [
- Container(
+        Container(
           decoration: BoxDecoration(
             border: Border(
               bottom: BorderSide(
                 color: isDark
                     ? const Color(0xFF2C2C2C)
-                    : const Color(0xFFEDE9FE),
+                    : const Color(0xFFDDE2DF),
               ),
             ),
           ),
@@ -675,12 +643,12 @@ class _ManageStoriesTab extends StatelessWidget {
               fontSize: 13,
             ),
             tabs: const [
- Tab(text: 'Submitted'),
- Tab(text: 'Drafts'),
+              Tab(text: 'Published'),
+              Tab(text: 'Drafts'),
             ],
           ),
         ),
- Expanded(
+        Expanded(
           child: RefreshIndicator(
             onRefresh: onRefresh,
             child: FutureBuilder<List<Map<String, dynamic>>>(
@@ -690,8 +658,43 @@ class _ManageStoriesTab extends StatelessWidget {
                   return ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: const [
- SizedBox(height: 120),
- Center(child: CircularProgressIndicator()),
+                      SizedBox(height: 120),
+                      Center(child: CircularProgressIndicator()),
+                    ],
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(24),
+                    children: [
+                      const SizedBox(height: 72),
+                      Icon(
+                        Icons.cloud_off_outlined,
+                        size: 42,
+                        color: AppTheme.mutedOf(context),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Could not load your stories',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        snapshot.error.toString(),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppTheme.mutedOf(context)),
+                      ),
+                      const SizedBox(height: 16),
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: onRefresh,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Retry'),
+                        ),
+                      ),
                     ],
                   );
                 }
@@ -713,20 +716,22 @@ class _ManageStoriesTab extends StatelessWidget {
 
                 if (listFilter == 'ongoing') {
                   stories = stories.where((s) {
-                    final st =
-                        (s['status_text'] ?? '').toString().toLowerCase();
+                    final st = (s['status_text'] ?? '')
+                        .toString()
+                        .toLowerCase();
                     return st.contains('ongoing') || st.contains('publish');
                   }).toList();
                 } else if (listFilter == 'completed') {
                   stories = stories.where((s) {
-                    final st =
-                        (s['status_text'] ?? '').toString().toLowerCase();
+                    final st = (s['status_text'] ?? '')
+                        .toString()
+                        .toLowerCase();
                     return st.contains('complete');
                   }).toList();
                 }
 
                 final header = <Widget>[
- Padding(
+                  Padding(
                     padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
                     child: TextField(
                       onChanged: onQueryChange,
@@ -741,12 +746,13 @@ class _ManageStoriesTab extends StatelessWidget {
                           size: 20,
                           color: Colors.grey.shade500,
                         ),
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
                         filled: true,
                         fillColor: isDark
-                            ? const Color(0xFF221C30)
-                            : const Color(0xFFF3F0FF),
+                            ? const Color(0xFF2B3832)
+                            : const Color(0xFFF6F5FA),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(28),
                           borderSide: BorderSide.none,
@@ -754,14 +760,16 @@ class _ManageStoriesTab extends StatelessWidget {
                       ),
                     ),
                   ),
- Padding(
+                  Padding(
                     padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-                    child: Row(
+                    child: Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      runSpacing: 8,
                       children: [
- InkWell(
+                        InkWell(
                           onTap: () async {
-                            final picked =
-                                await showModalBottomSheet<String>(
+                            final picked = await showModalBottomSheet<String>(
                               context: context,
                               shape: const RoundedRectangleBorder(
                                 borderRadius: BorderRadius.vertical(
@@ -769,11 +777,10 @@ class _ManageStoriesTab extends StatelessWidget {
                                 ),
                               ),
                               builder: (ctx) {
-                                Widget opt(String id, String label) =>
- ListTile(
-                                      title: Text(label),
-                                      onTap: () => Navigator.pop(ctx, id),
-                                    );
+                                Widget opt(String id, String label) => ListTile(
+                                  title: Text(label),
+                                  onTap: () => Navigator.pop(ctx, id),
+                                );
                                 return SafeArea(
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
@@ -792,20 +799,20 @@ class _ManageStoriesTab extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
- Icon(
+                              Icon(
                                 Icons.filter_list_rounded,
                                 size: 16,
                                 color: AppTheme.mutedOf(context),
                               ),
                               const SizedBox(width: 4),
- Text(
+                              Text(
                                 listFilter == 'ongoing'
                                     ? 'Filter: Ongoing'
                                     : listFilter == 'completed'
-                                        ? 'Filter: Completed'
-                                        : listFilter == 'recent'
-                                            ? 'Filter: Recent'
-                                            : 'Filter: All',
+                                    ? 'Filter: Completed'
+                                    : listFilter == 'recent'
+                                    ? 'Filter: Recent'
+                                    : 'Filter: All',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: AppTheme.mutedOf(context),
@@ -814,8 +821,7 @@ class _ManageStoriesTab extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const Spacer(),
- Text(
+                        Text(
                           listFilter == 'recent'
                               ? 'Sort: Newest'
                               : writeModel.sortLabel,
@@ -841,21 +847,21 @@ class _ManageStoriesTab extends StatelessWidget {
                     children: [
                       ...header,
                       const SizedBox(height: 40),
- Center(
+                      Center(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24),
                           child: Column(
                             children: [
- Icon(
+                              Icon(
                                 Icons.menu_book_outlined,
                                 size: 48,
                                 color: Colors.grey.shade400,
                               ),
                               const SizedBox(height: 12),
- Text(
+                              Text(
                                 onDrafts
                                     ? 'No drafts yet'
-                                    : 'No submitted stories yet',
+                                    : 'No published stories yet',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 16,
@@ -863,9 +869,9 @@ class _ManageStoriesTab extends StatelessWidget {
                               ),
                               if (otherCount > 0) ...[
                                 const SizedBox(height: 6),
- Text(
+                                Text(
                                   onDrafts
-                                      ? '$otherCount ongoing/completed story(ies) are under Submitted'
+                                      ? '$otherCount ongoing/completed story(ies) are under Published'
                                       : '$otherCount draft story(ies) are under Drafts',
                                   style: TextStyle(
                                     fontSize: 13,
@@ -875,7 +881,7 @@ class _ManageStoriesTab extends StatelessWidget {
                                 ),
                               ],
                               const SizedBox(height: 6),
- GestureDetector(
+                              GestureDetector(
                                 onTap: onCreateStory,
                                 child: Text(
                                   writeModel.emptyCta.isNotEmpty
@@ -900,8 +906,9 @@ class _ManageStoriesTab extends StatelessWidget {
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
                   itemCount: stories.length + 1,
-                  separatorBuilder: (_, index) =>
-                      index == 0 ? const SizedBox.shrink() : const SizedBox(height: 10),
+                  separatorBuilder: (_, index) => index == 0
+                      ? const SizedBox.shrink()
+                      : const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     if (index == 0) {
                       return Column(
@@ -917,7 +924,6 @@ class _ManageStoriesTab extends StatelessWidget {
                         apiService: apiService,
                         onEdit: () => onEditStory(story),
                         onEditChapter: () => onEditChapter(story),
-                        onDelete: () => onDeleteStory(story),
                         onStatusChange: (status) =>
                             onStatusChange(story, status),
                       ),
@@ -933,23 +939,12 @@ class _ManageStoriesTab extends StatelessWidget {
   }
 }
 
-
-bool _storyDetailsComplete(Map<String, dynamic> story) {
-  final title = story['title']?.toString().trim() ?? '';
-  final summary =
-      (story['description'] ?? story['summary'])?.toString().trim() ?? '';
-  final genre =
-      (story['genre'] ?? story['primary_genre'])?.toString().trim() ?? '';
-  return title.isNotEmpty && summary.isNotEmpty && genre.isNotEmpty;
-}
-
 class _StoryListCard extends StatelessWidget {
   const _StoryListCard({
     required this.story,
     required this.apiService,
     required this.onEdit,
     required this.onEditChapter,
-    required this.onDelete,
     required this.onStatusChange,
   });
 
@@ -957,7 +952,6 @@ class _StoryListCard extends StatelessWidget {
   final ApiService apiService;
   final VoidCallback onEdit;
   final VoidCallback onEditChapter;
-  final VoidCallback onDelete;
   final ValueChanged<String> onStatusChange;
 
   void _openStoryDetail(BuildContext context) {
@@ -1021,11 +1015,11 @@ class _StoryListCard extends StatelessWidget {
     if (stLower.contains('complete')) {
       statusLabel = 'Completed';
       statusBg = const Color(0xFFD1FAE5);
-      statusFg = const Color(0xFF047857);
+      statusFg = const Color(0xFF16856A);
     } else if (stLower.contains('ongoing') || stLower.contains('publish')) {
       statusLabel = 'Ongoing';
-      statusBg = const Color(0xFFEDE9FE);
-      statusFg = const Color(0xFF8B5CF6);
+      statusBg = const Color(0xFFDDE2DF);
+      statusFg = const Color(0xFF16856A);
     } else {
       statusLabel = 'Draft';
       statusBg = const Color(0xFFFEF3C7);
@@ -1058,13 +1052,13 @@ class _StoryListCard extends StatelessWidget {
             border: Border.all(
               color: Theme.of(context).brightness == Brightness.dark
                   ? const Color(0xFF2C2C2C)
-                  : const Color(0xFFEDE9FE),
+                  : const Color(0xFFDDE2DF),
             ),
             boxShadow: Theme.of(context).brightness == Brightness.dark
                 ? const []
                 : [
- BoxShadow(
-                      color: const Color(0xFF8B5CF6).withValues(alpha: 0.06),
+                    BoxShadow(
+                      color: const Color(0xFF16856A).withValues(alpha: 0.06),
                       blurRadius: 10,
                       offset: const Offset(0, 3),
                     ),
@@ -1073,7 +1067,7 @@ class _StoryListCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
- ClipRRect(
+              ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
                   width: 52,
@@ -1101,11 +1095,11 @@ class _StoryListCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
- Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
- Text(
+                    Text(
                       title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -1114,7 +1108,7 @@ class _StoryListCard extends StatelessWidget {
                       ).textTheme.titleMedium?.copyWith(fontSize: 15),
                     ),
                     if (author.isNotEmpty)
- Padding(
+                      Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
                           'by $author',
@@ -1125,7 +1119,7 @@ class _StoryListCard extends StatelessWidget {
                         ),
                       ),
                     if (description.isNotEmpty)
- Padding(
+                      Padding(
                         padding: const EdgeInsets.only(top: 5),
                         child: Text(
                           description,
@@ -1138,14 +1132,14 @@ class _StoryListCard extends StatelessWidget {
                         ),
                       ),
                     if (genre.isNotEmpty || statusLabel.isNotEmpty)
- Padding(
+                      Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Wrap(
                           spacing: 6,
                           runSpacing: 6,
                           children: [
                             if (genre.isNotEmpty)
- Container(
+                              Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
                                   vertical: 2,
@@ -1162,7 +1156,7 @@ class _StoryListCard extends StatelessWidget {
                                   ),
                                 ),
                               ),
- Container(
+                            Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
                                 vertical: 2,
@@ -1190,58 +1184,25 @@ class _StoryListCard extends StatelessWidget {
                 onSelected: (value) {
                   if (value == 'edit') onEdit();
                   if (value == 'chapter') onEditChapter();
-                  if (value == 'complete') onStatusChange('Completed');
-                  if (value == 'ongoing') onStatusChange('Ongoing');
-                  if (value == 'move_draft') onStatusChange('Draft');
-                  if (value == 'delete') onDelete();
                 },
-                itemBuilder: (_) {
-                  final st = (story['status_text'] ?? '')
-                      .toString()
-                      .toLowerCase();
-                  final isDraft = st.contains('draft') || st.isEmpty;
-                  final isComplete =
-                      st.contains('complete') || st.contains('completed');
-                  final canEditChapters = _storyDetailsComplete(story);
-                  return [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(Icons.edit_outlined),
-                        title: Text('Edit details'),
-                      ),
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                    value: 'chapter',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.menu_book_outlined),
+                      title: Text('Chapters'),
                     ),
- PopupMenuItem(
-                      value: 'chapter',
-                      enabled: canEditChapters,
-                      child: const Text('Chapters'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Icon(Icons.edit_outlined),
+                      title: Text('Edit details'),
                     ),
-                    if (!isDraft && !isComplete)
-                      const PopupMenuItem(
-                        value: 'complete',
-                        child: Text('Mark as Completed'),
-                      ),
-                    if (!isDraft && isComplete)
-                      const PopupMenuItem(
-                        value: 'ongoing',
-                        child: Text('Mark as Ongoing'),
-                      ),
-                    if (!isDraft)
-                      const PopupMenuItem(
-                        value: 'move_draft',
-                        child: Text('Move to Draft'),
-                      ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: Icon(Icons.delete_outline, color: Colors.red),
-                        title: Text('Delete'),
-                      ),
-                    ),
-                  ];
-                },
+                  ),
+                ],
                 icon: const Icon(Icons.more_vert_rounded, size: 20),
               ),
             ],
@@ -1272,9 +1233,11 @@ class _AnalyticsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
- Container(
+        Container(
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: AppTheme.borderOf(context))),
+            border: Border(
+              bottom: BorderSide(color: AppTheme.borderOf(context)),
+            ),
           ),
           child: TabBar(
             controller: analyticsSubTabs,
@@ -1282,28 +1245,28 @@ class _AnalyticsTab extends StatelessWidget {
             unselectedLabelColor: AppTheme.mutedOf(context),
             indicatorColor: AppTheme.brand,
             tabs: const [
- Tab(text: 'Overview'),
- Tab(text: 'Stories'),
+              Tab(text: 'Overview'),
+              Tab(text: 'Stories'),
             ],
           ),
         ),
- Expanded(
+        Expanded(
           child: TabBarView(
             controller: analyticsSubTabs,
             children: [
- ListView(
+              ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
- Row(
+                  Row(
                     children: const [
- Expanded(
+                      Expanded(
                         child: _AnalyticsStatCard(
                           title: 'Total Followers',
                           value: '0',
                         ),
                       ),
- SizedBox(width: 12),
- Expanded(
+                      SizedBox(width: 12),
+                      Expanded(
                         child: _AnalyticsStatCard(
                           title: 'Total Words Published',
                           value: '0',
@@ -1312,17 +1275,17 @@ class _AnalyticsTab extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 22),
- Row(
-                    children:  [
- Text(
+                  Row(
+                    children: [
+                      Text(
                         'Weekly Followers',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
- SizedBox(width: 6),
- Icon(
+                      SizedBox(width: 6),
+                      Icon(
                         Icons.info_outline_rounded,
                         size: 16,
                         color: AppTheme.mutedOf(context),
@@ -1330,7 +1293,7 @@ class _AnalyticsTab extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 10),
- Container(
+                  Container(
                     height: 170,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -1339,11 +1302,11 @@ class _AnalyticsTab extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
- Expanded(
+                        Expanded(
                           child: _FollowerBars(values: _weeklyFollowers),
                         ),
                         const SizedBox(height: 8),
- Row(
+                        Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: _weekDays
                               .map(
@@ -1361,17 +1324,17 @@ class _AnalyticsTab extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 22),
- Row(
-                    children:  [
- Text(
+                  Row(
+                    children: [
+                      Text(
                         'Top Followers',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
- SizedBox(width: 6),
- Icon(
+                      SizedBox(width: 6),
+                      Icon(
                         Icons.info_outline_rounded,
                         size: 16,
                         color: AppTheme.mutedOf(context),
@@ -1399,9 +1362,11 @@ class _AnalyticsTab extends StatelessWidget {
                               style: TextStyle(color: Color(0xFFBBBBBB)),
                             )
                           else
- Text(
+                            Text(
                               'Not enough data.',
-                              style: TextStyle(color: AppTheme.mutedOf(context)),
+                              style: TextStyle(
+                                color: AppTheme.mutedOf(context),
+                              ),
                             ),
                         ],
                       ),
@@ -1409,22 +1374,22 @@ class _AnalyticsTab extends StatelessWidget {
                   ),
                 ],
               ),
- Center(
+              Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
- Icon(
+                    Icon(
                       Icons.bar_chart_rounded,
                       size: 62,
                       color: AppTheme.mutedOf(context),
                     ),
                     const SizedBox(height: 10),
- Text(
+                    Text(
                       'Stories analytics',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 4),
- Text(
+                    Text(
                       'Write more stories to unlock story-level stats',
                       style: TextStyle(color: AppTheme.mutedOf(context)),
                     ),
@@ -1456,12 +1421,12 @@ class _AnalyticsStatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
- Text(
+          Text(
             title,
             style: TextStyle(fontSize: 12, color: AppTheme.mutedOf(context)),
           ),
           const SizedBox(height: 6),
- Text(
+          Text(
             value,
             style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
           ),

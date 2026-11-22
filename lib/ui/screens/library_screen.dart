@@ -4,9 +4,10 @@ import '../../core/constants/responsive.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/app_bootstrap.dart';
 import '../../data/services/api_service.dart';
-import 'story_detail_screen.dart';
 import 'chapter_reader_screen.dart';
+import 'discover_screen.dart' show SearchScreen;
 import 'notifications_screen.dart';
+import 'story_detail_screen.dart';
 
 /// Library: Ongoing Reading (in-progress) + Reading Lists + History (completed).
 class LibraryScreen extends StatefulWidget {
@@ -37,18 +38,17 @@ class _LibraryScreenState extends State<LibraryScreen>
   /// Completed = user finished the book (all chapters read / marked complete).
   bool _isCompleted(LibraryEntryModel e) {
     final s = e.readingStatus.toLowerCase().trim();
-    if (s == 'completed' ||
-        s == 'complete' ||
-        s == 'finished' ||
-        s == 'done' ||
-        s == 'history' ||
-        s.contains('complete') ||
-        s.contains('finish')) {
+    if (const {
+      'completed',
+      'complete',
+      'finished',
+      'done',
+      'history',
+    }.contains(s)) {
       return true;
     }
-    // Fully read by chapter count or progress bar
+    // Do not infer completion from a nearly full progress bar.
     if (e.chapters > 0 && e.chaptersRead >= e.chapters) return true;
-    if (e.progressFraction >= 0.98) return true;
     return false;
   }
 
@@ -150,6 +150,14 @@ class _LibraryScreenState extends State<LibraryScreen>
     } catch (_) {
       if (mounted) setState(() => _listsLoading = false);
     }
+  }
+
+  void _openBookSearch() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SearchScreen(apiService: widget.apiService),
+      ),
+    );
   }
 
   Future<void> _createList() async {
@@ -322,34 +330,44 @@ class _LibraryScreenState extends State<LibraryScreen>
             ],
           ),
         ),
-        // Soft search (filters current tab client-side via existing lists — opens focus on lists)
+        // Open the shared English/Sinhala catalog search from the Library.
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-            decoration: BoxDecoration(
-              color: AppTheme.fieldOf(context),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _openBookSearch,
               borderRadius: BorderRadius.circular(28),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.search_rounded,
-                  size: 20,
-                  color: Colors.grey.shade500,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 11,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Search in your library…',
-                    style: TextStyle(
+                decoration: BoxDecoration(
+                  color: AppTheme.fieldOf(context),
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.search_rounded,
+                      size: 20,
                       color: Colors.grey.shade500,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Search books (English / Sinhala)…',
+                        style: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -363,7 +381,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                   icon: Icons.menu_book_outlined,
                   value: '${_entries.length}',
                   label: 'Stories',
-                  color: const Color(0xFF8B5CF6),
+                  color: const Color(0xFF16856A),
                 ),
               ),
               Expanded(
@@ -379,7 +397,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                   icon: Icons.check_circle_outline,
                   value: '${history.length}',
                   label: 'Completed',
-                  color: const Color(0xFF10B981),
+                  color: const Color(0xFF16785F),
                 ),
               ),
               Expanded(
@@ -476,7 +494,9 @@ class _LibraryStatChip extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 4),
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1A1625) : color.withValues(alpha: 0.08),
+        color: isDark
+            ? AppTheme.surfaceOf(context)
+            : color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -583,7 +603,7 @@ class _EntriesList extends StatelessWidget {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 14),
                 child: Material(
-                  color: isDark ? const Color(0xFF1A1625) : Colors.white,
+                  color: isDark ? AppTheme.surfaceOf(context) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   elevation: 0,
                   child: InkWell(
@@ -680,14 +700,14 @@ class _EntriesList extends StatelessWidget {
                         border: Border.all(
                           color: isDark
                               ? const Color(0xFF2C2C2C)
-                              : const Color(0xFFEDE9FE),
+                              : const Color(0xFFDDE2DF),
                         ),
                         boxShadow: isDark
                             ? const []
                             : [
                                 BoxShadow(
                                   color: const Color(
-                                    0xFF8B5CF6,
+                                    0xFF16856A,
                                   ).withValues(alpha: 0.05),
                                   blurRadius: 10,
                                   offset: const Offset(0, 3),
@@ -782,7 +802,7 @@ class _EntriesList extends StatelessWidget {
                                       const Icon(
                                         Icons.star_rounded,
                                         size: 14,
-                                        color: Color(0xFFFFC107),
+                                        color: Color(0xFFF4CC2F),
                                       ),
                                       const SizedBox(width: 2),
                                       Text(
@@ -820,8 +840,8 @@ class _EntriesList extends StatelessWidget {
                                       minHeight: 6,
                                       backgroundColor: isDark
                                           ? const Color(0xFF333333)
-                                          : const Color(0xFFEDE9FE),
-                                      color: const Color(0xFF8B5CF6),
+                                          : const Color(0xFFDDE2DF),
+                                      color: const Color(0xFF16856A),
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -845,7 +865,7 @@ class _EntriesList extends StatelessWidget {
                                         style: const TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w700,
-                                          color: Color(0xFF8B5CF6),
+                                          color: Color(0xFF16856A),
                                         ),
                                       ),
                                     ],
@@ -888,7 +908,7 @@ class _EntriesList extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onDiscover,
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B5CF6),
+                  backgroundColor: const Color(0xFF16856A),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
@@ -971,12 +991,12 @@ class _ListsPane extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: isDark
                             ? const Color(0xFF1A1A1A)
-                            : const Color(0xFFF7F5FC),
+                            : const Color(0xFFF6F5FA),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: isDark
                               ? const Color(0xFF2C2C2C)
-                              : const Color(0xFFEDE9FE),
+                              : const Color(0xFFDDE2DF),
                         ),
                       ),
                       child: Column(
@@ -987,13 +1007,13 @@ class _ListsPane extends StatelessWidget {
                             height: 40,
                             decoration: BoxDecoration(
                               color: const Color(
-                                0xFF8B5CF6,
+                                0xFF16856A,
                               ).withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
                               Icons.collections_bookmark_outlined,
-                              color: Color(0xFF8B5CF6),
+                              color: Color(0xFF16856A),
                             ),
                           ),
                           const Spacer(),
@@ -1026,7 +1046,7 @@ class _ListsPane extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: () => onCreate(),
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF8B5CF6),
+                backgroundColor: const Color(0xFF16856A),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(

@@ -17884,3 +17884,23 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* WINGSAGA_LIBRARY_COLLECTION_FULLWIDTH */
+.main .library-experience > .library-saved-library,
+.main .library-experience > #collectionSection.library-saved-library,
+#collectionSection.library-saved-library {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  margin-left: calc(50% - 50vw) !important;
+  margin-right: calc(50% - 50vw) !important;
+  padding-left: clamp(16px, 2.5vw, 32px) !important;
+  padding-right: clamp(16px, 2.5vw, 32px) !important;
+  box-sizing: border-box !important;
+  align-self: stretch !important;
+}
+.main .library-experience > .library-saved-library .library-carousel-shell,
+.main .library-experience > .library-saved-library .library-story-grid,
+.main .library-experience > .library-saved-library .rl-grid,
+.main .library-experience > .library-saved-library .continue-reading-shelf {
+  width: 100% !important;
+  max-width: none !important;
+}

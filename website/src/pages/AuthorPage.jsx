@@ -22,6 +22,22 @@ import {
 import { isGuestUser } from "../utils/guest";
 import { showToast } from "../components/ToastViewport";
 
+
+function SocialIcon({ platform }) {
+  const paths = {
+    Facebook: <path d="M13.2 21v-8h2.7l.4-3.1h-3.1v-2c0-.9.3-1.6 1.6-1.6h1.7V3.5c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.5-4 4.2v2.3H7.4V13h2.7v8z" />,
+    Instagram: <><rect x="3.4" y="3.4" width="17.2" height="17.2" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.8" cy="6.5" r=".9" fill="currentColor" stroke="none" /></>,
+    "X / Twitter": <path d="M18.8 3H22l-7 8 8.2 10H17l-4.9-6.1L6.8 21H3.5l7.5-8.6L3.2 3h6.4l4.4 5.7zm-1.1 16.2h1.8L8.7 4.7H6.8z" />,
+    YouTube: <><rect x="2.5" y="5" width="19" height="14" rx="4" /><path d="m10 9 5 3-5 3z" fill="currentColor" stroke="none" /></>,
+    Website: <><circle cx="12" cy="12" r="9" /><path d="M3.5 12h17M12 3c2.2 2.4 3.2 5.4 3.2 9s-1 6.6-3.2 9c-2.2-2.4-3.2-5.4-3.2-9S9.8 5.4 12 3z" /></>,
+  };
+  return (
+    <svg className={`profile-social-icon profile-social-icon--${String(platform).toLowerCase().replace(/[^a-z]+/g, "-")}`} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      {paths[platform]}
+    </svg>
+  );
+}
+
 const PROFILE_TABS = [
   ["stories", "Stories"],
   ["about", "About"],
@@ -188,11 +204,13 @@ export default function AuthorPage({ user }) {
       return { label, href: "" };
     }
   }).filter((link) => link.href);
+  const publishedCount = Number(profile?.story_count || profile?.published_story_count || books.length || 0);
   const aboutDetails = [
     ["Username", username ? `@${username}` : ""],
     ["Gender", profile?.gender || ""],
     ["Birthday", displayBirthday(profile?.birth_date)],
-    ["Country", profile?.country || ""],
+    ["Location", profile?.country || ""],
+    ["Published stories", publishedCount ? String(publishedCount) : ""],
   ].filter(([, value]) => value);
 
   async function toggleFollow() {
@@ -325,7 +343,30 @@ export default function AuthorPage({ user }) {
             <h1>{name}</h1>
             {username ? <p className="author-public-handle">@{username}</p> : null}
             <p className="author-public-bio">{profile?.bio || "This author is just getting started. Explore their stories below."}</p>
-            {profile?.country ? <p className="author-public-location"><span aria-hidden="true">⌖</span>{profile.country}</p> : null}
+            <div className="author-public-identity-meta">
+              {profile?.country ? <span><span aria-hidden="true">⌖</span>{profile.country}</span> : null}
+              {Number(profile?.story_count || profile?.published_story_count || books.length || 0) ? (
+                <span><span aria-hidden="true">▣</span>{Number(profile?.story_count || profile?.published_story_count || books.length || 0)} published {(Number(profile?.story_count || profile?.published_story_count || books.length || 0) === 1) ? "story" : "stories"}</span>
+              ) : null}
+            </div>
+            {socialLinks.length ? (
+              <div className="author-public-identity-social" aria-label="Social profiles">
+                {socialLinks.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="author-public-identity-social-link"
+                    title={link.label}
+                    aria-label={link.label}
+                  >
+                    <span className="author-public-identity-social-icon"><SocialIcon platform={link.label} /></span>
+                    <span className="author-public-identity-social-label">{link.label}</span>
+                  </a>
+                ))}
+              </div>
+            ) : null}
           </div>
           <div className="author-public-actions">
             {!isOwnProfile ? (
@@ -373,13 +414,24 @@ export default function AuthorPage({ user }) {
               <h2>A little about {name}</h2>
               <p>{profile?.bio || "This author has not added a bio yet."}</p>
               {aboutDetails.length ? (
-                <dl className="author-public-details">
+                <dl className="author-public-details author-public-details--list">
                   {aboutDetails.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
                 </dl>
               ) : null}
-              {socialLinks.length ? <nav className="author-public-social-links" aria-label={`${name}'s social links`}>
-                {socialLinks.map((link) => <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer">{link.label}<span aria-hidden="true">↗</span></a>)}
-              </nav> : null}
+              {socialLinks.length ? (
+                <div className="author-public-social-block">
+                  <h3 className="author-public-social-title">Social media</h3>
+                  <nav className="author-public-social-links" aria-label={`${name}'s social links`}>
+                    {socialLinks.map((link) => (
+                      <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer">
+                        <span className="author-public-social-icon-wrap"><SocialIcon platform={link.label} /></span>
+                        <span className="author-public-social-copy"><strong>{link.label}</strong></span>
+                        <span className="author-public-social-external" aria-hidden="true">↗</span>
+                      </a>
+                    ))}
+                  </nav>
+                </div>
+              ) : null}
             </section>
             <section className="author-public-reading-lists">
               <header className="author-public-section-heading">

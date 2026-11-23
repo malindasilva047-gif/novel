@@ -15911,8 +15911,8 @@ body .site-footer--novelhub.ws-footer-wrapper {
   box-sizing: border-box;
   width: 100%;
   max-width: none;
-  margin: 28px 0 0;
-  padding: 0 0 24px;
+  margin: 12px 0 0;
+  padding: 0 0 10px;
   overflow: hidden;
   isolation: isolate;
   background: transparent !important;
@@ -16036,9 +16036,9 @@ body .site-footer--novelhub.ws-footer-wrapper::before {
   box-sizing: border-box;
   width: calc(100% - 2 * clamp(20px, 2.2vw, 32px));
   grid-template-columns: minmax(250px, 1.8fr) repeat(3, minmax(120px, .75fr));
-  gap: clamp(24px, 4vw, 54px);
+  gap: clamp(20px, 3vw, 40px);
   margin: 0 auto;
-  padding: 0 0 32px;
+  padding: 0 0 18px;
 }
 .ws-footer-brand {
   min-width: 0;
@@ -16168,7 +16168,7 @@ body .site-footer--novelhub.ws-footer-wrapper::before {
   justify-content: space-between;
   gap: 14px 20px;
   margin: 0 auto;
-  padding-top: 28px;
+  padding-top: 14px;
   border-top: 1px solid var(--site-line);
   color: var(--site-muted) !important;
   font-size: .72rem;
@@ -17512,11 +17512,11 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   margin-top: 10px !important;
 }
 :root .site-footer--novelhub .ws-footer-bottom {
-  padding-top: 28px;
+  padding-top: 14px;
 }
 /* Leave clear breathing room below the footer's top divider. */
 :root .site-footer--novelhub.ws-footer-wrapper .ws-footer-grid {
-  padding-top: 32px !important;
+  padding-top: 20px !important;
 }
 :root .site-header.site-header--pro .header-actions .header-write-menu > .header-write-link {
   display: grid !important;

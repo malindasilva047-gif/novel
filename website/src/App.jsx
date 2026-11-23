@@ -200,7 +200,7 @@ export default function App() {
     <div className="app-shell">
       <div ref={cursorAuraRef} className="site-cursor-aura" aria-hidden="true" />
       <ToastViewport />
-      {!focusWorkspace && <Header user={user} onLogout={handleLogout} onAuthSuccess={handleLoginSuccess} />}
+      {!focusWorkspace && !guestLanding && <Header user={user} onLogout={handleLogout} onAuthSuccess={handleLoginSuccess} />}
       <main className={`main${guestLanding ? " main--guest-landing" : ""}`}>
         {bootLoading ? (
           <div className="page-loading">Loading…</div>
@@ -271,7 +271,7 @@ export default function App() {
       </main>
       {!bootLoading && !recommendationsExcluded ? <YouMayAlsoLike excludeId={currentStoryId} title={readingFocus || storyReviewForm ? "Browse stories" : "Recommended for your next read"} compact={readingFocus} /> : null}
       {!bootLoading && minimalHome && !guestLanding ? <HomePageCTA /> : null}
-      {!bootLoading && !focusWorkspace && <Footer user={user} />}
+      {!bootLoading && !focusWorkspace && !guestLanding && <Footer user={user} />}
     </div>
   );
 }

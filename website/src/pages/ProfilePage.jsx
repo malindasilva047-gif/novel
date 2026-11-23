@@ -924,7 +924,7 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
                     is_completed: story.is_completed,
                   };
                   return (
-                    <div className="profile-home-story-slot" key={story.id}>
+                    <div className="profile-home-story-slot home-story-card-slot" key={story.id}>
                       <BookCard book={book} variant="shelf" inkittStyle showRating showStatus />
                       <Link className="profile-story-manage-link" to={`/write/${story.id}`}>
                         Manage story <span aria-hidden="true">→</span>

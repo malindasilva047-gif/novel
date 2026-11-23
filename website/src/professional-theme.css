@@ -18073,3 +18073,14 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   border-radius: 8px !important;
   box-shadow: 0 4px 14px rgba(10, 30, 20, .08) !important;
 }
+
+
+/* PROFILE STORIES HOME INKITT FORCE */
+.main .profile-page .profile-home-story-slot > .book-card,
+.main .profile-page .home-story-card-slot > .book-card {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}

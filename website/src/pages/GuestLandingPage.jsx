@@ -87,7 +87,7 @@ export default function GuestLandingPage() {
       ref={iframeRef}
       className="guest-landing-frame"
       title="Wingsaga — Stories worth staying up for"
-      src="/guest-landing.html"
+      src="/guest-landing.html?v=20261123-strip"
       scrolling="no"
       style={{ height }}
     />

@@ -440,8 +440,6 @@ dialog .lnk{display:block;margin:14px auto 0;color:var(--mute);font-size:.9rem}
  <g font-size="16"><text x="170" y="96">❤<animate attributeName="y" values="100;50" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="1;0" dur="2.4s" repeatCount="indefinite"/></text></g>
 </symbol></defs></svg>
 
-<dialog id="auth"><h3 id="aT">Welcome back</h3><input id="aName" type="text" placeholder="Pen name" hidden><input type="email" placeholder="Email"><input type="password" placeholder="Password"><button class="btn btn-lamp" id="aGo">Log in</button><button class="lnk" id="aSw">New here? Sign up</button><button class="lnk" id="aX">Close</button></dialog>
-
 <header class="hero" id="top">
   <div class="glow" style="width:420px;height:420px;background:var(--lamp);top:-80px;left:-120px"></div>
   <div class="glow" style="width:360px;height:360px;background:var(--lamp2);bottom:-120px;right:5%;opacity:.2"></div>
@@ -955,14 +953,6 @@ document.querySelectorAll('a[href="/login"],a[href="/write"]').forEach(a=>{
       }
     });
 
-    // ---- Footer featured stories ----
-    const featuredCol = document.querySelector(".fcols .gr > div:first-child");
-    if (featuredCol && stories.length) {
-      const links = stories.slice(0, 5).map(s =>
-        `<a href="${s.href}" target="_top">${s.t}</a>`
-      ).join("");
-      featuredCol.innerHTML = `<h4>Featured stories</h4>${links}`;
-    }
 
     // Re-bind chip filter for new DOM
     if (chips && shelf) {

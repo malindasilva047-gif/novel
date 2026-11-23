@@ -1013,3 +1013,56 @@
   .main .profile-page { --profile-story-card-width: 112px; }
   .main .profile-page .profile-story-grid--home-pack { gap: 12px 8px !important; }
 }
+
+
+/* Profile header social icons under location / published / drafts */
+.main .profile-page .profile-identity-social {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
+  align-items: center !important;
+}
+
+.main .profile-page .profile-identity-social-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 5px 10px !important;
+  border: 1px solid var(--site-line) !important;
+  border-radius: 999px !important;
+  background: var(--site-card, #fff) !important;
+  color: var(--site-ink) !important;
+  font-size: .72rem !important;
+  font-weight: 650 !important;
+  text-decoration: none !important;
+  line-height: 1.2 !important;
+}
+
+.main .profile-page .profile-identity-social-link:hover {
+  border-color: color-mix(in srgb, var(--site-brand) 45%, var(--site-line)) !important;
+  color: var(--site-brand) !important;
+}
+
+.main .profile-page .profile-identity-social-icon {
+  display: inline-flex !important;
+  width: 16px !important;
+  height: 16px !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.main .profile-page .profile-identity-social-icon svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+@media (max-width: 640px) {
+  .main .profile-page .profile-identity-social-label {
+    display: none !important;
+  }
+  .main .profile-page .profile-identity-social-link {
+    padding: 6px !important;
+    border-radius: 50% !important;
+  }
+}

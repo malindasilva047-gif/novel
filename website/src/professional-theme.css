@@ -18113,3 +18113,12 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   padding-top: 20px !important;
   border-top: 1px solid var(--site-line, #E5E7EB) !important;
 }
+
+
+/* Profile header social under meta */
+.main .profile-page .profile-identity-social {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
+}

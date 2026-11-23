@@ -599,10 +599,27 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
                 <p className="profile-bio-text">{me?.bio?.trim() || "Your story is still being written. Add a little about yourself to your profile."}</p>
                 <div className="profile-identity-meta">
                   {me?.country ? <span><span aria-hidden="true">⌖</span>{me.country}</span> : null}
-                  {memberSince ? <span><span aria-hidden="true">◷</span>On Wingsaga since {memberSince}</span> : null}
                   {publishedStoryCount ? <span><span aria-hidden="true">▣</span>{publishedStoryCount} published {publishedStoryCount === 1 ? "story" : "stories"}</span> : null}
                   {draftStoryCount ? <span><span aria-hidden="true">✎</span>{draftStoryCount} {draftStoryCount === 1 ? "draft" : "drafts"}</span> : null}
                 </div>
+                {socialLinks.length ? (
+                  <div className="profile-identity-social" aria-label="Social profiles">
+                    {socialLinks.map((link) => (
+                      <a
+                        key={link.label}
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="profile-identity-social-link"
+                        title={link.label}
+                        aria-label={link.label}
+                      >
+                        <span className="profile-identity-social-icon"><SocialIcon platform={link.label} /></span>
+                        <span className="profile-identity-social-label">{link.label}</span>
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
               </div>
               <aside className="profile-heading-aside" aria-label="Profile statistics and actions">
                 <div className="profile-metric-chips" aria-label="Profile metrics">

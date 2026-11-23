@@ -153,8 +153,10 @@ export default function App() {
   useEffect(() => {
     document.body.classList.toggle("focus-workspace", focusWorkspace);
     document.body.classList.toggle("guest-landing-mode", guestLanding);
+    document.documentElement.classList.toggle("guest-landing-mode", guestLanding);
     return () => {
       document.body.classList.remove("focus-workspace", "guest-landing-mode");
+      document.documentElement.classList.remove("guest-landing-mode");
     };
   }, [focusWorkspace, guestLanding]);
 

@@ -1,16 +1,29 @@
-/* Guest landing iframe host — full page, no chrome gaps */
+/* Guest landing — single page scrollbar only (parent document) */
+
+html.guest-landing-mode,
 body.guest-landing-mode {
-  overflow-x: hidden;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  height: auto;
+  min-height: 100%;
   background: #fff;
 }
 
+/* Kill any app chrome scroll traps on the guest route */
+body.guest-landing-mode #root,
+body.guest-landing-mode .app,
+body.guest-landing-mode .site-shell,
 body.guest-landing-mode .main--guest-landing {
   padding: 0 !important;
-  max-width: none !important;
   margin: 0 !important;
+  max-width: none !important;
   width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
 }
 
 .guest-landing-frame {
@@ -18,6 +31,10 @@ body.guest-landing-mode .main--guest-landing {
   width: 100%;
   min-height: 100vh;
   border: 0;
+  margin: 0;
+  padding: 0;
   background: #fff;
   vertical-align: top;
+  /* iframe itself must not scroll — parent page scrolls */
+  overflow: hidden !important;
 }

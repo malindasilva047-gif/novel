@@ -11,6 +11,15 @@
 <meta name="theme-color" content="#FFFFFF">
 <script>try{var _t=localStorage.getItem("nh-theme")||localStorage.getItem("ws-theme");if(_t){document.documentElement.dataset.theme=_t;var _m=document.querySelector("meta[name=theme-color]");if(_m)_m.content=_t==="dark"?"#192A23":"#FFFFFF"}}catch(e){}</script>
 <style>
+
+/* single-scrollbar: iframe content must not scroll on its own */
+html, body {
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
+  height: auto !important;
+  min-height: 100% !important;
+}
+
 :root{
   /* ===== LIGHT MODE ===== */
   --night:#FFFFFF;            /* page background */

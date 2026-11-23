@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import "./GuestLandingPage.css";
 
 /**
- * Guest homepage — exact marketing HTML as same-origin document.
- * iframe posts height after real stories load so all sections stay visible.
+ * Guest homepage iframe.
+ * Height is expanded to full content so only the PARENT page scrolls (one scrollbar).
  */
 export default function GuestLandingPage() {
   const iframeRef = useRef(null);
@@ -14,18 +14,27 @@ export default function GuestLandingPage() {
     if (!iframe) return undefined;
 
     function applyHeight(px) {
-      const h = Math.max(Number(px) || 0, 800);
-      setHeight(`${h}px`);
+      const h = Math.max(Number(px) || 0, window.innerHeight || 800);
+      // +2 avoids sub-pixel iframe scrollbar
+      setHeight(`${h + 2}px`);
     }
 
     function resizeFromDoc() {
       try {
         const doc = iframe.contentDocument || iframe.contentWindow?.document;
         if (!doc) return;
+        // Prefer body scrollHeight; force layout
+        const body = doc.body;
+        const htmlEl = doc.documentElement;
+        if (body) {
+          body.style.overflow = "hidden";
+          htmlEl.style.overflow = "hidden";
+        }
         const h = Math.max(
-          doc.body?.scrollHeight || 0,
-          doc.documentElement?.scrollHeight || 0,
-          doc.body?.offsetHeight || 0,
+          body?.scrollHeight || 0,
+          htmlEl?.scrollHeight || 0,
+          body?.offsetHeight || 0,
+          htmlEl?.offsetHeight || 0,
           800,
         );
         applyHeight(h);
@@ -42,12 +51,12 @@ export default function GuestLandingPage() {
 
     function onLoad() {
       resizeFromDoc();
-      const timers = [500, 1500, 3500].map((ms) => window.setTimeout(resizeFromDoc, ms));
+      const timers = [300, 800, 1600, 3200].map((ms) => window.setTimeout(resizeFromDoc, ms));
       iframe._glTimers = timers;
       try {
         const doc = iframe.contentDocument;
         if (doc?.body) {
-          const ro = new ResizeObserver(resizeFromDoc);
+          const ro = new ResizeObserver(() => resizeFromDoc());
           ro.observe(doc.body);
           iframe._glRo = ro;
         }
@@ -79,6 +88,7 @@ export default function GuestLandingPage() {
       className="guest-landing-frame"
       title="Wingsaga — Stories worth staying up for"
       src="/guest-landing.html"
+      scrolling="no"
       style={{ height }}
     />
   );

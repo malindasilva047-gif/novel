@@ -18075,12 +18075,13 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 }
 
 
-/* PROFILE STORIES HOME INKITT FORCE */
-.main .profile-page .profile-home-story-slot > .book-card,
-.main .profile-page .home-story-card-slot > .book-card {
+/* PROFILE STORIES FIXED WIDTH = HOME */
+.main .profile-page .profile-home-story-slot > .book-card {
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
   padding: 0 !important;
-  border-radius: 0 !important;
+}
+.main .profile-page .profile-story-grid--home-pack {
+  grid-template-columns: repeat(auto-fill, var(--profile-story-card-width, 140px)) !important;
 }

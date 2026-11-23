@@ -18370,14 +18370,13 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 
 /* ===== Chapter reader: green engagement + creative layout ===== */
 
-/* Paragraph engagement — filled brand green */
+/* Paragraph text: no highlight on comment/like — icons only */
 .inkitt-reader .para-row.has-comments .para-text,
 .inkitt-reader .para-row.is-liked .para-text,
 .inkitt-reader .para-text.has-comments {
-  background: color-mix(in srgb, var(--site-brand, #16856A) 12%, transparent);
-  box-shadow: inset 3px 0 0 var(--site-brand, #16856A);
-  border-radius: 8px;
-  padding: 6px 10px 6px 12px;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding-left: 0 !important;
 }
 .inkitt-reader .para-actions {
   display: grid;
@@ -18927,4 +18926,48 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 }
 .inkitt-reader .inkitt-reader-grid {
   overflow: visible !important;
+}
+
+
+/* ===== Paragraph icons only (no text highlight) ===== */
+.inkitt-reader .para-row.has-comments .para-text,
+.inkitt-reader .para-row.is-liked .para-text,
+.inkitt-reader .para-text.has-comments,
+.inkitt-reader .para-row.is-liked,
+.inkitt-reader .para-row.has-comments {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.inkitt-reader .para-bubble,
+.inkitt-reader .para-heart {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #9aa8a1 !important;
+}
+.inkitt-reader .para-bubble svg,
+.inkitt-reader .para-bubble-icon,
+.inkitt-reader .para-heart svg,
+.inkitt-reader .para-heart-icon {
+  width: 20px !important;
+  height: 20px !important;
+}
+.inkitt-reader .para-bubble.has-comments {
+  color: var(--site-brand, #16856A) !important;
+  background: transparent !important;
+}
+.inkitt-reader .para-bubble.has-comments svg path,
+.inkitt-reader .para-bubble.has-comments .para-bubble-icon path {
+  fill: var(--site-brand, #16856A) !important;
+  stroke: var(--site-brand, #16856A) !important;
+}
+.inkitt-reader .para-heart.is-liked {
+  color: var(--site-brand, #16856A) !important;
+  background: transparent !important;
+}
+.inkitt-reader .para-heart.is-liked svg path,
+.inkitt-reader .para-heart.is-liked .para-heart-icon path {
+  fill: var(--site-brand, #16856A) !important;
+  stroke: var(--site-brand, #16856A) !important;
 }

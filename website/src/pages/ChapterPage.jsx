@@ -940,8 +940,8 @@ export default function ChapterPage({ user }) {
                 const paraLiked = Array.isArray(mine) && mine.includes(paraLikeLabel);
                 return (
                 <div key={i} className="para-block">
-                  <div className={`para-row${count > 0 ? " has-comments" : ""}${paraLiked ? " is-liked" : ""}`}>
-                    <p className={`para-text${count > 0 || paraLiked ? " has-comments" : ""}`} data-reader-paragraph={i}>{renderRichTextNodes(p.nodes, `chapter-${i}`)}</p>
+                  <div className="para-row">
+                    <p className="para-text" data-reader-paragraph={i}>{renderRichTextNodes(p.nodes, `chapter-${i}`)}</p>
                     <div className="para-actions" aria-label={`Paragraph ${i + 1} actions`}>
                       <button
                         type="button"
@@ -950,10 +950,16 @@ export default function ChapterPage({ user }) {
                         title="Paragraph comments"
                         aria-label={`View ${count} comments on paragraph ${i + 1}`}
                       >
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.7 8.7 0 0 1-3.4-.7L4 20l1.2-3.4A7.2 7.2 0 0 1 4 12c0-4.1 3.6-7.5 8-7.5s8 3.1 8 7Z" />
+                        <svg viewBox="0 0 24 24" aria-hidden="true" className="para-bubble-icon">
+                          <path
+                            d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.7 8.7 0 0 1-3.4-.7L4 20l1.2-3.4A7.2 7.2 0 0 1 4 12c0-4.1 3.6-7.5 8-7.5s8 3.1 8 7Z"
+                            fill={count > 0 ? "currentColor" : "none"}
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinejoin="round"
+                          />
                         </svg>
-                        <span>{count}</span>
+                        {count > 0 ? <span>{count}</span> : null}
                       </button>
                       {(() => {
                         const label = `paragraph:${i}:Like`;

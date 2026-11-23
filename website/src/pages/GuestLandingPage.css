@@ -26,10 +26,23 @@ body.guest-landing-mode .main--guest-landing {
   overflow: visible !important;
 }
 
+/* Pull the app footer tight under the iframe content */
+body.guest-landing-mode .main.main--guest-landing {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+body.guest-landing-mode .site-footer--novelhub.ws-footer-wrapper {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+body.guest-landing-mode .site-footer--novelhub.ws-footer-wrapper .ws-footer-grid {
+  padding-top: 18px !important;
+}
+
 .guest-landing-frame {
   display: block;
   width: 100%;
-  min-height: 100vh;
+  min-height: 60vh;
   border: 0;
   margin: 0;
   padding: 0;

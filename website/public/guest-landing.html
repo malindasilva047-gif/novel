@@ -414,6 +414,12 @@ dialog .lnk{display:block;margin:14px auto 0;color:var(--mute);font-size:.9rem}
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
   .reveal,.msg{opacity:1;transform:none}
 }
+
+/* guest landing tight bottom — keep footer close to last section */
+section#faq{padding:28px 0 24px!important}
+section#write{padding-bottom:48px!important}
+body{padding-bottom:0!important;margin-bottom:0!important}
+html{padding-bottom:0!important;margin-bottom:0!important}
 </style>
 </head>
 <body>
@@ -561,7 +567,7 @@ dialog .lnk{display:block;margin:14px auto 0;color:var(--mute);font-size:.9rem}
   </div>
 </section>
 
-<section id="faq" style="padding-top:20px">
+<section id="faq" style="padding-top:20px;padding-bottom:24px">
   <div class="wrap"><h2 class="reveal" style="text-align:center">Questions, answered</h2>
   <div class="faq reveal">
    <details><summary>Can I earn from my stories?</summary><p>We are building ways for authors to earn from their work. They are not available yet, so for now the best thing you can do is keep writing and grow your readers. Everything you publish now will be waiting for them.</p></details>
@@ -969,7 +975,15 @@ document.querySelectorAll('a[href="/login"],a[href="/write"]').forEach(a=>{
 
     // Notify parent iframe to resize
     try {
-      const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+      let bottom = 0;
+      const kids = document.body.children;
+      for (let i = 0; i < kids.length; i++) {
+        const el = kids[i];
+        if (!el || el.tagName === 'SCRIPT' || el.tagName === 'STYLE') continue;
+        const r = el.getBoundingClientRect();
+        bottom = Math.max(bottom, r.bottom + (window.scrollY || 0));
+      }
+      const h = Math.ceil(bottom || Math.max(document.body.scrollHeight, document.documentElement.scrollHeight));
       window.parent.postMessage({ type: "guest-landing-height", height: h }, "*");
     } catch(e) {}
 

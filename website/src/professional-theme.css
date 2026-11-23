@@ -18216,60 +18216,139 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 }
 
 
-/* ===== AUTHOR PUBLIC HEADER = OWN PROFILE HEADER GEOMETRY ===== */
-.main .author-public-page.profile-page .profile-heading.card-panel,
-.main .author-public-page .profile-heading.card-panel.author-public-heading {
-  /* inherit profile-heading rules via .profile-page */
+/* ===== AUTHOR PAGE = OWN PROFILE FULL LAYOUT PARITY ===== */
+.main .author-public-page.profile-page {
+  min-width: 0;
+  overflow-x: clip;
 }
 
-.main .author-public-page .author-public-content {
-  width: min(1120px, calc(100% - 32px)) !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
+/* Cover same as profile-cover */
+.main .author-public-page .profile-cover.author-public-cover {
+  display: block !important;
+  width: min(calc(100% - clamp(40px, 4vw, 80px)), 1680px) !important;
+  max-width: 1680px !important;
+  height: clamp(180px, 22vw, 280px) !important;
+  margin: 16px auto 0 !important;
+  border-radius: 20px !important;
+  background-size: cover !important;
+  background-position: center !important;
 }
 
-/* Match profile page content width */
-.main .profile-page .profile-layout,
-.main .author-public-page .author-public-content {
-  width: min(1120px, calc(100% - 32px));
-  margin-inline: auto;
+/* Content pulls up over cover like profile-layout */
+.main .author-public-page .profile-layout.author-public-content {
+  position: relative !important;
+  z-index: 3 !important;
+  display: flex !important;
+  width: min(calc(100% - clamp(40px, 4vw, 80px)), 1680px) !important;
+  max-width: 1680px !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  margin: clamp(-88px, -7vw, -60px) auto 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
 }
 
-/* Hide old large stat boxes if any residual */
+/* Header card same geometry as own profile */
+.main .author-public-page .profile-heading.card-panel {
+  display: grid !important;
+  grid-template-columns: 132px minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 22px !important;
+  padding: clamp(20px, 3vw, 30px) !important;
+  border: 1px solid rgba(255,255,255,.86) !important;
+  border-radius: 24px !important;
+  background: rgba(255,255,255,.94) !important;
+  box-shadow: 0 16px 48px rgba(17,24,39,.1) !important;
+  backdrop-filter: blur(20px) !important;
+  overflow: visible !important;
+}
+
+.main .author-public-page .profile-avatar-frame {
+  width: 124px !important;
+  height: 124px !important;
+  transform: translateY(-18px) !important;
+  margin-bottom: -18px !important;
+}
+
+.main .author-public-page .profile-avatar-lg {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
+  border: 5px solid #fff !important;
+  box-shadow: 0 0 0 1px #E5E7EB, 0 9px 24px rgba(17,24,39,.12) !important;
+}
+
+.main .author-public-page .profile-heading-aside {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 12px !important;
+}
+
+.main .author-public-page .profile-metric-chips {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+
+.main .author-public-page .profile-metric-chips > span {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 6px 12px !important;
+  border: 1px solid var(--site-line) !important;
+  border-radius: 999px !important;
+  background: var(--site-card, #fff) !important;
+  font-size: .78rem !important;
+}
+
 .main .author-public-page .author-public-stats {
   display: none !important;
 }
 
-/* Ensure author cover/banner similar height to profile if present */
-.main .author-public-page .author-public-cover {
-  min-height: 180px;
+/* Story cards on author page = home/profile pack size */
+.main .author-public-page .author-public-story-grid,
+.main .author-public-page .profile-story-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+  gap: 20px 12px !important;
 }
 
-/* Author tabs spacing like profile */
-.main .author-public-page .author-public-tabs {
-  margin-top: 18px !important;
-  margin-bottom: 18px !important;
+.main .author-public-page .book-card {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
 
-/* Identity social already styled via profile classes when profile-page is on */
-.main .author-public-page .profile-identity-social {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 8px !important;
-  margin-top: 10px !important;
+@media (max-width: 900px) {
+  .main .author-public-page .profile-heading.card-panel {
+    grid-template-columns: 76px minmax(0, 1fr) !important;
+    gap: 14px !important;
+    padding: 16px !important;
+  }
+  .main .author-public-page .profile-avatar-frame {
+    width: 76px !important;
+    height: 76px !important;
+  }
+  .main .author-public-page .profile-heading-aside {
+    grid-column: 1 / -1 !important;
+    align-items: stretch !important;
+  }
+  .main .author-public-page .profile-metric-chips {
+    justify-content: flex-start !important;
+  }
 }
-.main .author-public-page .profile-identity-social-link {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  padding: 5px 10px !important;
-  border: 1px solid var(--site-line) !important;
-  border-radius: 999px !important;
-  background: var(--site-card, #fff) !important;
-  color: var(--site-ink) !important;
-  font-size: .72rem !important;
-  font-weight: 650 !important;
-  text-decoration: none !important;
+
+@media (max-width: 640px) {
+  .main .author-public-page .profile-cover.author-public-cover {
+    width: calc(100% - 24px) !important;
+    height: 160px !important;
+  }
+  .main .author-public-page .profile-layout.author-public-content {
+    width: calc(100% - 24px) !important;
+    margin-top: -48px !important;
+  }
 }

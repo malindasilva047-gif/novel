@@ -324,11 +324,11 @@ export default function AuthorPage({ user }) {
   return (
     <main className="author-public-page profile-page">
       <div
-        className={`author-public-cover ${cover ? "has-image" : ""}`}
+        className={`profile-cover author-public-cover ${cover ? "has-image" : ""}`}
         style={cover ? { backgroundImage: `linear-gradient(180deg,rgba(11,10,18,.1),rgba(11,10,18,.92)),url("${cover.replace(/["\\\n\r]/g, "")}")` } : undefined}
         aria-hidden="true"
       />
-      <div className="author-public-content">
+      <div className="profile-layout author-public-content">
         {error ? <div className="error-banner" role="alert">{error}</div> : null}
         <section className="profile-heading card-panel author-public-heading">
           <div className="profile-avatar-frame author-public-avatar">

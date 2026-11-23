@@ -1,16 +1,16 @@
-/* Guest landing host chrome only — design CSS is injected into Shadow DOM (exact original) */
+/* Host only — full design CSS lives inside Shadow DOM */
 body.guest-landing-mode {
   overflow-x: hidden;
+  margin: 0;
+  padding: 0;
 }
 body.guest-landing-mode .main--guest-landing {
   padding: 0 !important;
   max-width: none !important;
+  margin: 0 !important;
 }
 .guest-landing-host {
   display: block;
+  width: 100%;
   min-height: 100vh;
-  isolation: isolate;
-}
-.guest-landing-host:empty {
-  min-height: 60vh;
 }

@@ -420,7 +420,7 @@ export default function AuthorPage({ user }) {
         </section>
 
 
-        <div className="author-public-tabs" role="tablist" aria-label="Author profile sections" onKeyDown={(event) => handleProfileTabKey(event, PROFILE_TABS, tab, setTab)}>
+        <div className="author-public-tabs profile-tabs" role="tablist" aria-label="Author profile sections" onKeyDown={(event) => handleProfileTabKey(event, PROFILE_TABS, tab, setTab)}>
           {PROFILE_TABS.map(([key, label]) => (
             <button key={key} type="button" role="tab" id={`author-tab-${key}`} aria-controls={`author-panel-${key}`} tabIndex={tab === key ? 0 : -1} aria-selected={tab === key} className={tab === key ? "active" : ""} onClick={() => setTab(key)}>
               {label}{key === "stories" ? ` (${books.length})` : key === "wall" ? ` (${wall.length})` : key === "reviews" ? ` (${reviews.length})` : ""}

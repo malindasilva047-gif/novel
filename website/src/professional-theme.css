@@ -18216,35 +18216,57 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 }
 
 
-/* ===== AUTHOR = PROFILE PAGE PARITY (final) ===== */
-.main .profile-page.author-public-page {
-  min-width: 0;
-  overflow-x: clip;
+/* ===== AUTHOR PAGE LAYOUT ORDER FIX (header must be on top) ===== */
+/* Own profile uses flex order on .profile-layout children. Author page
+   must NOT inherit those orders or heading sinks below tabs/stories. */
+.main .profile-page.author-public-page .profile-layout.author-public-content {
+  position: relative !important;
+  z-index: 3 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: min(calc(100% - clamp(40px, 4vw, 80px)), 1680px) !important;
+  max-width: 1680px !important;
+  margin: clamp(-88px, -7vw, -60px) auto 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
 }
+
+.main .profile-page.author-public-page .profile-layout.author-public-content > * {
+  order: 0 !important; /* kill profile-page order:1/3/4 rules */
+}
+
+.main .profile-page.author-public-page .profile-layout.author-public-content > .profile-heading {
+  order: 1 !important;
+}
+
+.main .profile-page.author-public-page .profile-layout.author-public-content > .author-public-tabs,
+.main .profile-page.author-public-page .profile-layout.author-public-content > .profile-tabs {
+  order: 2 !important;
+  margin-top: 16px !important;
+  margin-bottom: 16px !important;
+}
+
+.main .profile-page.author-public-page .profile-layout.author-public-content > .profile-tabpanel,
+.main .profile-page.author-public-page .profile-layout.author-public-content > .author-public-stories,
+.main .profile-page.author-public-page .profile-layout.author-public-content > .author-public-about-layout,
+.main .profile-page.author-public-page .profile-layout.author-public-content > .author-public-wall,
+.main .profile-page.author-public-page .profile-layout.author-public-content > [id^="author-panel-"] {
+  order: 3 !important;
+}
+
 .main .profile-page.author-public-page .profile-cover {
-  position: relative;
-  display: block;
-  width: min(calc(100% - clamp(40px, 4vw, 80px)), 1680px);
-  max-width: 1680px;
-  height: clamp(200px, 24vw, 280px);
-  margin: 16px auto 0;
-  border-radius: 20px;
-  background-color: var(--site-surface);
-  background-size: cover;
-  background-position: center;
-  overflow: hidden;
+  position: relative !important;
+  display: block !important;
+  width: min(calc(100% - clamp(40px, 4vw, 80px)), 1680px) !important;
+  max-width: 1680px !important;
+  height: clamp(200px, 24vw, 280px) !important;
+  margin: 16px auto 0 !important;
+  border-radius: 20px !important;
+  background-size: cover !important;
+  background-position: center !important;
+  overflow: hidden !important;
 }
-.main .profile-page.author-public-page .profile-layout {
-  position: relative;
-  z-index: 3;
-  display: flex;
-  width: min(calc(100% - clamp(40px, 4vw, 80px)), 1680px);
-  max-width: 1680px;
-  flex-direction: column;
-  margin: clamp(-88px, -7vw, -60px) auto 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+
 .main .profile-page.author-public-page .profile-heading.card-panel {
   display: grid !important;
   grid-template-columns: 132px minmax(0, 1fr) auto !important;
@@ -18257,12 +18279,14 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   box-shadow: 0 16px 48px rgba(17,24,39,.1) !important;
   overflow: visible !important;
 }
+
 .main .profile-page.author-public-page .profile-avatar-frame {
   width: 124px !important;
   height: 124px !important;
   transform: translateY(-18px) !important;
   margin-bottom: -18px !important;
 }
+
 .main .profile-page.author-public-page .profile-avatar-lg {
   width: 100% !important;
   height: 100% !important;
@@ -18270,25 +18294,36 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   border-radius: 50% !important;
   border: 5px solid #fff !important;
 }
+
 .main .profile-page.author-public-page .profile-heading-aside {
   display: flex !important;
   flex-direction: column !important;
   align-items: flex-end !important;
   gap: 12px !important;
 }
+
 .main .profile-page.author-public-page .profile-metric-chips {
   display: flex !important;
   flex-wrap: wrap !important;
   gap: 8px !important;
   justify-content: flex-end !important;
 }
-.main .profile-page.author-public-page .author-public-stats { display: none !important; }
+
+.main .profile-page.author-public-page .author-public-stats {
+  display: none !important;
+}
+
+/* Story cards same size as own profile */
 .main .profile-page.author-public-page .profile-story-grid--home-pack {
   display: grid !important;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
   gap: 20px 12px !important;
+  justify-content: start !important;
 }
-.main .profile-page.author-public-page .profile-home-story-slot { width: 140px !important; max-width: 100% !important; }
+.main .profile-page.author-public-page .profile-home-story-slot {
+  width: 140px !important;
+  max-width: 100% !important;
+}
 .main .profile-page.author-public-page .profile-home-story-slot .book-card {
   border: 0 !important;
   background: transparent !important;
@@ -18299,6 +18334,7 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   aspect-ratio: 2 / 3 !important;
   border-radius: 6px !important;
 }
+
 @media (max-width: 900px) {
   .main .profile-page.author-public-page .profile-heading.card-panel {
     grid-template-columns: 76px minmax(0, 1fr) !important;
@@ -18313,10 +18349,18 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   }
 }
 @media (max-width: 640px) {
-  .main .profile-page.author-public-page .profile-cover { width: calc(100% - 24px); height: 160px; }
-  .main .profile-page.author-public-page .profile-layout { width: calc(100% - 24px); margin-top: -48px; }
+  .main .profile-page.author-public-page .profile-cover {
+    width: calc(100% - 24px) !important;
+    height: 160px !important;
+  }
+  .main .profile-page.author-public-page .profile-layout.author-public-content {
+    width: calc(100% - 24px) !important;
+    margin-top: -48px !important;
+  }
   .main .profile-page.author-public-page .profile-story-grid--home-pack {
     grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)) !important;
   }
-  .main .profile-page.author-public-page .profile-home-story-slot { width: 112px !important; }
+  .main .profile-page.author-public-page .profile-home-story-slot {
+    width: 112px !important;
+  }
 }

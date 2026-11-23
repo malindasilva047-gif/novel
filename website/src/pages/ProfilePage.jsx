@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { commentWallPost, deleteWallPost, getBootstrap, getLibrary, getMe, getMyReviews, getMyStories, getReadingLists, getToken, getUserActivity, getUserWall, likeWallPost, postUserWall, resolveAssetUrl, updateMe, uploadProfileImage } from "../api";
 import { isGuestUser } from "../utils/guest";
 import WallPostCard from "../components/WallPostCard";
+import BookCard from "../components/BookCard";
 import ImageAdjustModal from "../components/ImageAdjustModal";
 import { showToast } from "../components/ToastViewport";
 import { getLocalReadingEntries, mergeReadingEntries } from "../utils/readingProgress";
@@ -906,38 +907,29 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
             {!loading && stories.length ? (
               <div className="profile-story-grid profile-story-grid--home-pack" data-home-pack="true">
                 {stories.map((story) => {
-                  const image = resolveAssetUrl(story.cover_path || story.coverPath || "");
-                  const status = story.status_text || story.status || "Draft";
-                  const updated = formatProfileDate(story.last_updated_at || story.updated_at);
-                  const chapterCount = Number(story.published_chapter_count || story.chapter_count || 0);
-                  const draftChapters = Number(story.draft_chapter_count || 0);
-                  const rating = Number(story.rating || 0);
+                  const book = {
+                    id: story.id,
+                    title: story.title || "Untitled story",
+                    author: story.author_name || story.author || name || "Wingsaga author",
+                    cover_path: story.cover_path || story.coverPath || "",
+                    rating: story.rating,
+                    view_count: story.view_count || story.read_count || story.reads || 0,
+                    read_count: story.read_count || story.view_count || 0,
+                    genre: story.genre || story.primary_genre || story.secondary_genre || "",
+                    primary_genre: story.primary_genre || story.genre || "",
+                    secondary_genre: story.secondary_genre || story.genre || "",
+                    publication_status: story.status_text || story.status || story.publication_status || "Draft",
+                    status: story.status_text || story.status || "Draft",
+                    status_text: story.status_text || story.status || "Draft",
+                    is_completed: story.is_completed,
+                  };
                   return (
-                    <Link
-                      key={story.id}
-                      to={`/write/${story.id}`}
-                      className="profile-story-card profile-story-card--home-pack"
-                      aria-label={`Manage ${story.title || "Untitled story"}, ${status}`}
-                    >
-                      <span className="profile-story-cover-wrap">
-                        {image ? (
-                          <img src={image} alt="" loading="lazy" decoding="async" />
-                        ) : (
-                          <span className="profile-story-cover-fallback" aria-hidden="true">{(story.title || "N").charAt(0)}</span>
-                        )}
-                        <span className={`profile-story-status${/draft|private|unpublished|hidden/i.test(String(status)) ? " is-draft" : ""}`}>{status}</span>
-                      </span>
-                      <div className="psc-body">
-                        <div className="psc-title">{story.title || "Untitled story"}</div>
-                        <div className="profile-story-metrics">
-                          <span>{chapterCount} {chapterCount === 1 ? "chapter" : "chapters"}</span>
-                          {draftChapters ? <span>{draftChapters} {draftChapters === 1 ? "draft" : "drafts"}</span> : null}
-                          {rating > 0 ? <span aria-label={`Rating ${rating.toFixed(1)} out of 5`}>★ {rating.toFixed(1)}</span> : null}
-                        </div>
-                        {updated ? <time dateTime={story.last_updated_at || story.updated_at}>Updated {updated}</time> : null}
-                        <span className="profile-story-manage-link">Manage story <span aria-hidden="true">→</span></span>
-                      </div>
-                    </Link>
+                    <div className="profile-home-story-slot" key={story.id}>
+                      <BookCard book={book} variant="shelf" inkittStyle showRating showStatus />
+                      <Link className="profile-story-manage-link" to={`/write/${story.id}`}>
+                        Manage story <span aria-hidden="true">→</span>
+                      </Link>
+                    </div>
                   );
                 })}
               </div>

@@ -18058,3 +18058,18 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
     padding: 10px 0 !important;
   }
 }
+
+
+/* Profile Stories = exact home BookCard chrome (no borders) */
+.main .profile-page .profile-story-grid--home-pack .book-card,
+.main .profile-page .profile-home-story-slot .book-card {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.main .profile-page .profile-home-story-slot .book-cover-wrap {
+  border-radius: 8px !important;
+  box-shadow: 0 4px 14px rgba(10, 30, 20, .08) !important;
+}

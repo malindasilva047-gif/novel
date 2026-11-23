@@ -52,7 +52,7 @@ html, body {
 html:not([data-theme=dark]) .glow{opacity:.14!important}
 body{transition:background .4s,color .4s}
 *{box-sizing:border-box;margin:0}
-html{scroll-behavior:smooth;scroll-padding-top:80px}
+html{scroll-behavior:smooth;scroll-padding-top:0}
 body{background:var(--night);color:var(--ink);font:400 16px/1.6 var(--sans);overflow-x:hidden;padding-top:var(--safe-t);padding-bottom:var(--safe-b)}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
@@ -356,7 +356,7 @@ dialog .lnk{display:block;margin:14px auto 0;color:var(--mute);font-size:.9rem}
   .stack{margin:0 auto}
 }
 @media(max-width:600px){
-  html{scroll-padding-top:72px}
+  html{scroll-padding-top:0}
   .wrap{padding:0 16px}
   section{padding:52px 0}
   h2{font-size:clamp(1.7rem,8vw,2.2rem)}
@@ -440,23 +440,6 @@ dialog .lnk{display:block;margin:14px auto 0;color:var(--mute);font-size:.9rem}
  <g font-size="16"><text x="170" y="96">❤<animate attributeName="y" values="100;50" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="1;0" dur="2.4s" repeatCount="indefinite"/></text></g>
 </symbol></defs></svg>
 
-<nav>
-  <div class="wrap">
-    <a href="/" class="logo" aria-label="Home">
-      <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 26V8l6 5 6-9 6 9 6-5v18c0 1-1 2-2 2H6c-1 0-2-1-2-2z" style="fill:var(--lamp)"/><circle cx="12" cy="20" r="1.8" fill="#fff"/><circle cx="20" cy="20" r="1.8" fill="#fff"/></svg>
-      <span data-brand>Wingsaga</span>
-    </a>
-    <div class="nav-links">
-      <a href="#search">Search</a><a href="#discover">Discover</a><a href="#community">Community</a><a href="/write">Write</a>
-    </div>
-    <div class="auth"><button class="theme" id="themeBtn" aria-label="Toggle dark mode">☾</button><a href="#" class="btn btn-ghost nav-cta" data-auth="login" href="/login">Log in</a><a href="#" class="btn btn-lamp nav-cta" data-auth="signup" href="/login">Sign up</a></div>
-    <button class="menu-btn" id="menuToggle" aria-label="Toggle navigation">☰</button>
-  </div>
-  <div class="mobile-nav" id="mobileNav">
-    <a href="#search">Search</a><a href="#discover">Discover</a><a href="#community">Community</a><a href="/write">Write</a>
-    <a href="#" class="btn btn-ghost" data-auth="login" href="/login">Log in</a><a href="#" class="btn btn-lamp" data-auth="signup" href="/login">Sign up</a>
-  </div>
-</nav>
 <dialog id="auth"><h3 id="aT">Welcome back</h3><input id="aName" type="text" placeholder="Pen name" hidden><input type="email" placeholder="Email"><input type="password" placeholder="Password"><button class="btn btn-lamp" id="aGo">Log in</button><button class="lnk" id="aSw">New here? Sign up</button><button class="lnk" id="aX">Close</button></dialog>
 
 <header class="hero" id="top">
@@ -590,29 +573,6 @@ dialog .lnk{display:block;margin:14px auto 0;color:var(--mute);font-size:.9rem}
    <details><summary>Is there a mobile app?</summary><p>Not right now. For now the website works seamlessly on any phone or desktop browser.</p></details>
   </div></div>
 </section>
-<footer>
-  <div class="fmore"><h3>Find more stories</h3><a class="btn btn-lamp" href="#search">Search stories</a></div>
-  <div class="soc"><div class="wrap"><div><b>Join us on socials</b><p>Writing tips, sneak peeks and a place to meet other readers and authors.</p></div>
-    <div class="ic"><a href="#" aria-label="Instagram"><svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".6"/></svg></a>
-    <a href="#" aria-label="TikTok"><svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5M14 3c.4 2.6 2.2 4.3 5 4.6"/></svg></a>
-    <a href="#" aria-label="Facebook"><svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8z"/></svg></a>
-    <a href="#" aria-label="Discord"><svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6c2-1 4-1.5 7-1.5S17 5 19 6c1.5 3 2 6 1.5 10-2 1.5-4 2-5 2l-1-2h-5l-1 2c-1 0-3-.5-5-2C3 12 3.5 9 5 6z"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/></svg></a>
-    <a href="#" aria-label="X"><svg width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l16 16M20 4L4 20"/></svg></a></div></div></div>
-  <div class="band"><h2>Write your own bestseller</h2><p>Your story could be the next big hit. Join a community that finds tomorrow's favorite authors today.</p><a href="/write" class="btn">Start writing</a></div>
-  <div class="fcols"><div class="wrap gr">
-    <div><h4>Featured stories</h4><a href="#">The Lantern Keeper</a><a href="#">Paper Hearts</a><a href="#">Salt &amp; Static</a><a href="#">Nine Quiet Doors</a><a href="#">Crown of Ash</a></div>
-    <div><h4>Newest collections</h4><a href="#">Second chances</a><a href="#">Found family</a><a href="#">Slow burn</a><a href="#">Rivals to lovers</a><a href="#">Time loops</a></div>
-    <div><h4>Popular collections</h4><a href="#">Romance</a><a href="#">Fantasy</a><a href="#">Mystery</a><a href="#">Sci-Fi</a><a href="#">Horror</a></div>
-    <div><h4>Other collections</h4><a href="#">Fanfiction</a><a href="#">Short stories</a><a href="#">Poetry</a><a href="#">Serialized</a><a href="#">Young adult</a></div></div></div>
-  <div class="fmain"><div class="wrap"><div class="gr">
-    <div><h4>About us</h4><p><span data-brand>Wingsaga</span> is a home for original stories, where readers react line by line and writers grow alongside them.</p></div>
-    <div><h4>For authors</h4><a href="/write">Start writing</a><a href="#">Guidelines</a><a href="#">Writing groups</a><a href="#">Report plagiarism</a></div>
-    <div><h4>For readers</h4><a href="#discover">Browse stories</a><a href="#search">Search</a><a href="#community">Comments</a><a href="#">Reading lists</a></div>
-    <div><h4>Community</h4><a href="#">Blog</a><a href="#">Discord</a><a href="#">Instagram</a><a href="#faq">Help</a></div>
-    </div>
-    <div class="legal"><a href="#">Terms</a><a href="#">Privacy</a><a href="#">Cookie policy</a><p style="margin-top:12px">© 2026 <span data-brand>Wingsaga</span>. All rights reserved.</p></div></div></div>
-</footer>
-
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -698,17 +658,20 @@ while(1){const k=i++%CA.length;L.forEach((l,j)=>l.classList.toggle('on',j===k));
 for(const [nm,col,tx] of CA[k][1]){await wait(1000);const d=document.createElement('div');d.className='msg';d.innerHTML=`<div class="av" style="background:${col};color:${col==='#F4CC2F'?'#202020':'#fff'}">${nm[0].toUpperCase()}</div><div><b>${nm}</b>${tx}<br><button class="lk" data-n="${3+c*5}" aria-label="Like"><span class="h">♥</span><b>${3+c*5}</b></button></div>`;cs.appendChild(d);setTimeout(()=>d.classList.add('in'),30);const lk=d.querySelector('.lk');likeInit(lk);n.textContent='💬 '+(++c);if(c===1)setTimeout(()=>lk.click(),1200)}
 await wait(2800)}})();
 
-/* theme + auth */
+/* theme + auth (nav removed — outer app chrome handles theme/auth) */
 const root=document.documentElement,tb=$('#themeBtn');
-tb.textContent=root.dataset.theme==='dark'?'☀':'☾';
 const setMeta=t=>{const m=$('meta[name=theme-color]');if(m)m.content=t==='dark'?'#192A23':'#FFFFFF'};setMeta(root.dataset.theme);
-tb.onclick=()=>{const t=root.dataset.theme==='dark'?'light':'dark';root.dataset.theme=t;tb.textContent=t==='dark'?'☀':'☾';setMeta(t);try{localStorage.setItem('nh-theme',t)}catch(e){}};
+if(tb){
+  tb.textContent=root.dataset.theme==='dark'?'☀':'☾';
+  tb.onclick=()=>{const t=root.dataset.theme==='dark'?'light':'dark';root.dataset.theme=t;tb.textContent=t==='dark'?'☀':'☾';setMeta(t);try{localStorage.setItem('nh-theme',t)}catch(e){}};
+}
 const dlg=$('#auth');
-function setMode(m){dlg.dataset.m=m;const L=m==='login';$('#aT').textContent=L?'Welcome back':'Join '+CONFIG.brand;$('#aGo').textContent=L?'Log in':'Create account';$('#aName').hidden=L;$('#aSw').textContent=L?'New here? Sign up':'Have an account? Log in'}
-$$('[data-auth]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();mobileNav&&mobileNav.classList.remove('open');setMode(a.dataset.auth);dlg.showModal?dlg.showModal():dlg.setAttribute('open','')}));
-$('#aSw').onclick=()=>setMode(dlg.dataset.m==='login'?'signup':'login');
-$('#aX').onclick=()=>dlg.close();
-$('#aGo').onclick=()=>{dlg.close();window.top.location.href='/login'};
+function setMode(m){if(!dlg)return;dlg.dataset.m=m;const L=m==='login';const aT=$('#aT'),aGo=$('#aGo'),aName=$('#aName'),aSw=$('#aSw');if(aT)aT.textContent=L?'Welcome back':'Join '+CONFIG.brand;if(aGo)aGo.textContent=L?'Log in':'Create account';if(aName)aName.hidden=L;if(aSw)aSw.textContent=L?'New here? Sign up':'Have an account? Log in'}
+$$('[data-auth]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();mobileNav&&mobileNav.classList.remove('open');if(dlg){setMode(a.dataset.auth);dlg.showModal?dlg.showModal():dlg.setAttribute('open','')}else{window.top.location.href='/login'}}));
+const aSw=$('#aSw'),aX=$('#aX'),aGo=$('#aGo');
+if(aSw)aSw.onclick=()=>setMode(dlg&&dlg.dataset.m==='login'?'signup':'login');
+if(aX)aX.onclick=()=>dlg&&dlg.close();
+if(aGo)aGo.onclick=()=>{if(dlg)dlg.close();window.top.location.href='/login'};
 
 /* genre grid + trending shelf */
 const GG=[['Romance','#ff7a90','#9d174d','♥'],['Fantasy','#f5b942','#c2410c','✦'],['Mystery','#94a3b8','#1e293b','☾'],['Sci-Fi','#67e8f9','#4c1d95','✧'],['Horror','#a78bfa','#312e81','☠'],['Fanfiction','#5fd3b5','#155e75','✎'],['New Adult','#fb923c','#7f1d1d','☼'],['Short Story','#fde68a','#db2777','❝']];

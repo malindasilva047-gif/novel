@@ -322,7 +322,7 @@ export default function AuthorPage({ user }) {
   }
 
   return (
-    <main className="author-public-page">
+    <main className="author-public-page profile-page">
       <div
         className={`author-public-cover ${cover ? "has-image" : ""}`}
         style={cover ? { backgroundImage: `linear-gradient(180deg,rgba(11,10,18,.1),rgba(11,10,18,.92)),url("${cover.replace(/["\\\n\r]/g, "")}")` } : undefined}
@@ -330,72 +330,94 @@ export default function AuthorPage({ user }) {
       />
       <div className="author-public-content">
         {error ? <div className="error-banner" role="alert">{error}</div> : null}
-        <section className="author-public-heading card-panel">
-          <div className="author-public-avatar">
-            {photo && !photoFailed ? <img src={photo} alt="" onError={() => setPhotoFailed(true)} /> : <span aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span>}
+        <section className="profile-heading card-panel author-public-heading">
+          <div className="profile-avatar-frame author-public-avatar">
+            {photo && !photoFailed ? (
+              <img className="profile-avatar-lg" src={photo} alt={`${name}'s profile`} onError={() => setPhotoFailed(true)} />
+            ) : (
+              <div className="profile-avatar-lg profile-avatar-fallback" aria-hidden="true">{name.slice(0, 1).toUpperCase()}</div>
+            )}
           </div>
-          <div className="author-public-copy">
-            <div className="author-public-badges">
-              <span className="eyebrow">WINGSAGA AUTHOR</span>
-              {profile?.is_author ? <span className="author-public-author-badge"><span aria-hidden="true">✦</span> Author</span> : null}
-              {profile?.is_verified === true || profile?.verified === true ? <span className="author-public-verified-badge" aria-label="Verified author">✓ Verified</span> : null}
-            </div>
-            <h1>{name}</h1>
-            {username ? <p className="author-public-handle">@{username}</p> : null}
-            <p className="author-public-bio">{profile?.bio || "This author is just getting started. Explore their stories below."}</p>
-            <div className="author-public-identity-meta">
-              {profile?.country ? <span><span aria-hidden="true">⌖</span>{profile.country}</span> : null}
-              {Number(profile?.story_count || profile?.published_story_count || books.length || 0) ? (
-                <span><span aria-hidden="true">▣</span>{Number(profile?.story_count || profile?.published_story_count || books.length || 0)} published {(Number(profile?.story_count || profile?.published_story_count || books.length || 0) === 1) ? "story" : "stories"}</span>
-              ) : null}
-            </div>
-            {socialLinks.length ? (
-              <div className="author-public-identity-social" aria-label="Social profiles">
-                {socialLinks.map((link) => (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="author-public-identity-social-link"
-                    title={link.label}
-                    aria-label={link.label}
-                  >
-                    <span className="author-public-identity-social-icon"><SocialIcon platform={link.label} /></span>
-                    <span className="author-public-identity-social-label">{link.label}</span>
-                  </a>
-                ))}
-              </div>
-            ) : null}
-          </div>
-          <div className="author-public-actions">
-            {!isOwnProfile ? (
-              <>
-                <button type="button" className={`btn ${following ? "btn-ghost" : "btn-primary"}`} onClick={toggleFollow} disabled={followBusy}>
-                  {followBusy ? "Saving…" : following ? "Following" : "Follow author"}
-                </button>
-                {following ? (
-                  <button
-                    type="button"
-                    className={`author-notification-toggle${notificationsEnabled ? " is-enabled" : ""}`}
-                    onClick={toggleNotifications}
-                    disabled={notificationBusy}
-                    aria-label={notificationsEnabled ? "Turn off author update notifications" : "Turn on author update notifications"}
-                    aria-pressed={notificationsEnabled}
-                    title={notificationsEnabled ? "Author notifications on" : "Get new story and chapter updates"}
-                  >
-                    <span aria-hidden="true">🔔</span>
-                    <span>{notificationBusy ? "Saving…" : notificationsEnabled ? "Updates on" : "Notify me"}</span>
-                  </button>
+          <div className="profile-heading-copy author-public-copy">
+            <div className="profile-heading-overview">
+              <div className="profile-heading-identity">
+                <div className="profile-identity-badges author-public-badges">
+                  <span className="eyebrow">WINGSAGA AUTHOR</span>
+                  {profile?.is_author ? <span className="profile-author-badge author-public-author-badge"><span aria-hidden="true">✦</span> Author</span> : null}
+                  {profile?.is_verified === true || profile?.verified === true ? (
+                    <span className="profile-verified-badge author-public-verified-badge" aria-label="Verified author">✓ Verified</span>
+                  ) : null}
+                </div>
+                <h1>{name}</h1>
+                {username ? <p className="profile-handle author-public-handle">@{username}</p> : null}
+                <p className="profile-bio-text author-public-bio">{profile?.bio || "This author is just getting started. Explore their stories below."}</p>
+                <div className="profile-identity-meta author-public-identity-meta">
+                  {profile?.country ? <span><span aria-hidden="true">⌖</span>{profile.country}</span> : null}
+                  {Number(profile?.story_count || profile?.published_story_count || books.length || 0) ? (
+                    <span>
+                      <span aria-hidden="true">▣</span>
+                      {Number(profile?.story_count || profile?.published_story_count || books.length || 0)} published{" "}
+                      {Number(profile?.story_count || profile?.published_story_count || books.length || 0) === 1 ? "story" : "stories"}
+                    </span>
+                  ) : null}
+                </div>
+                {socialLinks.length ? (
+                  <div className="profile-identity-social author-public-identity-social" aria-label="Social profiles">
+                    {socialLinks.map((link) => (
+                      <a
+                        key={link.label}
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="profile-identity-social-link author-public-identity-social-link"
+                        title={link.label}
+                        aria-label={link.label}
+                      >
+                        <span className="profile-identity-social-icon author-public-identity-social-icon">
+                          <SocialIcon platform={link.label} />
+                        </span>
+                        <span className="profile-identity-social-label author-public-identity-social-label">{link.label}</span>
+                      </a>
+                    ))}
+                  </div>
                 ) : null}
-              </>
-            ) : <Link className="btn btn-primary" to="/profile">Your profile</Link>}
+              </div>
+            </div>
           </div>
+          <aside className="profile-heading-aside author-public-actions" aria-label="Author statistics and actions">
+            <div className="profile-metric-chips" aria-label="Author metrics">
+              <span><strong>{loading ? "—" : Number(profile?.followers || 0).toLocaleString()}</strong> Followers</span>
+              <span><strong>{loading ? "—" : Number(profile?.following || 0).toLocaleString()}</strong> Following</span>
+              <span><strong>{loading ? "—" : books.length.toLocaleString()}</strong> Stories</span>
+            </div>
+            <div className="profile-heading-actions">
+              {!isOwnProfile ? (
+                <>
+                  <button type="button" className={`btn ${following ? "btn-ghost" : "btn-primary"}`} onClick={toggleFollow} disabled={followBusy}>
+                    {followBusy ? "Saving…" : following ? "Following" : "Follow author"}
+                  </button>
+                  {following ? (
+                    <button
+                      type="button"
+                      className={`author-notification-toggle${notificationsEnabled ? " is-enabled" : ""}`}
+                      onClick={toggleNotifications}
+                      disabled={notificationBusy}
+                      aria-label={notificationsEnabled ? "Turn off author update notifications" : "Turn on author update notifications"}
+                      aria-pressed={notificationsEnabled}
+                      title={notificationsEnabled ? "Author notifications on" : "Get new story and chapter updates"}
+                    >
+                      <span aria-hidden="true">🔔</span>
+                      <span>{notificationBusy ? "Saving…" : notificationsEnabled ? "Updates on" : "Notify me"}</span>
+                    </button>
+                  ) : null}
+                </>
+              ) : (
+                <Link className="btn btn-primary" to="/profile">Your profile</Link>
+              )}
+            </div>
+          </aside>
         </section>
 
-        <section className="author-public-stats" aria-label="Author statistics">
-          {stats.map((stat) => <article className="author-public-stat" key={stat.label}><strong>{loading ? "—" : stat.value.toLocaleString()}</strong><span>{stat.label}</span></article>)}
-        </section>
 
         <div className="author-public-tabs" role="tablist" aria-label="Author profile sections" onKeyDown={(event) => handleProfileTabKey(event, PROFILE_TABS, tab, setTab)}>
           {PROFILE_TABS.map(([key, label]) => (

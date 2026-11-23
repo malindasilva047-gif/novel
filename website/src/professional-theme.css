@@ -18214,3 +18214,62 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   .main .author-public-identity-social-label { display: none !important; }
   .main .author-public-identity-social-link { padding: 6px !important; border-radius: 50% !important; }
 }
+
+
+/* ===== AUTHOR PUBLIC HEADER = OWN PROFILE HEADER GEOMETRY ===== */
+.main .author-public-page.profile-page .profile-heading.card-panel,
+.main .author-public-page .profile-heading.card-panel.author-public-heading {
+  /* inherit profile-heading rules via .profile-page */
+}
+
+.main .author-public-page .author-public-content {
+  width: min(1120px, calc(100% - 32px)) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* Match profile page content width */
+.main .profile-page .profile-layout,
+.main .author-public-page .author-public-content {
+  width: min(1120px, calc(100% - 32px));
+  margin-inline: auto;
+}
+
+/* Hide old large stat boxes if any residual */
+.main .author-public-page .author-public-stats {
+  display: none !important;
+}
+
+/* Ensure author cover/banner similar height to profile if present */
+.main .author-public-page .author-public-cover {
+  min-height: 180px;
+}
+
+/* Author tabs spacing like profile */
+.main .author-public-page .author-public-tabs {
+  margin-top: 18px !important;
+  margin-bottom: 18px !important;
+}
+
+/* Identity social already styled via profile classes when profile-page is on */
+.main .author-public-page .profile-identity-social {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
+}
+.main .author-public-page .profile-identity-social-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 5px 10px !important;
+  border: 1px solid var(--site-line) !important;
+  border-radius: 999px !important;
+  background: var(--site-card, #fff) !important;
+  color: var(--site-ink) !important;
+  font-size: .72rem !important;
+  font-weight: 650 !important;
+  text-decoration: none !important;
+}

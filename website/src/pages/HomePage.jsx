@@ -10,6 +10,7 @@ import DiscoverStorySections from "../components/DiscoverStorySections";
 import { usePageMeta } from "../components/PageMeta";
 import { getBootstrap, getBookChapters, getContests, getGenreStoryCounts, getGenres, getHomeHeroImages, getLibrary, getPublicLandingStats, getPublicReadingLists, getPublicReviews, getRecommendations, getTagBooks, getTags, getToken, resolveAssetUrl, saveLibraryProgress, saveSearchHistory, searchStories, searchUsers } from "../api";
 import { isGuestUser } from "../utils/guest";
+import GuestLandingPage from "./GuestLandingPage";
 import { getReadingProgressPercent } from "../utils/readingProgress";
 
 const GENRE_SHELVES = [
@@ -1337,6 +1338,19 @@ export default function HomePage({ user }) {
 
   if (loading && (!guest || qParam)) return <main className="home-loading page-shell" aria-live="polite"><span className="eyebrow">OPENING THE STORY SHELVES</span><div className="home-loading-line" /><div className="home-loading-grid">{Array.from({ length: 5 }, (_, index) => <div className="home-loading-cover" key={index} />)}</div></main>;
   if (error && !guest) return <main className="container page home-error"><span className="eyebrow">WINGSAGA</span><h1>Your next story is just around the page.</h1><p className="meta">We couldn’t load the shelves right now. Check your connection and try again.</p><button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>Try again</button></main>;
+  // Non-logged-in (guest) users get the full marketing landing page
+  if (guest && location.pathname === "/" && !qParam && !isFiltered) {
+    return (
+      <GuestLandingPage
+        stories={discoveryBooks}
+        genres={genres}
+        stats={publicStats || {}}
+        error={error}
+        loading={loading}
+      />
+    );
+  }
+
   if (location.pathname === "/" && !qParam && !isFiltered) {
     return (
       <main className={`home-wattpad home-page home-page--minimal${guest ? " home-page--guest" : ""}`}>

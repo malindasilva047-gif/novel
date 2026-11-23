@@ -754,6 +754,268 @@ document.querySelectorAll('a[href="/login"],a[href="/write"]').forEach(a=>{
   });
 });
 
+
+
+/* ===== Wingsaga: load real DB stories into landing sections ===== */
+(async function loadRealStories(){
+  const API = (path) => {
+    try {
+      // same-origin when served from wingsaga.com; parent origin when in iframe
+      const origin = (window.top && window.top.location && window.top.location.origin) || location.origin;
+      return origin + path;
+    } catch(e) {
+      return path;
+    }
+  };
+  const absCover = (p) => {
+    if (!p) return "";
+    if (/^https?:\/\//i.test(p)) return p;
+    try {
+      const origin = (window.top && window.top.location && window.top.location.origin) || location.origin;
+      return origin + (p.startsWith("/") ? p : "/" + p);
+    } catch(e) {
+      return p.startsWith("/") ? p : "/" + p;
+    }
+  };
+  const storyHref = (id) => {
+    try {
+      const origin = (window.top && window.top.location && window.top.location.origin) || location.origin;
+      return origin + "/stories/" + id;
+    } catch(e) {
+      return "/stories/" + id;
+    }
+  };
+  const palette = [
+    ["#f5b942","#c2410c"],["#ff7a90","#9d174d"],["#5fd3b5","#155e75"],
+    ["#a78bfa","#312e81"],["#94a3b8","#1e293b"],["#fb923c","#7f1d1d"],
+    ["#fde68a","#db2777"],["#67e8f9","#4c1d95"],["#16785F","#0D1914"],
+    ["#35A486","#205B4C"]
+  ];
+
+  function toStory(b, i){
+    const g = b.primary_genre || b.genre || b.secondary_genre || "Story";
+    const colors = b.accent_hex
+      ? [b.accent_hex, "#0D1914"]
+      : palette[i % palette.length];
+    return {
+      id: b.id,
+      t: b.title || "Untitled",
+      a: b.author || "Unknown",
+      g: g,
+      c: colors,
+      cover: absCover(b.cover_path || b.cover || ""),
+      rating: b.rating,
+      href: storyHref(b.id)
+    };
+  }
+
+  function bookCard(s, i, badge){
+    const coverInner = s.cover
+      ? `<img src="${s.cover}" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/>`
+      : (typeof scene === "function" ? scene(i % 8) : "");
+    const badgeHtml = badge ? `<em class="bdg">${badge}</em>` : "";
+    return `<article class="book" data-g="${s.g}" data-id="${s.id}">
+      <a href="${s.href}" target="_top" style="color:inherit;text-decoration:none">
+        <div class="cover" style="background:linear-gradient(160deg,${s.c[0]},${s.c[1]})">
+          ${coverInner}
+          ${badgeHtml}
+          <h3>${s.t}</h3>
+          <span>${s.g}</span>
+        </div>
+        <p>${s.t}</p>
+        <small>by ${s.a}</small>
+      </a>
+    </article>`;
+  }
+
+  try {
+    const [statsRes, bootRes, genreRes, searchRes] = await Promise.all([
+      fetch(API("/api/public/stats")).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(API("/api/bootstrap")).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(API("/api/genres")).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(API("/api/search?q=&limit=24")).then(r => r.ok ? r.json() : null).catch(() => null),
+    ]);
+
+    // ---- Hero stats ----
+    if (statsRes) {
+      const map = [
+        ["120000", statsRes.stories],
+        ["2400000", statsRes.comments],
+        ["48000", statsRes.writers],
+      ];
+      map.forEach(([def, val]) => {
+        if (val == null) return;
+        const el = document.querySelector(`[data-count="${def}"]`);
+        if (el) {
+          el.dataset.count = String(val);
+          // re-run simple count display
+          const n = +val;
+          el.textContent = n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? Math.round(n/1e3)+"K" : String(n);
+        }
+      });
+    }
+
+    // ---- Build story lists ----
+    const fromBoot = [
+      ...(bootRes?.recently_updated || []),
+      ...(bootRes?.discover_books || []),
+      ...(bootRes?.recently_completed || []),
+    ];
+    const fromSearch = searchRes?.items || searchRes?.books || [];
+    // dedupe by id
+    const seen = new Set();
+    const merged = [];
+    for (const b of [...fromBoot, ...fromSearch]) {
+      if (!b || b.id == null || seen.has(b.id)) continue;
+      seen.add(b.id);
+      merged.push(b);
+    }
+    if (!merged.length) return; // keep demo data if API empty
+
+    const stories = merged.map(toStory);
+
+    // Replace global STORIES used by chips filter if present
+    try { if (typeof STORIES !== "undefined") { STORIES.length = 0; stories.forEach(s => STORIES.push(s)); } } catch(e){}
+
+    // ---- Discover shelf ----
+    const shelf = document.getElementById("shelf");
+    if (shelf) {
+      shelf.innerHTML = stories.slice(0, 16).map((s,i) => bookCard(s, i)).join("");
+    }
+
+    // ---- Genre chips from real genres ----
+    const chips = document.getElementById("chips");
+    if (chips) {
+      let genres = ["All"];
+      const apiGenres = genreRes?.items || genreRes || [];
+      if (Array.isArray(apiGenres) && apiGenres.length) {
+        // Prefer genres that appear in stories first
+        const present = new Set(stories.map(s => s.g).filter(Boolean));
+        const ranked = [
+          ...[...present],
+          ...apiGenres.filter(g => typeof g === "string" && !present.has(g))
+        ].slice(0, 10);
+        genres = ["All", ...ranked];
+      } else {
+        genres = ["All", ...[...new Set(stories.map(s => s.g))]].slice(0, 10);
+      }
+      chips.innerHTML = genres.map((g,i) =>
+        `<button class="chip" aria-pressed="${!i}" data-g="${g}">${g}</button>`
+      ).join("");
+    }
+
+    // ---- Genre grid (#gg) ----
+    const gg = document.getElementById("gg");
+    if (gg) {
+      const iconMap = {
+        Romance:"♥", Fantasy:"✦", Mystery:"☾", "Sci-Fi":"✧", SciFi:"✧", Horror:"☠",
+        Thriller:"⚡", Poetry:"❝", Drama:"✎", Adventure:"☼", Fanfiction:"✎",
+        "Dark Romance":"♥", "Contemporary Romance":"♥", LGBTQ:"✧"
+      };
+      const colorMap = {
+        Romance:["#ff7a90","#9d174d"], Fantasy:["#f5b942","#c2410c"],
+        Mystery:["#94a3b8","#1e293b"], "Sci-Fi":["#67e8f9","#4c1d95"],
+        Horror:["#a78bfa","#312e81"], Thriller:["#fb923c","#7f1d1d"],
+        Poetry:["#fde68a","#db2777"], Drama:["#5fd3b5","#155e75"],
+        "Dark Romance":["#ff7a90","#4c0519"]
+      };
+      let gList = (genreRes?.items || []).filter(g => typeof g === "string");
+      if (!gList.length) gList = [...new Set(stories.map(s => s.g))];
+      // top 8: prefer ones with stories
+      const counts = {};
+      stories.forEach(s => { counts[s.g] = (counts[s.g]||0)+1; });
+      gList = gList.sort((a,b) => (counts[b]||0)-(counts[a]||0)).slice(0, 8);
+      gg.innerHTML = gList.map((name,i) => {
+        const c = colorMap[name] || palette[i % palette.length];
+        const ic = iconMap[name] || "✦";
+        return `<button class="gt" data-g="${name}"><u style="background:linear-gradient(160deg,${c[0]},${c[1]})">${ic}</u>${name}</button>`;
+      }).join("");
+      // click → filter shelf + scroll
+      gg.onclick = (e) => {
+        const b = e.target.closest(".gt");
+        if (!b) return;
+        const chip = chips && [...chips.querySelectorAll(".chip")].find(x => x.dataset.g === b.dataset.g);
+        if (chip) chip.click();
+        const disc = document.getElementById("discover");
+        if (disc) disc.scrollIntoView({ behavior: "smooth" });
+      };
+    }
+
+    // ---- Trending / shelf2 ----
+    const shelf2 = document.getElementById("shelf2");
+    if (shelf2) {
+      const badges = ["Trending","New","Top 10","Staff pick","Trending","New","Top 10","Staff pick"];
+      const list = (bootRes?.recently_updated || stories).slice(0, 12).map(toStory);
+      shelf2.innerHTML = list.map((s,i) => bookCard(s, i+3, badges[i % badges.length])).join("");
+    }
+
+    // ---- Club floating cards ----
+    const sct = document.getElementById("sct");
+    if (sct && stories.length) {
+      const picks = stories.slice(0, 3);
+      const layout = [
+        ['-9deg','.05s','left:2%;top:78px'],
+        ['0deg','.25s','left:50%;margin-left:-56px;top:58px;z-index:2'],
+        ['9deg','.45s','right:2%;top:86px']
+      ];
+      sct.innerHTML = picks.map((s,i) => {
+        const [r,d,pos] = layout[i] || layout[0];
+        const coverInner = s.cover
+          ? `<img src="${s.cover}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:10px"/>`
+          : (typeof scene === "function" ? scene(i) : "");
+        return `<div class="scd" style="--r:${r};--d:${d};${pos}">
+          <a href="${s.href}" target="_top" style="color:inherit;text-decoration:none">
+            <div class="scv" style="background:linear-gradient(160deg,${s.c[0]},${s.c[1]})">${coverInner}</div>
+            <b>${s.t}</b><small>★ ${s.rating != null ? s.rating : "—"}</small>
+          </a>
+        </div>`;
+      }).join("");
+    }
+
+    // ---- Fandom stack covers ----
+    document.querySelectorAll(".stack .cv").forEach((el, k) => {
+      const s = stories[k];
+      if (!s) return;
+      if (s.cover) {
+        el.innerHTML = `<img src="${s.cover}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px"/>`;
+      } else if (typeof scene === "function") {
+        el.innerHTML = scene((k*2+1) % 8);
+      }
+    });
+
+    // ---- Footer featured stories ----
+    const featuredCol = document.querySelector(".fcols .gr > div:first-child");
+    if (featuredCol && stories.length) {
+      const links = stories.slice(0, 5).map(s =>
+        `<a href="${s.href}" target="_top">${s.t}</a>`
+      ).join("");
+      featuredCol.innerHTML = `<h4>Featured stories</h4>${links}`;
+    }
+
+    // Re-bind chip filter for new DOM
+    if (chips && shelf) {
+      chips.onclick = (e) => {
+        const b = e.target.closest(".chip");
+        if (!b) return;
+        chips.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c === b ? "true" : "false"));
+        shelf.querySelectorAll(".book").forEach(k => {
+          k.classList.toggle("hide", b.dataset.g !== "All" && k.dataset.g !== b.dataset.g);
+        });
+        shelf.scrollTo({ left: 0 });
+      };
+    }
+
+    // Notify parent iframe to resize
+    try {
+      const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+      window.parent.postMessage({ type: "guest-landing-height", height: h }, "*");
+    } catch(e) {}
+
+  } catch (err) {
+    console.warn("Real stories load failed, keeping demo data", err);
+  }
+})();
+
 </script>
 </body>
 </html>

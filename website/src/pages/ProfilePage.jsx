@@ -849,7 +849,7 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
               <div className="profile-about-bio">
                 <p>{me?.bio?.trim() || user?.bio?.trim() || "No bio yet. Add a few lines about yourself to make this profile your own."}</p>
               </div>
-                            <dl className="profile-about-details profile-about-details--list">
+              <dl className="profile-about-details profile-about-details--list">
                 {[
                   ["Name", name],
                   ["Email", me?.email || user?.email],
@@ -903,36 +903,45 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
                 <Link className="btn btn-primary" to="/write">Start writing</Link>
               </div>
             ) : null}
-            {!loading && stories.length ? <div className="profile-story-grid profile-story-grid--home-pack">
-              {stories.map((story) => {
-                const image = resolveAssetUrl(story.cover_path || story.coverPath || "");
-                const status = story.status_text || story.status || "Draft";
-                const updated = formatProfileDate(story.last_updated_at || story.updated_at);
-                const chapterCount = Number(story.published_chapter_count || story.chapter_count || 0);
-                const draftChapters = Number(story.draft_chapter_count || 0);
-                const rating = Number(story.rating || 0);
-                return (
-                  <Link key={story.id} to={`/write/${story.id}`} className="profile-story-card" aria-label={`Manage ${story.title || "Untitled story"}, ${status}`}>
-                    <span className="profile-story-cover-wrap">
-                      {image ? <img src={image} alt="" loading="lazy" decoding="async" /> : (
-                        <span className="profile-story-cover-fallback" aria-hidden="true">{(story.title || "N").charAt(0)}</span>
-                      )}
-                      <span className={`profile-story-status${/draft|private|unpublished|hidden/i.test(String(status)) ? " is-draft" : ""}`}>{status}</span>
-                    </span>
-                    <div className="psc-body">
-                      <div className="psc-title">{story.title || "Untitled story"}</div>
-                      <div className="profile-story-metrics">
-                        <span>{chapterCount} {chapterCount === 1 ? "chapter" : "chapters"}</span>
-                        {draftChapters ? <span>{draftChapters} {draftChapters === 1 ? "draft" : "drafts"}</span> : null}
-                        {rating > 0 ? <span aria-label={`Rating ${rating.toFixed(1)} out of 5`}>★ {rating.toFixed(1)}</span> : null}
+            {!loading && stories.length ? (
+              <div className="profile-story-grid profile-story-grid--home-pack" data-home-pack="true">
+                {stories.map((story) => {
+                  const image = resolveAssetUrl(story.cover_path || story.coverPath || "");
+                  const status = story.status_text || story.status || "Draft";
+                  const updated = formatProfileDate(story.last_updated_at || story.updated_at);
+                  const chapterCount = Number(story.published_chapter_count || story.chapter_count || 0);
+                  const draftChapters = Number(story.draft_chapter_count || 0);
+                  const rating = Number(story.rating || 0);
+                  return (
+                    <Link
+                      key={story.id}
+                      to={`/write/${story.id}`}
+                      className="profile-story-card profile-story-card--home-pack"
+                      aria-label={`Manage ${story.title || "Untitled story"}, ${status}`}
+                    >
+                      <span className="profile-story-cover-wrap">
+                        {image ? (
+                          <img src={image} alt="" loading="lazy" decoding="async" />
+                        ) : (
+                          <span className="profile-story-cover-fallback" aria-hidden="true">{(story.title || "N").charAt(0)}</span>
+                        )}
+                        <span className={`profile-story-status${/draft|private|unpublished|hidden/i.test(String(status)) ? " is-draft" : ""}`}>{status}</span>
+                      </span>
+                      <div className="psc-body">
+                        <div className="psc-title">{story.title || "Untitled story"}</div>
+                        <div className="profile-story-metrics">
+                          <span>{chapterCount} {chapterCount === 1 ? "chapter" : "chapters"}</span>
+                          {draftChapters ? <span>{draftChapters} {draftChapters === 1 ? "draft" : "drafts"}</span> : null}
+                          {rating > 0 ? <span aria-label={`Rating ${rating.toFixed(1)} out of 5`}>★ {rating.toFixed(1)}</span> : null}
+                        </div>
+                        {updated ? <time dateTime={story.last_updated_at || story.updated_at}>Updated {updated}</time> : null}
+                        <span className="profile-story-manage-link">Manage story <span aria-hidden="true">→</span></span>
                       </div>
-                      {updated ? <time dateTime={story.last_updated_at || story.updated_at}>Updated {updated}</time> : null}
-                      <span className="profile-story-manage-link">Manage story <span aria-hidden="true">→</span></span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div> : null}
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : null}
           </section>
         ) : !setupRequired && tab === "Wall" ? (
           <section className="profile-feed-section profile-tabpanel" id="profile-panel-wall" role="tabpanel" aria-labelledby="profile-tab-wall" tabIndex={0}>

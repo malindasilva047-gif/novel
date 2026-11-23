@@ -869,42 +869,78 @@ export default function ChapterPage({ user }) {
           ) : null}
 
           <div className="list-dropdown-wrap reader-list-wrap">
-            <button type="button" className="story-action-btn" onClick={onToggleList} aria-expanded={listOpen}>
-              🔖 Add to Reading List
+            <button
+              type="button"
+              className={`story-action-btn reader-list-trigger${listOpen ? " is-open" : ""}`}
+              onClick={onToggleList}
+              aria-expanded={listOpen}
+            >
+              <span className="reader-list-trigger-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M5 5.5A2.5 2.5 0 0 1 7.5 3h9A2.5 2.5 0 0 1 19 5.5V21l-7-3.5L5 21V5.5Z" /></svg>
+              </span>
+              <span>Add to Reading List</span>
             </button>
             {listOpen ? (
-              <div className="list-dropdown reader-list-dropdown" role="dialog" aria-label="Save story to your reading list">
-                <div className="list-dropdown-title">YOUR READING SPACE</div>
-                <p className="list-dropdown-note">Choose a reading list or create one for this story.</p>
-                {readingListsLoading ? <p className="list-dropdown-state">Loading your reading lists…</p> : null}
+              <div className="reader-list-panel" role="dialog" aria-label="Save story to your reading list">
+                <div className="reader-list-panel-head">
+                  <div>
+                    <span className="reader-list-panel-kicker">Library</span>
+                    <strong>Save to a list</strong>
+                  </div>
+                  <button type="button" className="reader-list-panel-close" aria-label="Close" onClick={() => setListOpen(false)}>×</button>
+                </div>
+                <p className="reader-list-panel-note">Pick an existing shelf or start a new one for this story.</p>
+                {readingListsLoading ? (
+                  <div className="reader-list-panel-loading" aria-live="polite">
+                    <span className="reader-list-spinner" aria-hidden="true" />
+                    Loading your lists…
+                  </div>
+                ) : null}
                 {!readingListsLoading && readingLists.length ? (
-                  <div className="list-dropdown-options">
+                  <div className="reader-list-panel-options" role="list">
                     {readingLists.map((list) => (
-                      <button key={list.id} type="button" className="list-dropdown-option" onClick={() => onAddList(list.id)}>
-                        <strong>{list.name || "Reading list"}</strong>
-                        <small>{Number(list.item_count || list.story_count || 0)} stories</small>
+                      <button
+                        key={list.id}
+                        type="button"
+                        className="reader-list-panel-option"
+                        role="listitem"
+                        onClick={() => onAddList(list.id)}
+                      >
+                        <span className="reader-list-panel-option-icon" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M5 5.5A2.5 2.5 0 0 1 7.5 3h9A2.5 2.5 0 0 1 19 5.5V21l-7-3.5L5 21V5.5Z" /></svg>
+                        </span>
+                        <span className="reader-list-panel-option-copy">
+                          <strong>{list.name || "Reading list"}</strong>
+                          <small>{Number(list.item_count || list.story_count || 0)} {Number(list.item_count || list.story_count || 0) === 1 ? "story" : "stories"}</small>
+                        </span>
+                        <span className="reader-list-panel-option-add" aria-hidden="true">+</span>
                       </button>
                     ))}
                   </div>
                 ) : null}
                 {!readingListsLoading && !readingLists.length ? (
-                  <p className="list-dropdown-state">No lists yet — create your first one below.</p>
+                  <div className="reader-list-panel-empty">
+                    <span aria-hidden="true">📚</span>
+                    <p>No lists yet. Create your first shelf below.</p>
+                  </div>
                 ) : null}
-                <form className="list-dropdown-create" onSubmit={onCreateList}>
-                  <label>
-                    <span className="sr-only">New list name</span>
+                <form className="reader-list-panel-create" onSubmit={onCreateList}>
+                  <label htmlFor="reader-new-list-name">New list name</label>
+                  <div className="reader-list-panel-create-row">
                     <input
+                      id="reader-new-list-name"
                       value={newListName}
                       onChange={(e) => setNewListName(e.target.value)}
-                      placeholder="New reading list name"
+                      placeholder="e.g. Weekend reads"
                       maxLength={80}
+                      autoComplete="off"
                     />
-                  </label>
-                  <button type="submit" className="btn btn-primary" disabled={creatingList}>
-                    {creatingList ? "Creating…" : "Create & add"}
-                  </button>
+                    <button type="submit" disabled={creatingList || !newListName.trim()}>
+                      {creatingList ? "Saving…" : "Create"}
+                    </button>
+                  </div>
                 </form>
-                {readingListsError ? <p className="list-dropdown-error" role="alert">{readingListsError}</p> : null}
+                {readingListsError ? <p className="reader-list-panel-error" role="alert">{readingListsError}</p> : null}
               </div>
             ) : null}
           </div>

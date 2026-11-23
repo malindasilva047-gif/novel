@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
+  addReadingListItem,
   addToReadingList,
+  createReadingList,
   getBook,
   getBookChapters,
   getBookLike,
   getChapterComments,
   getChapterReactions,
+  getReadingLists,
   recordChapterView,
   getLibrary,
   getToken,
@@ -83,6 +86,13 @@ export default function ChapterPage({ user }) {
   const [paraCounts, setParaCounts] = useState({});
   const [activePara, setActivePara] = useState(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
+  const [readingLists, setReadingLists] = useState([]);
+  const [readingListsLoading, setReadingListsLoading] = useState(false);
+  const [readingListsError, setReadingListsError] = useState("");
+  const [newListName, setNewListName] = useState("");
+  const [creatingList, setCreatingList] = useState(false);
+  const [chaptersExpanded, setChaptersExpanded] = useState(false);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [reactionCounts, setReactionCounts] = useState({});
@@ -627,17 +637,78 @@ export default function ChapterPage({ user }) {
     }
   }
 
-  async function onSaveList() {
-    if (!getToken() || guest) {
-      setMsg("Sign in to save");
+  async function onToggleList() {
+    if (listOpen) {
+      setListOpen(false);
       return;
     }
-    try {
-      await addToReadingList(Number(id));
-      setMsg("Saved to reading list");
-    } catch (err) {
-      setMsg(String(err.message || err));
+    if (!getToken() || guest) {
+      setMsg("Sign in to save to a reading list");
+      navigate("/login", { state: { returnTo: `/stories/${id}/chapters/${chapterId}` } });
+      return;
     }
+    setListOpen(true);
+    setReadingListsLoading(true);
+    setReadingListsError("");
+    try {
+      const result = await getReadingLists();
+      setReadingLists(Array.isArray(result) ? result : result?.items || []);
+    } catch (e) {
+      setReadingListsError(String(e.message || e));
+    } finally {
+      setReadingListsLoading(false);
+    }
+  }
+
+  async function onAddList(listId) {
+    try {
+      await addReadingListItem(listId, Number(id));
+      setMsg("Saved to your reading list.");
+      setListOpen(false);
+      try {
+        window.dispatchEvent(new CustomEvent("novelhub:reading-lists-changed"));
+      } catch {
+        /* ignore */
+      }
+    } catch (e) {
+      setReadingListsError(String(e.message || e));
+    }
+  }
+
+  async function onCreateList(event) {
+    event.preventDefault();
+    const name = newListName.trim();
+    if (!name) {
+      setReadingListsError("Enter a name for your reading list.");
+      return;
+    }
+    setCreatingList(true);
+    setReadingListsError("");
+    try {
+      await createReadingList({ name, sort_order: readingLists.length + 1 });
+      const response = await getReadingLists();
+      const lists = Array.isArray(response) ? response : response?.items || [];
+      setReadingLists(lists);
+      setNewListName("");
+      const created = lists.find((list) => String(list.name || "").trim().toLowerCase() === name.toLowerCase());
+      if (!created?.id) throw new Error("The list was created but could not be loaded. Choose it from your library.");
+      await addReadingListItem(created.id, Number(id));
+      setMsg(`Saved to "${name}".`);
+      setListOpen(false);
+      try {
+        window.dispatchEvent(new CustomEvent("novelhub:reading-lists-changed"));
+      } catch {
+        /* ignore */
+      }
+    } catch (e) {
+      setReadingListsError(String(e.message || e));
+    } finally {
+      setCreatingList(false);
+    }
+  }
+
+  async function onSaveList() {
+    await onToggleList();
   }
 
   async function onLike() {
@@ -739,6 +810,9 @@ export default function ChapterPage({ user }) {
       ? filterChapterComments(comments)
       : filterParagraphComments(comments, activePara);
   const chapterCommentsCount = filterChapterComments(comments).length;
+  const chapterOnlyComments = filterChapterComments(comments);
+  const midAdIndex = paragraphs.length > 2 ? Math.floor(paragraphs.length / 2) - 1 : -1;
+  const visibleChapterItems = chaptersExpanded || chapters.length <= 6 ? chapters : chapters.slice(0, 6);
 
   return (
     <div className={`inkitt-reader${warmPage ? " reader-warm" : ""}`}>
@@ -771,9 +845,70 @@ export default function ChapterPage({ user }) {
         </nav>
         <div className={`inkitt-reader-grid${authorId ? " has-author-rail" : ""}`}>
         <aside className="reader-actions">
-          <button type="button" className="story-action-btn" onClick={onSaveList}>
-            🔖 Add to Reading List
-          </button>
+          {authorId ? (
+            <section className="reader-author-card reader-author-card--side">
+              <span className="reader-author-kicker">THE AUTHOR</span>
+              <Link className="reader-author-profile" to={`/authors/${authorId}`}>
+                <span className="reader-author-avatar">
+                  {authorProfile?.photo_url || authorProfile?.avatar_url ? (
+                    <img
+                      src={resolveAssetUrl(authorProfile.photo_url || authorProfile.avatar_url)}
+                      alt=""
+                    />
+                  ) : (
+                    (authorProfile?.display_name || authorProfile?.username || book?.author_name || book?.author || "A")
+                      .trim().slice(0, 1).toUpperCase()
+                  )}
+                </span>
+                <strong>{authorProfile?.display_name || authorProfile?.username || book?.author_name || book?.author || "Author"}</strong>
+                {authorProfile?.username ? <small>@{String(authorProfile.username).replace(/^@+/, "")}</small> : null}
+              </Link>
+              {authorProfile?.bio ? <p>{authorProfile.bio}</p> : <p>Read more stories and updates from this author.</p>}
+              <Link className="reader-author-link" to={`/authors/${authorId}`}>View author profile <span aria-hidden="true">→</span></Link>
+            </section>
+          ) : null}
+
+          <div className="list-dropdown-wrap reader-list-wrap">
+            <button type="button" className="story-action-btn" onClick={onToggleList} aria-expanded={listOpen}>
+              🔖 Add to Reading List
+            </button>
+            {listOpen ? (
+              <div className="list-dropdown reader-list-dropdown" role="dialog" aria-label="Save story to your reading list">
+                <div className="list-dropdown-title">YOUR READING SPACE</div>
+                <p className="list-dropdown-note">Choose a reading list or create one for this story.</p>
+                {readingListsLoading ? <p className="list-dropdown-state">Loading your reading lists…</p> : null}
+                {!readingListsLoading && readingLists.length ? (
+                  <div className="list-dropdown-options">
+                    {readingLists.map((list) => (
+                      <button key={list.id} type="button" className="list-dropdown-option" onClick={() => onAddList(list.id)}>
+                        <strong>{list.name || "Reading list"}</strong>
+                        <small>{Number(list.item_count || list.story_count || 0)} stories</small>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                {!readingListsLoading && !readingLists.length ? (
+                  <p className="list-dropdown-state">No lists yet — create your first one below.</p>
+                ) : null}
+                <form className="list-dropdown-create" onSubmit={onCreateList}>
+                  <label>
+                    <span className="sr-only">New list name</span>
+                    <input
+                      value={newListName}
+                      onChange={(e) => setNewListName(e.target.value)}
+                      placeholder="New reading list name"
+                      maxLength={80}
+                    />
+                  </label>
+                  <button type="submit" className="btn btn-primary" disabled={creatingList}>
+                    {creatingList ? "Creating…" : "Create & add"}
+                  </button>
+                </form>
+                {readingListsError ? <p className="list-dropdown-error" role="alert">{readingListsError}</p> : null}
+              </div>
+            ) : null}
+          </div>
+
           <Link className="story-action-btn story-action-primary" to={`/stories/${id}/review`}>
             Write a Review
           </Link>
@@ -827,9 +962,12 @@ export default function ChapterPage({ user }) {
             {paragraphs.length ? (
               paragraphs.map((p, i) => {
                 const count = Number(paraCounts[i] || paraCounts[String(i)] || 0);
+                const paraLikeLabel = `paragraph:${i}:Like`;
+                const paraLiked = Array.isArray(mine) && mine.includes(paraLikeLabel);
                 return (
-                  <div key={i} className="para-row">
-                    <p className="para-text" data-reader-paragraph={i}>{renderRichTextNodes(p.nodes, `chapter-${i}`)}</p>
+                <div key={i} className="para-block">
+                  <div className={`para-row${count > 0 ? " has-comments" : ""}${paraLiked ? " is-liked" : ""}`}>
+                    <p className={`para-text${count > 0 || paraLiked ? " has-comments" : ""}`} data-reader-paragraph={i}>{renderRichTextNodes(p.nodes, `chapter-${i}`)}</p>
                     <div className="para-actions" aria-label={`Paragraph ${i + 1} actions`}>
                       <button
                         type="button"
@@ -865,27 +1003,18 @@ export default function ChapterPage({ user }) {
                       })()}
                     </div>
                   </div>
+                  {i === midAdIndex ? (
+                    <aside className="reader-ad-slot reader-ad-slot-mid" aria-label="Advertisement placement">
+                      <strong>Advertisement</strong><span>Sponsored placement</span>
+                    </aside>
+                  ) : null}
+                </div>
                 );
               })
             ) : (
               <p className="meta">Empty chapter.</p>
             )}
           </div>
-          <aside className="reader-ad-slot" aria-label="Advertisement placement">
-            <strong>Advertisement</strong><span>Reserved space — does not interrupt reading</span>
-          </aside>
-
-          <section className="chapter-discussion-entry" aria-label="Chapter discussion">
-            <div>
-              <span className="eyebrow">CHAPTER DISCUSSION</span>
-              <h2>Talk about this chapter</h2>
-            </div>
-            <button type="button" className="btn btn-ghost" onClick={openChapterComments}>
-              💬 Chapter comments ({chapterCommentsCount})
-            </button>
-          </section>
-
-          <div className="chapter-divider">〰</div>
 
           <div className="reader-nav">
             {prev ? (
@@ -905,9 +1034,98 @@ export default function ChapterPage({ user }) {
               </button>
             )}
           </div>
-          <aside className="reader-ad-slot reader-ad-slot-bottom" aria-label="Advertisement placement">
-            <strong>Advertisement</strong><span>Reserved space</span>
-          </aside>
+
+          <section className="chapter-discussion-entry" aria-label="Chapter discussion">
+            <div>
+              <span className="eyebrow">CHAPTER DISCUSSION</span>
+              <h2>Talk about this chapter</h2>
+            </div>
+            <button type="button" className="btn btn-ghost" onClick={openChapterComments}>
+              💬 Open discussion ({chapterCommentsCount})
+            </button>
+          </section>
+
+          <section className="chapter-discussion-thread" aria-label="Chapter comments">
+            {chapterOnlyComments.length ? (
+              <ul className="comment-thread comment-thread--inline">
+                {chapterOnlyComments.map((c) => (
+                  <li key={c.id} className="comment-card">
+                    <span className="comment-avatar" aria-hidden="true">{(c.display_name || "Reader").trim().slice(0, 1).toUpperCase()}</span>
+                    <div className="comment-card-content">
+                      <div className="comment-card-meta">
+                        <strong>{c.display_name || "Reader"}</strong>
+                        <time dateTime={c.created_at || undefined}>{formatCommentDate(c.created_at)}</time>
+                      </div>
+                      <p>{c.content || c.body || c.text || ""}</p>
+                      <button
+                        type="button"
+                        className={`comment-like${c.liked ? " is-liked" : ""}`}
+                        onClick={() => onCommentLike(c)}
+                        disabled={Boolean(commentLikeBusy[c.id])}
+                        aria-pressed={Boolean(c.liked)}
+                      >
+                        <span aria-hidden="true">♥</span> {Number(c.like_count || 0)}
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="comment-empty-inline meta">No chapter comments yet. Be the first to share your thoughts.</p>
+            )}
+            {(!isStoryOwner) ? (
+              <form className="comment-compose comment-compose--inline" onSubmit={async (e) => {
+                e.preventDefault();
+                setActivePara(null);
+                // force chapter-level after state flush via direct post
+                if (!getToken() || guest) {
+                  setCommentMsg("Sign in to comment.");
+                  return;
+                }
+                if (!draft.trim()) {
+                  setCommentMsg("Write a comment before posting.");
+                  return;
+                }
+                setBusy(true);
+                setCommentMsg("");
+                try {
+                  await postChapterComment(id, chapterNumber, {
+                    body: draft.trim(),
+                    paragraph_index: -1,
+                  });
+                  setDraft("");
+                  await loadComments(chapterNumber);
+                  setCommentMsg("Comment posted.");
+                } catch (err) {
+                  setCommentMsg(String(err.message || err));
+                } finally {
+                  setBusy(false);
+                }
+              }}>
+                <textarea
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder={guest ? "Sign in to write a comment…" : "Write a chapter comment…"}
+                  disabled={guest}
+                  rows={3}
+                  maxLength={2000}
+                  aria-label="Write a chapter comment"
+                />
+                <div className="comment-compose-footer">
+                  {guest ? (
+                    <Link to="/login" state={{ returnTo: `/stories/${id}/chapters/${chapterId}` }}>Sign in to join the conversation</Link>
+                  ) : (
+                    <span>{draft.length}/2000</span>
+                  )}
+                  <button type="submit" className="btn btn-primary" disabled={guest || busy || !draft.trim()}>
+                    {busy ? "Posting…" : "Post comment"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <p className="comment-form-status meta">You own this story. Reader chapter comments appear here.</p>
+            )}
+          </section>
 
           <section className="reactions-grid-wrap">
             <h3>Reactions</h3>
@@ -950,7 +1168,7 @@ export default function ChapterPage({ user }) {
               <span className="reader-chapters-current">Part {chapterNumber} <i aria-hidden="true">⌄</i></span>
             </summary>
             <ol className="reader-chapter-list">
-              {chapters.map((item, index) => {
+              {visibleChapterItems.map((item, index) => {
                 const accessIndex = guestChapterOrder.get(String(item.id)) ?? index;
                 const locked = guest && !isChapterAllowedForGuest(accessIndex);
                 const selected = String(item.id) === String(chapterId);
@@ -974,29 +1192,16 @@ export default function ChapterPage({ user }) {
                 );
               })}
             </ol>
+            {chapters.length > 6 ? (
+              <button
+                type="button"
+                className="reader-chapters-more"
+                onClick={() => setChaptersExpanded((open) => !open)}
+              >
+                {chaptersExpanded ? "Show less" : `See more (${chapters.length - 6} more)`}
+              </button>
+            ) : null}
           </details>
-          {authorId ? (
-            <section className="reader-author-card">
-              <span className="reader-author-kicker">THE AUTHOR</span>
-              <Link className="reader-author-profile" to={`/authors/${authorId}`}>
-                <span className="reader-author-avatar">
-                  {authorProfile?.photo_url || authorProfile?.avatar_url ? (
-                    <img
-                      src={resolveAssetUrl(authorProfile.photo_url || authorProfile.avatar_url)}
-                      alt=""
-                    />
-                  ) : (
-                    (authorProfile?.display_name || authorProfile?.username || book?.author_name || book?.author || "A")
-                      .trim().slice(0, 1).toUpperCase()
-                  )}
-                </span>
-                <strong>{authorProfile?.display_name || authorProfile?.username || book?.author_name || book?.author || "Author"}</strong>
-                {authorProfile?.username ? <small>@{String(authorProfile.username).replace(/^@+/, "")}</small> : null}
-              </Link>
-              {authorProfile?.bio ? <p>{authorProfile.bio}</p> : <p>Read more stories and updates from this author.</p>}
-              <Link className="reader-author-link" to={`/authors/${authorId}`}>View author profile <span aria-hidden="true">→</span></Link>
-            </section>
-          ) : null}
         </aside>
 
       </div>

@@ -322,12 +322,13 @@ export default function AuthorPage({ user }) {
   }
 
   return (
-    <main className="author-public-page profile-page">
+    <div className="profile-page author-public-page">
       <div
         className={`profile-cover author-public-cover ${cover ? "has-image" : ""}`}
-        style={cover ? { backgroundImage: `linear-gradient(180deg,rgba(11,10,18,.1),rgba(11,10,18,.92)),url("${cover.replace(/["\\\n\r]/g, "")}")` } : undefined}
-        aria-hidden="true"
-      />
+        style={cover ? { backgroundImage: `linear-gradient(90deg, rgba(15, 11, 24, .45), rgba(15, 11, 24, .1)), url("${String(cover).replace(/"/g, '')}")` } : undefined}
+      >
+        <div className="profile-cover-glow" />
+      </div>
       <div className="profile-layout author-public-content">
         {error ? <div className="error-banner" role="alert">{error}</div> : null}
         <section className="profile-heading card-panel author-public-heading">
@@ -490,7 +491,15 @@ export default function AuthorPage({ user }) {
               <label><span className="visually-hidden">Filter stories by status</span><select value={storyFilter} onChange={(event) => setStoryFilter(event.target.value)}><option>All stories</option><option>Ongoing</option><option>Completed</option></select></label>
               <label><span className="visually-hidden">Sort stories</span><select value={storySort} onChange={(event) => setStorySort(event.target.value)}><option>Recently updated</option><option>Most read</option><option>Highest rated</option></select></label>
             </div>
-            {visibleBooks.length ? <div className="trending-grid">{visibleBooks.map((book, index) => <div className="trending-cell" key={book.id || `${book.title}-${index}`}><BookCard book={book} variant="grid" /></div>)}</div> : (
+            {visibleBooks.length ? (
+              <div className="profile-story-grid profile-story-grid--home-pack author-public-story-grid">
+                {visibleBooks.map((book, index) => (
+                  <div className="profile-home-story-slot home-story-card-slot" key={book.id || `${book.title}-${index}`}>
+                    <BookCard book={book} variant="shelf" inkittStyle showRating showStatus />
+                  </div>
+                ))}
+              </div>
+            ) : (
               <div className="author-public-empty card-panel"><span className="eyebrow">{books.length ? "NO MATCHES" : "A NEW CHAPTER"}</span><h3>{books.length ? "No stories match those filters" : "No public stories yet"}</h3><p className="meta">{books.length ? "Try another search or status filter." : `Check back soon to see what ${name} shares next.`}</p>{!books.length ? <Link className="btn btn-ghost" to="/">Browse stories</Link> : null}</div>
             )}
           </section>
@@ -543,6 +552,6 @@ export default function AuthorPage({ user }) {
           </section>
         ) : null}
       </div>
-    </main>
+    </div>
   );
 }

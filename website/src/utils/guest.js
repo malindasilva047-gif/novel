@@ -1,5 +1,16 @@
-/** Guest users may open only the first N chapters of a story. */
-export const GUEST_CHAPTER_LIMIT = 2;
+/** Guest users may open only the first N chapters of a story. Set to 0 = must sign in to read. */
+export const GUEST_CHAPTER_LIMIT = 0;
+
+/** Module-level flag kept in sync by App so leaf components (e.g. BookCard) can gate without prop drilling. */
+let _guestSession = true;
+
+export function setGuestSession(isGuest) {
+  _guestSession = Boolean(isGuest);
+}
+
+export function isGuestSession() {
+  return _guestSession;
+}
 
 export function isGuestUser(user) {
   if (!user) return true;
@@ -22,4 +33,24 @@ export function getGuestChapterOrder(chapters) {
       })
       .map((chapter, index) => [String(chapter.id), index]),
   );
+}
+
+/**
+ * Paths guests may open without signing in (browse-only).
+ * Everything else should redirect to /login with returnTo.
+ */
+export function guestCanAccessPath(pathname = "") {
+  const path = String(pathname || "/").split("?")[0] || "/";
+  if (path === "/" || path === "/discover" || path === "/login") return true;
+  if (path.startsWith("/genres/")) return true;
+  if (path.startsWith("/tags/")) return true;
+  if (path.startsWith("/authors/")) return true;
+  if (path === "/audiobooks" || path === "/contests" || path === "/community" || path === "/subscription") return true;
+  // Story detail (synopsis / cover) is viewable; reading chapters is not.
+  if (/^\/stories\/\d+$/.test(path)) return true;
+  if (/^\/stories\/\d+\/reviews$/.test(path)) return true;
+  // Public legal / help
+  if (path === "/account/help" || path === "/account/contact") return true;
+  if (path === "/account/terms" || path === "/account/privacy" || path === "/account/cookies") return true;
+  return false;
 }

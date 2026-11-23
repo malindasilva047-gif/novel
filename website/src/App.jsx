@@ -7,7 +7,8 @@ import ToastViewport from "./components/ToastViewport";
 import SiteChrome from "./components/SiteChrome";
 import YouMayAlsoLike from "./components/YouMayAlsoLike";
 import { getMe, guestLogin, setToken, getToken, clearToken, revokeCurrentSession, initializeWebSession } from "./api";
-import { isGuestUser } from "./utils/guest";
+import { isGuestUser, setGuestSession } from "./utils/guest";
+import RequireAuth from "./components/RequireAuth";
 
 const HomePage = lazy(() => import("./pages/HomePage"));
 const AudiobooksPage = lazy(() => import("./pages/AudiobooksPage"));
@@ -151,6 +152,10 @@ export default function App() {
   }, [refreshUser]);
 
   useEffect(() => {
+    setGuestSession(isGuestUser(user));
+  }, [user]);
+
+  useEffect(() => {
     document.body.classList.toggle("focus-workspace", focusWorkspace);
     document.body.classList.toggle("guest-landing-mode", guestLanding);
     document.documentElement.classList.toggle("guest-landing-mode", guestLanding);
@@ -195,7 +200,7 @@ export default function App() {
     <div className="app-shell">
       <div ref={cursorAuraRef} className="site-cursor-aura" aria-hidden="true" />
       <ToastViewport />
-      {!focusWorkspace && !guestLanding && <Header user={user} onLogout={handleLogout} onAuthSuccess={handleLoginSuccess} />}
+      {!focusWorkspace && <Header user={user} onLogout={handleLogout} onAuthSuccess={handleLoginSuccess} />}
       <main className={`main${guestLanding ? " main--guest-landing" : ""}`}>
         {bootLoading ? (
           <div className="page-loading">Loading…</div>
@@ -210,43 +215,45 @@ export default function App() {
                 <Route path="/genres/:genre" element={<GenrePage />} />
                 <Route path="/tags/*" element={<TagPage user={user} />} />
                 <Route path="/stories/:id" element={<StoryPage user={user} />} />
-                <Route path="/stories/:id/review" element={<ReviewPage user={user} />} />
+                <Route path="/stories/:id/review" element={<RequireAuth user={user}><ReviewPage user={user} /></RequireAuth>} />
                 <Route path="/stories/:id/reviews" element={<ReviewsPage user={user} />} />
-                <Route path="/stories/:id/chapters/:chapterId" element={<ChapterPage user={user} />} />
+                <Route path="/stories/:id/chapters/:chapterId" element={<RequireAuth user={user}><ChapterPage user={user} /></RequireAuth>} />
                 <Route path="/authors/:authorId" element={<AuthorPage user={user} />} />
-                <Route path="/library" element={<LibraryPage user={user} />} />
-                <Route path="/write" element={<WritePage user={user} />} />
-                <Route path="/write/analytics" element={<WriterAnalyticsPage user={user} />} />
-                <Route path="/write/new" element={<StoryDetailsPage user={user} />} />
-                <Route path="/write/:storyId" element={<StoryEditorPage user={user} />} />
-                <Route path="/edit/:storyId" element={<StoryEditorPage user={user} />} />
-                <Route path="/write/stories/:storyId" element={<StoryEditorPage user={user} />} />
-                <Route path="/manage-stories" element={<ManageStoriesPage user={user} />} />
+                <Route path="/library" element={<RequireAuth user={user}><LibraryPage user={user} /></RequireAuth>} />
+                <Route path="/write" element={<RequireAuth user={user}><WritePage user={user} /></RequireAuth>} />
+                <Route path="/write/analytics" element={<RequireAuth user={user}><WriterAnalyticsPage user={user} /></RequireAuth>} />
+                <Route path="/write/new" element={<RequireAuth user={user}><StoryDetailsPage user={user} /></RequireAuth>} />
+                <Route path="/write/:storyId" element={<RequireAuth user={user}><StoryEditorPage user={user} /></RequireAuth>} />
+                <Route path="/edit/:storyId" element={<RequireAuth user={user}><StoryEditorPage user={user} /></RequireAuth>} />
+                <Route path="/write/stories/:storyId" element={<RequireAuth user={user}><StoryEditorPage user={user} /></RequireAuth>} />
+                <Route path="/manage-stories" element={<RequireAuth user={user}><ManageStoriesPage user={user} /></RequireAuth>} />
                 <Route path="/login" element={<LoginPage onSuccess={handleLoginSuccess} />} />
                 <Route
                   path="/profile"
                   element={
-                    <ProfilePage
-                      user={user}
-                      onLogout={handleLogout}
-                      setupRequired={profileSetupRequired}
-                      onProfileComplete={() => {
-                        sessionStorage.removeItem("novelhub_profile_setup_user");
-                        setProfileSetupRequired(false);
-                        navigate("/", { replace: true });
-                      }}
-                    />
+                    <RequireAuth user={user}>
+                      <ProfilePage
+                        user={user}
+                        onLogout={handleLogout}
+                        setupRequired={profileSetupRequired}
+                        onProfileComplete={() => {
+                          sessionStorage.removeItem("novelhub_profile_setup_user");
+                          setProfileSetupRequired(false);
+                          navigate("/", { replace: true });
+                        }}
+                      />
+                    </RequireAuth>
                   }
                 />
-                <Route path="/notifications" element={<NotificationsPage user={user} />} />
-                <Route path="/account" element={<AccountPage user={user} onLogout={handleLogout} />} />
+                <Route path="/notifications" element={<RequireAuth user={user}><NotificationsPage user={user} /></RequireAuth>} />
+                <Route path="/account" element={<RequireAuth user={user}><AccountPage user={user} onLogout={handleLogout} /></RequireAuth>} />
                 <Route path="/account/help" element={<AccountHelp />} />
                 <Route path="/account/contact" element={<AccountContact user={user} />} />
-                <Route path="/account/stats" element={<AccountStats user={user} />} />
-                <Route path="/account/notifications" element={<AccountNotifications />} />
-                <Route path="/account/language" element={<AccountLanguage />} />
-                <Route path="/account/genres" element={<AccountGenres />} />
-                <Route path="/account/warnings" element={<AccountWarnings />} />
+                <Route path="/account/stats" element={<RequireAuth user={user}><AccountStats user={user} /></RequireAuth>} />
+                <Route path="/account/notifications" element={<RequireAuth user={user}><AccountNotifications /></RequireAuth>} />
+                <Route path="/account/language" element={<RequireAuth user={user}><AccountLanguage /></RequireAuth>} />
+                <Route path="/account/genres" element={<RequireAuth user={user}><AccountGenres /></RequireAuth>} />
+                <Route path="/account/warnings" element={<RequireAuth user={user}><AccountWarnings /></RequireAuth>} />
                 <Route path="/account/terms" element={<AccountLegal kind="terms" />} />
                 <Route path="/account/privacy" element={<AccountLegal kind="privacy" />} />
                 <Route path="/account/cookies" element={<AccountLegal kind="cookies" />} />
@@ -264,7 +271,7 @@ export default function App() {
       </main>
       {!bootLoading && !recommendationsExcluded ? <YouMayAlsoLike excludeId={currentStoryId} title={readingFocus || storyReviewForm ? "Browse stories" : "Recommended for your next read"} compact={readingFocus} /> : null}
       {!bootLoading && minimalHome && !guestLanding ? <HomePageCTA /> : null}
-      {!bootLoading && !guestLanding && <Footer />}
+      {!bootLoading && !focusWorkspace && <Footer user={user} />}
     </div>
   );
 }

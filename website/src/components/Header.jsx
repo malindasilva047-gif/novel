@@ -386,7 +386,22 @@ export default function Header({ user, onLogout, onAuthSuccess }) {
               <strong>{isGuest ? "Find your next favorite story." : `Welcome back${profileName ? `, ${profileName.split(" ")[0]}` : ""}.`}</strong>
               <small>Read, explore, and create with Wingsaga.</small>
             </div>
-            {MAIN_NAV.map((item) => (
+            {MAIN_NAV.map((item) => {
+              const needsAuth = item.to === "/library";
+              if (isGuest && needsAuth) {
+                return (
+                  <NavLink
+                    key={item.to}
+                    to="/login"
+                    state={{ returnTo: item.to, authMode: "signin" }}
+                    className={() => ""}
+                    onClick={closeMenu}
+                  >
+                    <span>{item.label}</span>
+                  </NavLink>
+                );
+              }
+              return (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -396,7 +411,8 @@ export default function Header({ user, onLogout, onAuthSuccess }) {
               >
                 <span>{item.label}</span>
               </NavLink>
-            ))}
+              );
+            })}
 
             <div className={`nav-dropdown nav-genres-dropdown${genresOpen ? " open" : ""}${location.pathname.startsWith("/genres/") ? " active" : ""}`} ref={genresRef}>
               <button type="button" className="nav-dropdown-btn" aria-haspopup="true" aria-expanded={genresOpen} onClick={() => setGenresOpen((open) => !open)}>
@@ -543,8 +559,17 @@ export default function Header({ user, onLogout, onAuthSuccess }) {
               </button>
               {writeOpen ? (
                 <div className="header-write-dropdown" id="header-write-dropdown" role="menu" aria-label="Writing options">
-                  <Link role="menuitem" to="/write/new" onClick={closeMenu}>＋ New Story</Link>
-                  <Link role="menuitem" to="/write" onClick={closeMenu}>Writing Desk</Link>
+                  {isGuest ? (
+                    <>
+                      <Link role="menuitem" to="/login" state={{ returnTo: "/write/new", authMode: "signin" }} onClick={closeMenu}>＋ New Story</Link>
+                      <Link role="menuitem" to="/login" state={{ returnTo: "/write", authMode: "signin" }} onClick={closeMenu}>Writing Desk</Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link role="menuitem" to="/write/new" onClick={closeMenu}>＋ New Story</Link>
+                      <Link role="menuitem" to="/write" onClick={closeMenu}>Writing Desk</Link>
+                    </>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -641,7 +666,7 @@ export default function Header({ user, onLogout, onAuthSuccess }) {
               </button>
               {moreOpen && (
                 <div className="header-more-menu" role="menu">
-                  <Link role="menuitem" to="/library" onClick={closeMenu}>My library</Link>
+                  {isGuest ? <Link role="menuitem" to="/login" state={{ returnTo: "/library", authMode: "signin" }} onClick={closeMenu}>My library</Link> : <Link role="menuitem" to="/library" onClick={closeMenu}>My library</Link>}
                   {user && !isGuest ? <Link role="menuitem" to="/profile" onClick={closeMenu}>My profile</Link> : null}
                   <Link role="menuitem" to="/notifications" onClick={closeMenu}>Notifications</Link>
                   <Link role="menuitem" to="/account" onClick={closeMenu}>Account & settings</Link>

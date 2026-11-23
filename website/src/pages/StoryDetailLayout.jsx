@@ -143,13 +143,21 @@ export default function StoryDetailLayout({
           </div>
           <div className="story-detail-actions">
             {startLink
-              ? <Link className="story-detail-read" to={startLink}>
-                  <span className="story-detail-read-copy">
-                    <strong>{canResume ? "Continue reading" : "Start reading"}</strong>
-                    {canResume && resumeChapter ? <small>Last read: Chapter {resumeChapterNumber}, paragraph {resumeParagraph + 1}</small> : null}
-                  </span>
-                  <span className="story-detail-read-arrow" aria-hidden="true">&#8594;</span>
-                </Link>
+              ? (guest
+                ? <Link className="story-detail-read" to="/login" state={{ returnTo: startLink, authMode: "signin" }}>
+                    <span className="story-detail-read-copy">
+                      <strong>Sign in to read</strong>
+                      <small>Create a free account to start this story</small>
+                    </span>
+                    <span className="story-detail-read-arrow" aria-hidden="true">&#8594;</span>
+                  </Link>
+                : <Link className="story-detail-read" to={startLink}>
+                    <span className="story-detail-read-copy">
+                      <strong>{canResume ? "Continue reading" : "Start reading"}</strong>
+                      {canResume && resumeChapter ? <small>Last read: Chapter {resumeChapterNumber}, paragraph {resumeParagraph + 1}</small> : null}
+                    </span>
+                    <span className="story-detail-read-arrow" aria-hidden="true">&#8594;</span>
+                  </Link>)
               : <span className="story-detail-no-chapters">No chapters published yet</span>}
             <button type="button" className={"story-detail-secondary" + (liked ? " is-active" : "")} onClick={onLike}>{liked ? "♥ Liked" : "♡ Like story"}</button>
             <div className="list-dropdown-wrap story-detail-list-wrap">

@@ -49,7 +49,9 @@ function SocialIcon({ name }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>;
 }
 
-export default function Footer() {
+export default function Footer({ user = null }) {
+  const guest = !user || String(user.provider || "").toLowerCase() === "guest" || String(user.email || "").toLowerCase().includes("guest");
+  const loginState = (returnTo) => ({ returnTo, authMode: "signin" });
   return (
     <footer className="site-footer site-footer--novelhub ws-footer-wrapper">
       <div className="ws-footer-container">
@@ -95,7 +97,11 @@ export default function Footer() {
           </nav>
           <nav className="ws-footer-link-group" aria-label="Creators">
             <h3>Creators</h3>
-            <Link to="/write">Write Studio</Link>
+            {guest ? (
+              <Link to="/login" state={loginState("/write")}>Write Studio</Link>
+            ) : (
+              <Link to="/write">Write Studio</Link>
+            )}
             <Link to="/account/help">Content guidelines</Link>
           </nav>
           <nav className="ws-footer-link-group" aria-label="Platform">

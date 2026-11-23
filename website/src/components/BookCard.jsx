@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { resolveAssetUrl } from "../api";
+import { isGuestSession } from "../utils/guest";
 
 export default function BookCard({ book, variant = "shelf", link = true, immersive = false, coverOverlay = null, cardFooter = null, showRating = true, showStatus = true, inkittStyle = false }) {
   const [failedCover, setFailedCover] = useState("");
@@ -95,16 +96,25 @@ export default function BookCard({ book, variant = "shelf", link = true, immersi
   if (!link) {
     return <div className={className}>{body}</div>;
   }
+  const goToBook = () => {
+    // Guests must sign in before opening a book (Inkitt-style gate, stricter read lock).
+    if (isGuestSession()) {
+      navigate("/login", { state: { returnTo: to, authMode: "signin" } });
+      return;
+    }
+    navigate(to);
+  };
+
   return (
     <article
       className={className}
       role="link"
       tabIndex={0}
-      onClick={() => navigate(to)}
+      onClick={goToBook}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          navigate(to);
+          goToBook();
         }
       }}
     >

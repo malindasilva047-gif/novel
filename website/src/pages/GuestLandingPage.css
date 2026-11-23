@@ -1,16 +1,23 @@
-/* Host only — full design CSS lives inside Shadow DOM */
+/* Guest landing iframe host — full page, no chrome gaps */
 body.guest-landing-mode {
   overflow-x: hidden;
   margin: 0;
   padding: 0;
+  background: #fff;
 }
+
 body.guest-landing-mode .main--guest-landing {
   padding: 0 !important;
   max-width: none !important;
   margin: 0 !important;
+  width: 100% !important;
 }
-.guest-landing-host {
+
+.guest-landing-frame {
   display: block;
   width: 100%;
   min-height: 100vh;
+  border: 0;
+  background: #fff;
+  vertical-align: top;
 }

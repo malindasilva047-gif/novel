@@ -18085,3 +18085,31 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .main .profile-page .profile-story-grid--home-pack {
   grid-template-columns: repeat(auto-fill, var(--profile-story-card-width, 140px)) !important;
 }
+
+
+/* PROFILE ABOUT LIST FORCE — kill card boxes from earlier theme rules */
+.main .profile-page .profile-about-details,
+.main .profile-page .profile-about-details--list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.main .profile-page .profile-about-details > div,
+.main .profile-page .profile-about-details--list > div,
+.main .profile-page .profile-about-details .profile-about-row,
+.main .profile-page .profile-about-details--list .profile-about-row {
+  border: 0 !important;
+  border-bottom: 1px solid var(--site-line, #E5E7EB) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 14px 0 !important;
+}
+.main .profile-page .profile-about-social-block {
+  display: block !important;
+  margin-top: 8px !important;
+  padding-top: 20px !important;
+  border-top: 1px solid var(--site-line, #E5E7EB) !important;
+}

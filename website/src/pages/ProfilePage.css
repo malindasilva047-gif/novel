@@ -755,11 +755,8 @@
   }
 }
 
-/* PROFILE_ABOUT_LIST_VIEW — forced list rows + social under details */
-.main .profile-page .profile-about.card-panel {
-  display: block !important;
-}
 
+/* ===== PROFILE ABOUT = TRUE LIST VIEW (kill card boxes) ===== */
 .main .profile-page .profile-about-details,
 .main .profile-page .profile-about-details--list {
   display: flex !important;
@@ -767,67 +764,101 @@
   gap: 0 !important;
   margin: 18px 0 0 !important;
   padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
-.main .profile-page .profile-about-details--list .profile-about-row,
-.main .profile-page .profile-about-details .profile-about-row {
+.main .profile-page .profile-about-details > div,
+.main .profile-page .profile-about-details--list > div,
+.main .profile-page .profile-about-details .profile-about-row,
+.main .profile-page .profile-about-details--list .profile-about-row {
   display: grid !important;
-  grid-template-columns: minmax(120px, 180px) minmax(0, 1fr) !important;
+  grid-template-columns: minmax(140px, 200px) minmax(0, 1fr) !important;
   gap: 12px !important;
   align-items: baseline !important;
   margin: 0 !important;
-  padding: 12px 0 !important;
+  padding: 14px 0 !important;
+  border: 0 !important;
   border-bottom: 1px solid var(--site-line) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
-.main .profile-page .profile-about-details--list .profile-about-row:last-child,
-.main .profile-page .profile-about-details .profile-about-row:last-child {
+.main .profile-page .profile-about-details > div:last-child,
+.main .profile-page .profile-about-details--list > div:last-child,
+.main .profile-page .profile-about-details .profile-about-row:last-child,
+.main .profile-page .profile-about-details--list .profile-about-row:last-child {
   border-bottom: 0 !important;
 }
 
+.main .profile-page .profile-about-details dt,
 .main .profile-page .profile-about-details--list dt,
-.main .profile-page .profile-about-details dt {
+.main .profile-page .profile-about-details > div > span:first-child,
+.main .profile-page .profile-about-details > div > :first-child {
   margin: 0 !important;
   color: var(--site-muted) !important;
   font-size: .78rem !important;
   font-weight: 650 !important;
+  background: transparent !important;
 }
 
+.main .profile-page .profile-about-details dd,
 .main .profile-page .profile-about-details--list dd,
-.main .profile-page .profile-about-details dd {
+.main .profile-page .profile-about-details > div > strong,
+.main .profile-page .profile-about-details > div > :last-child {
   margin: 0 !important;
   color: var(--site-ink) !important;
   font-size: .92rem !important;
   font-weight: 600 !important;
+  background: transparent !important;
 }
 
+/* Social ALWAYS under location / published / drafts list */
 .main .profile-page .profile-about-social-block {
   display: block !important;
-  margin-top: 22px !important;
-  padding-top: 18px !important;
+  order: 99 !important;
+  margin-top: 8px !important;
+  padding-top: 20px !important;
   border-top: 1px solid var(--site-line) !important;
+  background: transparent !important;
 }
 
 .main .profile-page .profile-about-social-title {
   margin: 0 0 12px !important;
+  color: var(--site-ink) !important;
   font-size: .95rem !important;
   font-weight: 700 !important;
 }
 
 .main .profile-page .profile-about-social-block .profile-social-links {
   display: grid !important;
+  grid-template-columns: 1fr !important;
   gap: 8px !important;
 }
 
-@media (max-width: 560px) {
-  .main .profile-page .profile-about-details--list .profile-about-row,
-  .main .profile-page .profile-about-details .profile-about-row {
-    grid-template-columns: 1fr !important;
-    gap: 4px !important;
-    padding: 10px 0 !important;
-  }
+.main .profile-page .profile-about-social-block .profile-social-links > a {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 10px 12px !important;
+  border: 1px solid var(--site-line) !important;
+  border-radius: 12px !important;
+  background: var(--site-card, #fff) !important;
+  text-decoration: none !important;
 }
 
+@media (max-width: 560px) {
+  .main .profile-page .profile-about-details > div,
+  .main .profile-page .profile-about-details--list > div,
+  .main .profile-page .profile-about-details .profile-about-row,
+  .main .profile-page .profile-about-details--list .profile-about-row {
+    grid-template-columns: 1fr !important;
+    gap: 4px !important;
+    padding: 12px 0 !important;
+  }
+}
 
 /* Extra specificity: individual home-pack card class */
 .main .profile-page a.profile-story-card--home-pack,

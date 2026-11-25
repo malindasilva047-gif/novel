@@ -626,6 +626,7 @@ function mergeUniqueBooks(...groups) {
 function DiscoveryHero({ books, curated, guest, libraryIds, onSave, savingId, saveError }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [backgroundImages, setBackgroundImages] = useState([]);
+  const [heroPaused, setHeroPaused] = useState(false);
   const slides = books.slice(0, 5);
   const slideIndex = activeIndex % Math.max(slides.length, 1);
   const feature = slides[slideIndex];
@@ -661,6 +662,14 @@ function DiscoveryHero({ books, curated, guest, libraryIds, onSave, savingId, sa
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    if (heroPaused || slides.length < 2) return undefined;
+    const timer = window.setInterval(() => {
+      setActiveIndex((index) => (index + 1) % slides.length);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [heroPaused, slides.length, activeIndex]);
+
   return (
     <section
       className={`discovery-hero${feature ? ` discovery-hero--slide-${slideIndex % 3}` : " discovery-hero--empty"}`}
@@ -668,6 +677,12 @@ function DiscoveryHero({ books, curated, guest, libraryIds, onSave, savingId, sa
       aria-roledescription={feature && slides.length > 1 ? "carousel" : undefined}
       data-story-id={feature?.id}
       style={feature ? { "--discovery-hero-accent": accent } : undefined}
+      onMouseEnter={() => setHeroPaused(true)}
+      onMouseLeave={() => setHeroPaused(false)}
+      onFocusCapture={() => setHeroPaused(true)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setHeroPaused(false);
+      }}
     >
       {feature ? (
         <Fragment key={feature.id}>

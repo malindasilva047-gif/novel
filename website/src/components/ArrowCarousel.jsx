@@ -50,12 +50,16 @@ export default function ArrowCarousel({
     }
 
     const updateBounds = () => {
-      const nextMax = Math.max(0, track.scrollWidth - viewport.clientWidth);
+      const nextMax = Math.max(0, Math.ceil(track.scrollWidth - viewport.clientWidth));
       setMaxOffset(nextMax);
       setOffset((current) => Math.min(current, nextMax));
     };
 
     updateBounds();
+    const raf = window.requestAnimationFrame(updateBounds);
+    const t1 = window.setTimeout(updateBounds, 50);
+    const t2 = window.setTimeout(updateBounds, 250);
+
     const observer = typeof ResizeObserver === "undefined"
       ? null
       : new ResizeObserver(updateBounds);
@@ -63,10 +67,13 @@ export default function ArrowCarousel({
     observer?.observe(track);
     window.addEventListener("resize", updateBounds);
     return () => {
+      window.cancelAnimationFrame(raf);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
       observer?.disconnect();
       window.removeEventListener("resize", updateBounds);
     };
-  }, [hasEntered, itemCount]);
+  }, [hasEntered, itemCount, children]);
 
   function move(direction) {
     const viewport = viewportRef.current;
@@ -76,9 +83,11 @@ export default function ArrowCarousel({
     const trackStyles = window.getComputedStyle(track);
     const gap = Number.parseFloat(trackStyles.columnGap || trackStyles.gap) || 0;
     const step = stepByItem && firstItem
-      ? firstItem.getBoundingClientRect().width + gap
-      : Math.max(180, viewport.clientWidth * 0.8);
-    setOffset((current) => Math.max(0, Math.min(maxOffset, current + direction * step)));
+      ? Math.round(firstItem.getBoundingClientRect().width + gap)
+      : Math.max(180, Math.round(viewport.clientWidth * 0.8));
+    const nextMax = Math.max(0, Math.ceil(track.scrollWidth - viewport.clientWidth));
+    if (nextMax !== maxOffset) setMaxOffset(nextMax);
+    setOffset((current) => Math.max(0, Math.min(nextMax, current + direction * step)));
   }
 
   function keepFocusedItemVisible(event) {
@@ -94,6 +103,10 @@ export default function ArrowCarousel({
     }
   }
 
+  const showControls = itemCount > 1;
+  const canGoPrev = offset > 0;
+  const canGoNext = offset < maxOffset;
+
   return (
     <div
       ref={carouselRef}
@@ -108,12 +121,12 @@ export default function ArrowCarousel({
           <div className="arrow-carousel-edge-glow arrow-carousel-edge-glow--next" aria-hidden="true" />
         </>
       ) : null}
-      {itemCount > 1 ? (
+      {showControls ? (
         <button
           type="button"
           className="arrow-carousel-control arrow-carousel-control--previous"
           aria-label={previousLabel}
-          disabled={offset <= 0 || maxOffset <= 0}
+          disabled={!canGoPrev}
           onClick={() => move(-1)}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -138,12 +151,12 @@ export default function ArrowCarousel({
           <div className="arrow-carousel-placeholder" style={{ minHeight: `${deferHeight}px` }} aria-hidden="true" />
         )}
       </div>
-      {itemCount > 1 ? (
+      {showControls ? (
         <button
           type="button"
           className="arrow-carousel-control arrow-carousel-control--next"
           aria-label={nextLabel}
-          disabled={offset >= maxOffset || maxOffset <= 0}
+          disabled={!canGoNext}
           onClick={() => move(1)}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">

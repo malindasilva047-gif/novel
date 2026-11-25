@@ -19148,3 +19148,98 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
     max-width: 140px !important;
   }
 }
+
+
+/* TOP_GENRES_ARROW_VISIBLE */
+/* TOP_GENRES_ARROW_VISIBLE — never hide genre arrows; one-by-one horizontal rail */
+
+/* Critical: global minimal theme sets disabled controls to opacity:0 — override for genres */
+:root .main .home-page--minimal .home-top-genres .arrow-carousel-control,
+:root .main .home-page .home-top-genres .arrow-carousel-control,
+.member-home .member-genres .arrow-carousel-control {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  z-index: 12 !important;
+}
+
+:root .main .home-page--minimal .home-top-genres .arrow-carousel-control:disabled,
+:root .main .home-page .home-top-genres .arrow-carousel-control:disabled,
+.member-home .member-genres .arrow-carousel-control:disabled {
+  opacity: 0.4 !important;
+  pointer-events: none !important;
+}
+
+.main .home-page .home-top-genres .arrow-carousel,
+.member-home .member-genres .arrow-carousel {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  padding-inline: 4px;
+}
+
+.main .home-page .home-top-genres .arrow-carousel-control--previous,
+.member-home .member-genres .arrow-carousel-control--previous {
+  left: 0 !important;
+}
+
+.main .home-page .home-top-genres .arrow-carousel-control--next,
+.member-home .member-genres .arrow-carousel-control--next {
+  right: 0 !important;
+}
+
+.main .arrow-carousel .arrow-carousel-track.home-top-genres-track,
+.main .arrow-carousel .arrow-carousel-track.member-genre-track {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch;
+  gap: 12px !important;
+  width: max-content !important;
+  max-width: none !important;
+  padding-right: 8px;
+}
+
+.main .arrow-carousel .arrow-carousel-track.home-top-genres-track > .arrow-carousel-item,
+.main .arrow-carousel .arrow-carousel-track.member-genre-track > .arrow-carousel-item {
+  flex: 0 0 auto !important;
+  width: 156px !important;
+  min-width: 156px !important;
+  max-width: 156px !important;
+  box-sizing: border-box;
+}
+
+.main .arrow-carousel .arrow-carousel-track.home-top-genres-track > .arrow-carousel-item .home-top-genre,
+.main .arrow-carousel .arrow-carousel-track.member-genre-track > .arrow-carousel-item .member-genre-card {
+  display: grid;
+  width: 100%;
+  min-height: 108px;
+  height: 100%;
+  align-content: center;
+  justify-items: center;
+  gap: 6px;
+  padding: 14px 10px;
+  border: 1px solid var(--site-line);
+  border-radius: 14px;
+  background: var(--site-card);
+  color: var(--site-ink);
+  text-align: center;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.main .home-page .home-top-genres .home-section-heading--start,
+.member-home .member-genres .member-section-heading--start {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+@media (max-width: 640px) {
+  .main .arrow-carousel .arrow-carousel-track.home-top-genres-track > .arrow-carousel-item,
+  .main .arrow-carousel .arrow-carousel-track.member-genre-track > .arrow-carousel-item {
+    width: 136px !important;
+    min-width: 136px !important;
+    max-width: 136px !important;
+  }
+}

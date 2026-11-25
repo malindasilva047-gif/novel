@@ -19456,3 +19456,128 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   padding-inline: clamp(18px, 3vw, 44px);
   box-sizing: border-box;
 }
+
+/* TOP_GENRES_STORY_LOGIC */
+/* TOP_GENRES_STORY_LOGIC — same layout shell as Trending; story-carousel arrow logic */
+
+/* Use same full-bleed inner padding as Trending Now */
+:root .main .home-page--minimal .home-top-genres.full-bleed,
+.main .home-page .home-top-genres.full-bleed {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding-block: 20px 22px !important;
+  border-bottom: 1px solid var(--site-line);
+  background: var(--site-bg);
+  box-sizing: border-box;
+}
+
+:root .main .home-page--minimal .home-top-genres .full-bleed-inner,
+.main .home-page .home-top-genres .full-bleed-inner {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding-inline: clamp(18px, 3vw, 44px) !important;
+  box-sizing: border-box;
+}
+
+/* Kill older rules that zeroed right padding / wrong inner width */
+:root .main .home-page--minimal .home-top-genres .home-section-inner {
+  width: 100% !important;
+  max-width: none !important;
+  padding-inline: clamp(18px, 3vw, 44px) !important;
+}
+
+.main .home-page .home-top-genres .trending-header,
+.main .home-page .home-top-genres .trending-heading-copy {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  margin: 0 0 14px;
+  text-align: left;
+}
+
+.main .home-page .home-top-genres .trending-title {
+  margin: 0;
+  text-align: left;
+}
+
+/* Arrow visibility: same as story rails — hide disabled prev at start */
+:root .main .home-page--minimal .home-top-genres .arrow-carousel-control:disabled,
+.main .home-page .home-top-genres .arrow-carousel-control:disabled,
+.member-home .member-genres .arrow-carousel-control:disabled {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+:root .main .home-page--minimal .home-top-genres .arrow-carousel-control:not(:disabled),
+.main .home-page .home-top-genres .arrow-carousel-control:not(:disabled),
+.member-home .member-genres .arrow-carousel-control:not(:disabled) {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  z-index: 12 !important;
+}
+
+/* No left blur overlay on genres (first card stays sharp) */
+.main .home-page .home-top-genres .arrow-carousel-edge-glow--previous,
+.member-home .member-genres .arrow-carousel-edge-glow--previous {
+  display: none !important;
+}
+
+.main .home-page .home-top-genres .arrow-carousel,
+.member-home .member-genres .arrow-carousel {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+/* One-by-one horizontal track (stepByItem in JS) */
+.main .arrow-carousel .arrow-carousel-track.home-top-genres-track,
+.main .arrow-carousel .arrow-carousel-track.member-genre-track {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  width: max-content !important;
+  max-width: none !important;
+  gap: 12px !important;
+  padding: 2px 4px 8px 0 !important;
+}
+
+.main .arrow-carousel .arrow-carousel-track.home-top-genres-track > .arrow-carousel-item,
+.main .arrow-carousel .arrow-carousel-track.member-genre-track > .arrow-carousel-item {
+  flex: 0 0 auto !important;
+  width: 156px !important;
+  min-width: 156px !important;
+  max-width: 156px !important;
+}
+
+.main .arrow-carousel .arrow-carousel-track.home-top-genres-track > .arrow-carousel-item .home-top-genre,
+.main .arrow-carousel .arrow-carousel-track.member-genre-track > .arrow-carousel-item .member-genre-card {
+  display: grid;
+  width: 100%;
+  min-height: 108px;
+  place-content: center;
+  gap: 6px;
+  padding: 14px 10px;
+  border: 1px solid var(--site-line);
+  border-radius: 14px;
+  background: var(--site-card);
+  color: var(--site-ink);
+  text-align: center;
+  text-decoration: none;
+  box-sizing: border-box;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.member-home .member-genres {
+  width: 100%;
+  max-width: none;
+  padding-inline: clamp(18px, 3vw, 44px);
+  box-sizing: border-box;
+}
+
+.member-home .member-genres .member-section-heading--start {
+  justify-content: flex-start;
+  text-align: left;
+  margin-bottom: 14px;
+}

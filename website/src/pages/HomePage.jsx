@@ -526,6 +526,8 @@ function MemberBrowseHome({
           className="member-genre-track"
           itemClassName="member-genre-slide"
           label="Top genres"
+          previousLabel="Previous top genres"
+          nextLabel="Next top genres"
           stepByItem
         >
           {genreList.map((genre, index) => (
@@ -1388,16 +1390,20 @@ export default function HomePage({ user }) {
           </section>
           <ContinueReadingShelf books={continueReading} onResume={resumeReading} resumingId={resumingId} resumeMessage={resumeMessage} />
           {topGenres.length || genreCountError ? (
-            <section className="home-top-genres" aria-labelledby="home-top-genres-title">
-              <div className="home-section-inner">
-                <div className="home-section-heading home-section-heading--start">
-                  <h2 id="home-top-genres-title">Top Genres</h2>
+            <section className="home-top-genres trending-section full-bleed" aria-labelledby="home-top-genres-title">
+              <div className="full-bleed-inner">
+                <div className="trending-header">
+                  <div className="trending-heading-copy">
+                    <h2 id="home-top-genres-title" className="trending-title">Top Genres</h2>
+                  </div>
                 </div>
                 {topGenres.length ? (
                   <ArrowCarousel
                     className="home-top-genres-track"
                     itemClassName="home-top-genre-slide"
                     label="Top genres"
+                    previousLabel="Previous top genres"
+                    nextLabel="Next top genres"
                     stepByItem
                   >
                     {topGenres.map((genre) => (

@@ -1,26 +1,24 @@
-/* Wingsaga login — pixel-match to auth mock */
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,600;1,9..144,700&family=Instrument+Sans:wght@400;500;600;700&display=swap");
+/* Wingsaga login — match mock layout (form + wave + typography) */
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,700&family=Instrument+Sans:wght@400;500;600;700&display=swap");
 
 .ws-auth {
-  --ws-green: #0f6b52;
-  --ws-green-btn: #146b52;
-  --ws-green-deep: #0b5441;
-  --ws-mint: #6ee7b7;
+  --ws-green: #16785f;
+  --ws-green-btn: #16785f;
   --ws-ink: #111827;
   --ws-mute: #6b7280;
-  --ws-line: #e5e7eb;
+  --ws-line: #e8eaed;
   --ws-card: #ffffff;
-  --ws-page: #e8efe9;
-  --ws-font: "Instrument Sans", system-ui, sans-serif;
+  --ws-font: "Instrument Sans", system-ui, -apple-system, sans-serif;
   --ws-serif: "Fraunces", Georgia, "Times New Roman", serif;
   min-height: 100vh;
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  padding: clamp(12px, 2.5vw, 28px);
-  background: radial-gradient(1200px 600px at 20% 10%, #dfece4 0%, transparent 55%),
-    radial-gradient(900px 500px at 90% 80%, #e4efe8 0%, transparent 50%),
-    linear-gradient(165deg, #e7eee8 0%, #f3f6f3 50%, #e9efea 100%);
+  padding: clamp(12px, 2.2vw, 28px);
+  background:
+    radial-gradient(1000px 520px at 15% 0%, #dce9e1 0%, transparent 55%),
+    radial-gradient(800px 480px at 100% 100%, #e4eee8 0%, transparent 50%),
+    #e9f0eb;
   font-family: var(--ws-font);
   color: var(--ws-ink);
   box-sizing: border-box;
@@ -31,64 +29,60 @@
   --ws-mute: #9ca3af;
   --ws-line: #2c3832;
   --ws-card: #15211c;
-  --ws-page: #0d1914;
   background: #0d1914;
 }
 
 .ws-auth *,
 .ws-auth *::before,
-.ws-auth *::after {
-  box-sizing: border-box;
-}
+.ws-auth *::after { box-sizing: border-box; }
 
 .ws-auth__shell {
-  width: min(1120px, 100%);
-  min-height: min(680px, calc(100vh - 32px));
+  width: min(1100px, 100%);
+  min-height: min(660px, calc(100vh - 28px));
   display: grid;
-  grid-template-columns: 1.08fr 0.92fr;
+  grid-template-columns: 1.05fr 0.95fr;
   background: var(--ws-card);
-  border-radius: 32px;
+  border-radius: 28px;
   overflow: hidden;
   box-shadow:
-    0 1px 2px rgba(13, 25, 20, 0.04),
-    0 20px 50px rgba(13, 25, 20, 0.12),
-    0 40px 80px rgba(13, 25, 20, 0.06);
+    0 2px 8px rgba(13, 25, 20, 0.04),
+    0 24px 60px rgba(13, 25, 20, 0.12);
 }
 
-/* ===== LEFT HERO ===== */
+/* ===== LEFT ===== */
 .ws-auth__hero {
   position: relative;
-  min-height: 560px;
+  min-height: 540px;
   color: #fff;
   isolation: isolate;
+  overflow: hidden;
 }
 
 .ws-auth__hero-bg {
   position: absolute;
   inset: 0;
   background-size: cover;
-  background-position: center 40%;
+  background-position: center;
 }
 
 .ws-auth__hero-overlay {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(105deg, rgba(6, 40, 28, 0.55) 0%, rgba(8, 50, 36, 0.25) 42%, rgba(4, 30, 22, 0.15) 100%),
-    linear-gradient(180deg, rgba(4, 28, 20, 0.2) 0%, rgba(4, 28, 20, 0.15) 40%, rgba(3, 22, 16, 0.72) 100%);
+    linear-gradient(100deg, rgba(4, 32, 24, 0.45) 0%, rgba(6, 40, 30, 0.2) 50%, rgba(4, 28, 20, 0.35) 100%),
+    linear-gradient(180deg, rgba(4, 24, 18, 0.25) 0%, transparent 35%, rgba(3, 20, 14, 0.55) 100%);
 }
 
-/* Soft white S-curve matching mock (not black) */
+/* White panel bites into hero with soft S (mock shape) */
 .ws-auth__wave {
   position: absolute;
-  top: -1px;
-  right: -2px;
-  width: min(120px, 18%);
-  height: calc(100% + 2px);
-  z-index: 3;
+  top: -2px;
+  right: -1px;
+  bottom: -2px;
+  width: 88px;
+  z-index: 4;
   pointer-events: none;
   color: var(--ws-card);
-  filter: drop-shadow(-6px 0 12px rgba(0, 0, 0, 0.08));
 }
 
 .ws-auth__wave svg {
@@ -99,12 +93,11 @@
 
 .ws-auth__hero-content {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 30px 36px 48px 34px;
+  padding: 28px 56px 40px 32px;
 }
 
 .ws-auth__brand {
@@ -114,8 +107,9 @@
   color: #fff;
   text-decoration: none;
   font-weight: 600;
-  font-size: 1.05rem;
+  font-size: 1.02rem;
   width: fit-content;
+  flex-shrink: 0;
 }
 
 .ws-auth__brand-mark {
@@ -127,44 +121,48 @@
   place-items: center;
   font-weight: 800;
   font-size: 1.05rem;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
 }
 
 .ws-auth__brand-name {
   letter-spacing: -0.02em;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.25);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.3);
 }
 
+/* CRITICAL: do NOT force 1-word-per-line — mock is 2 lines */
 .ws-auth__hero-copy {
-  max-width: 14ch;
-  margin-bottom: 6vh;
-  margin-left: 4%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 11.5em;
+  margin: 0 auto 8% 4%;
+  padding-right: 12px;
 }
 
 .ws-auth__hero-title {
   margin: 0;
   font-family: var(--ws-serif);
   font-weight: 700;
-  font-size: clamp(2.35rem, 4vw, 3.15rem);
-  line-height: 1.08;
+  font-size: clamp(2.4rem, 3.8vw, 3.05rem);
+  line-height: 1.12;
   letter-spacing: -0.03em;
-  text-shadow: 0 2px 28px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.35);
+  white-space: normal;
 }
 
 .ws-auth__hero-title em {
   font-style: italic;
   font-weight: 600;
-  color: #9af5c8;
+  color: #8ef5c6;
   text-decoration: underline;
-  text-decoration-color: rgba(154, 245, 200, 0.85);
+  text-decoration-color: rgba(142, 245, 198, 0.9);
   text-decoration-thickness: 3px;
-  text-underline-offset: 6px;
-  background: none;
-  padding: 0 1px;
+  text-underline-offset: 5px;
 }
 
 .ws-auth__hero-sub {
-  margin: 18px 0 0;
+  margin: 16px 0 0;
   font-size: 1.05rem;
   font-weight: 500;
   letter-spacing: 0.02em;
@@ -173,30 +171,30 @@
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.35);
 }
 
-/* ===== RIGHT PANEL ===== */
+/* ===== RIGHT ===== */
 .ws-auth__panel {
   position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  padding: 18px 40px 36px;
+  padding: 16px 36px 32px;
   background: var(--ws-card);
 }
 
 .ws-auth__panel-top {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 8px;
 }
 
 .ws-auth__theme {
   display: inline-flex;
   align-items: center;
-  gap: 0;
   padding: 3px;
   border-radius: 999px;
   border: 1px solid var(--ws-line);
-  background: #f3f6f4;
+  background: #f1f5f2;
   cursor: pointer;
+  gap: 0;
 }
 
 .ws-auth[data-theme="dark"] .ws-auth__theme {
@@ -209,23 +207,28 @@
   display: grid;
   place-items: center;
   border-radius: 999px;
-  font-size: 0.85rem;
-  opacity: 0.45;
-  transition: 0.15s;
+  opacity: 0.4;
+  color: var(--ws-ink);
 }
 
 .ws-auth__theme span.is-active {
   background: #fff;
   opacity: 1;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .ws-auth[data-theme="dark"] .ws-auth__theme span.is-active {
   background: #24352e;
 }
 
+.ws-auth__theme svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
 .ws-auth__panel-inner {
-  width: min(360px, 100%);
+  width: min(352px, 100%);
   margin: 0 auto;
   flex: 1;
   display: flex;
@@ -234,14 +237,13 @@
   padding: 4px 0 8px;
 }
 
-/* Logo + leaves */
 .ws-auth__logo-wrap {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
   position: relative;
-  height: 72px;
+  height: 70px;
 }
 
 .ws-auth__leaves {
@@ -251,25 +253,26 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  opacity: 0.9;
+  z-index: 0;
 }
 
 .ws-auth__leaves svg {
-  width: 140px;
-  height: 72px;
+  width: 148px;
+  height: 70px;
+  overflow: visible;
 }
 
 .ws-auth__logo {
   width: 52px;
   height: 52px;
-  border-radius: 13px;
+  border-radius: 12px;
   background: #16785f;
   color: #fff;
   display: grid;
   place-items: center;
   font-weight: 800;
   font-size: 1.45rem;
-  box-shadow: 0 10px 24px rgba(22, 120, 95, 0.32);
+  box-shadow: 0 10px 24px rgba(22, 120, 95, 0.3);
   position: relative;
   z-index: 1;
 }
@@ -277,37 +280,26 @@
 .ws-auth__heading {
   margin: 0;
   text-align: center;
-  font-size: 1.75rem;
+  font-size: 1.72rem;
   font-weight: 800;
-  color: var(--ws-ink);
   letter-spacing: -0.035em;
-  line-height: 1.15;
+  color: var(--ws-ink);
 }
 
 .ws-auth__lede {
-  margin: 8px 0 26px;
+  margin: 8px 0 24px;
   text-align: center;
   color: var(--ws-mute);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   line-height: 1.45;
 }
 
-.ws-auth__form {
-  display: grid;
-  gap: 12px;
-}
-
-.ws-auth__field {
-  display: grid;
-  margin: 0;
-}
-
+.ws-auth__form { display: grid; gap: 12px; }
+.ws-auth__field { display: grid; margin: 0; }
 .ws-auth__label {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
+  width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0);
 }
 
 .ws-auth__input-wrap {
@@ -329,9 +321,9 @@
 .ws-auth__input-wrap select {
   width: 100%;
   min-height: 50px;
-  border: 1.5px solid #e8eaed;
+  border: 1.5px solid var(--ws-line);
   border-radius: 14px;
-  padding: 0 44px 0 44px;
+  padding: 0 44px;
   background: #fff;
   color: var(--ws-ink);
   font: inherit;
@@ -357,9 +349,7 @@
   box-shadow: 0 0 0 3px rgba(22, 120, 95, 0.12);
 }
 
-.ws-auth__input-wrap input::placeholder {
-  color: #9ca3af;
-}
+.ws-auth__input-wrap input::placeholder { color: #9ca3af; }
 
 .ws-auth__eye {
   position: absolute;
@@ -398,20 +388,15 @@
   user-select: none;
 }
 
-.ws-auth[data-theme="dark"] .ws-auth__check {
-  color: var(--ws-mute);
-}
+.ws-auth[data-theme="dark"] .ws-auth__check { color: var(--ws-mute); }
 
 .ws-auth__check input {
   width: 15px;
   height: 15px;
   accent-color: #16785f;
-  border-radius: 3px;
 }
 
-.ws-auth__check a {
-  color: #16785f;
-}
+.ws-auth__check a { color: #16785f; }
 
 .ws-auth__forgot {
   font-size: 0.86rem;
@@ -420,9 +405,7 @@
   font-weight: 600;
 }
 
-.ws-auth__forgot:hover {
-  text-decoration: underline;
-}
+.ws-auth__forgot:hover { text-decoration: underline; }
 
 .ws-auth__error {
   background: #fef2f2;
@@ -450,19 +433,15 @@
   font-size: 1rem;
   cursor: pointer;
   box-shadow: 0 10px 24px rgba(22, 120, 95, 0.28);
-  transition: transform 0.15s, filter 0.15s, box-shadow 0.15s;
+  transition: transform 0.15s, filter 0.15s;
 }
 
 .ws-auth__submit:hover:not(:disabled) {
   filter: brightness(1.06);
   transform: translateY(-1px);
-  box-shadow: 0 14px 28px rgba(22, 120, 95, 0.32);
 }
 
-.ws-auth__submit:disabled {
-  opacity: 0.7;
-  cursor: wait;
-}
+.ws-auth__submit:disabled { opacity: 0.7; cursor: wait; }
 
 .ws-auth__submit-icon {
   display: grid;
@@ -492,36 +471,66 @@
   background: var(--ws-line);
 }
 
-.ws-auth__social {
-  display: grid;
-  gap: 10px;
-}
+.ws-auth__social { display: grid; gap: 10px; }
 
-/* Force Google GIS button to fill width like mock pill */
 .ws-auth__google-slot {
   position: relative;
   width: 100%;
   min-height: 48px;
 }
 
-.ws-auth__google-slot .google-signin-inline,
-.ws-auth__google-slot .google-btn-wrap,
-.ws-auth__google-slot .google-btn-host {
-  width: 100% !important;
-  max-width: 100% !important;
+.ws-auth__google-custom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  border-radius: 999px;
+  border: 1.5px solid #e6e8eb;
+  background: #fff;
+  color: #1f2937;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
 }
 
-.ws-auth__google-slot .google-btn-host > div,
-.ws-auth__google-slot iframe {
+.ws-auth[data-theme="dark"] .ws-auth__google-custom {
+  background: #1a2621;
+  border-color: var(--ws-line);
+  color: var(--ws-ink);
+}
+
+.ws-auth__google-custom .g-logo {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.ws-auth__google-hidden {
+  position: absolute;
+  inset: 0;
+  opacity: 0.011;
+  overflow: hidden;
+  z-index: 3;
+  cursor: pointer;
+}
+
+.ws-auth__google-hidden .google-signin-inline,
+.ws-auth__google-hidden .google-btn-wrap,
+.ws-auth__google-hidden .google-btn-host {
   width: 100% !important;
-  max-width: 100% !important;
+  height: 48px !important;
 }
 
 .ws-auth__google-slot .meta,
 .ws-auth__google-slot .error-banner {
-  font-size: 0.8rem;
-  margin-top: 6px;
+  font-size: 0.78rem;
   text-align: center;
+  margin-top: 4px;
 }
 
 .ws-auth__social-btn {
@@ -539,7 +548,7 @@
   font-weight: 600;
   font-size: 0.92rem;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s;
 }
 
 .ws-auth[data-theme="dark"] .ws-auth__social-btn {
@@ -550,15 +559,6 @@
 
 .ws-auth__social-btn:hover {
   background: #f7faf8;
-  border-color: #d1d5db;
-}
-
-.ws-auth__social-btn--discord {
-  color: #1f2937;
-}
-
-.ws-auth__social-btn--discord svg {
-  color: #5865f2;
 }
 
 .ws-auth__switch {
@@ -592,18 +592,11 @@ body.login-page-mode .main {
 }
 
 body.login-page-mode {
-  background: #e8efe9;
-}
-
-body.login-page-mode .app-shell {
-  min-height: 100vh;
+  background: #e9f0eb;
 }
 
 @media (max-width: 960px) {
-  .ws-auth {
-    padding: 0;
-  }
-
+  .ws-auth { padding: 0; }
   .ws-auth__shell {
     grid-template-columns: 1fr;
     min-height: 100vh;
@@ -611,96 +604,18 @@ body.login-page-mode .app-shell {
     border-radius: 0;
     box-shadow: none;
   }
-
-  .ws-auth__wave {
-    display: none;
-  }
-
-  .ws-auth__hero {
-    min-height: 240px;
-  }
-
+  .ws-auth__wave { display: none; }
+  .ws-auth__hero { min-height: 240px; }
   .ws-auth__hero-copy {
     max-width: none;
-    margin-bottom: 12px;
+    margin: 12px 0 8px;
+    justify-content: flex-end;
   }
-
-  .ws-auth__hero-title {
-    font-size: clamp(1.8rem, 7vw, 2.4rem);
-  }
-
-  .ws-auth__panel {
-    padding: 12px 22px 28px;
-  }
-
-  .ws-auth__row {
-    grid-template-columns: 1fr;
-  }
+  .ws-auth__hero-title { font-size: clamp(1.85rem, 7vw, 2.35rem); }
+  .ws-auth__panel { padding: 12px 22px 28px; }
+  .ws-auth__row { grid-template-columns: 1fr; }
 }
 
-
-/* Custom Google pill — hide ugly personalized GIS chrome when using overlay pattern */
-.ws-auth__google-slot {
-  position: relative;
-  width: 100%;
-  min-height: 48px;
-}
-
-.ws-auth__google-custom {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 48px;
-  border-radius: 999px;
-  border: 1.5px solid #e6e8eb;
-  background: #fff;
-  color: #1f2937;
-  font: inherit;
-  font-weight: 600;
-  font-size: 0.92rem;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  position: relative;
-  z-index: 2;
-}
-
-.ws-auth[data-theme="dark"] .ws-auth__google-custom {
-  background: #1a2621;
-  border-color: var(--ws-line);
-  color: var(--ws-ink);
-}
-
-.ws-auth__google-custom:hover {
-  background: #f7faf8;
-  border-color: #d1d5db;
-}
-
-.ws-auth__google-custom .g-logo {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-/* Transparent GIS layer on top so real Google click works; custom art shows underneath */
-.ws-auth__google-hidden {
-  position: absolute;
-  inset: 0;
-  opacity: 0.01;
-  overflow: hidden;
-  z-index: 3;
-  cursor: pointer;
-}
-
-.ws-auth__google-hidden .google-signin-inline,
-.ws-auth__google-hidden .google-btn-wrap,
-.ws-auth__google-hidden .google-btn-host {
-  width: 100% !important;
-  height: 48px !important;
-}
-
-.ws-auth__google-custom {
-  z-index: 2;
-  pointer-events: none; /* visual only — clicks go to GIS layer */
+.ws-auth__hero-line {
+  display: block;
 }

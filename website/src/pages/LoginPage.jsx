@@ -201,16 +201,16 @@ export default function LoginPage({ onSuccess }) {
           <div className="ws-auth__hero-bg" style={{ backgroundImage: `url(${HERO_IMAGE})` }} />
           <div className="ws-auth__hero-overlay" />
 
-                    <div className="ws-auth__wave" aria-hidden="true">
-            <svg viewBox="0 0 100 1000" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                              <div className="ws-auth__wave" aria-hidden="true">
+            <svg viewBox="0 0 88 1000" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
               <path
                 fill="currentColor"
-                d="M100 0
-                   C 70 80, 42 160, 48 280
-                   C 56 420, 92 480, 88 580
-                   C 84 700, 40 780, 48 900
-                   C 52 950, 70 980, 100 1000
-                   L 100 0 Z"
+                d="M88 0
+                   C 55 60, 28 140, 32 250
+                   C 38 380, 78 450, 72 560
+                   C 66 680, 22 760, 30 880
+                   C 34 940, 55 980, 88 1000
+                   L 88 0 Z"
               />
             </svg>
           </div>
@@ -222,9 +222,8 @@ export default function LoginPage({ onSuccess }) {
             </Link>
             <div className="ws-auth__hero-copy">
               <h1 className="ws-auth__hero-title">
-                Stories that
-                <br />
-                bring us <em>together</em>
+                <span className="ws-auth__hero-line">Stories that</span>
+                <span className="ws-auth__hero-line">bring us <em>together</em></span>
               </h1>
               <p className="ws-auth__hero-sub">Read. Write. Share.</p>
             </div>
@@ -240,24 +239,30 @@ export default function LoginPage({ onSuccess }) {
               aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
               onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
             >
-              <span className={theme === "light" ? "is-active" : ""}>☀</span>
-              <span className={theme === "dark" ? "is-active" : ""}>☾</span>
+              <span className={theme === "light" ? "is-active" : ""} aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+              </span>
+              <span className={theme === "dark" ? "is-active" : ""} aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 14.5A8.5 8.5 0 119.5 3 7 7 0 0021 14.5z"/></svg>
+              </span>
             </button>
           </div>
 
           <div className="ws-auth__panel-inner">
             <div className="ws-auth__logo-wrap">
 
-                            <span className="ws-auth__leaves" aria-hidden="true">
-                <svg viewBox="0 0 160 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 48c8-22 28-38 48-40-6 22-22 42-44 48-5 1-8-2-4-8z" fill="#c8ebd8"/>
-                  <path d="M22 40c14-18 32-26 46-20" stroke="#8fc9a8" strokeWidth="1.4" strokeLinecap="round"/>
-                  <path d="M28 55c12-16 30-24 44-16" stroke="#a3d4b8" strokeWidth="1.2" strokeLinecap="round" opacity=".8"/>
-                  <path d="M148 48c-8-22-28-38-48-40 6 22 22 42 44 48 5 1 8-2 4-8z" fill="#d5f0e2"/>
-                  <path d="M138 40c-14-18-32-26-46-20" stroke="#8fc9a8" strokeWidth="1.4" strokeLinecap="round"/>
-                  <path d="M132 55c-12-16-30-24-44-16" stroke="#a3d4b8" strokeWidth="1.2" strokeLinecap="round" opacity=".8"/>
-                  <path d="M52 22c10-18 28-26 40-16-4 16-18 28-36 30-4 0-8-4-4-14z" fill="#e2f6eb"/>
-                  <path d="M108 22c-10-18-28-26-40-16 4 16 18 28 36 30 4 0 8-4 4-14z" fill="#e2f6eb"/>
+                                          <span className="ws-auth__leaves" aria-hidden="true">
+                <svg viewBox="0 0 160 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <!-- left branch -->
+                  <path d="M78 36 C60 34 42 28 28 18" stroke="#9fd4b5" strokeWidth="1.6" strokeLinecap="round"/>
+                  <path d="M28 18 C22 12 18 14 20 20 C24 30 36 36 48 38 C40 32 32 24 28 18Z" fill="#b7e5cc"/>
+                  <path d="M40 28 C34 22 30 24 32 30 C36 38 48 42 58 42 C50 36 44 30 40 28Z" fill="#c9edd9"/>
+                  <path d="M52 34 C46 28 42 30 44 36 C48 44 60 46 68 44 C62 40 56 36 52 34Z" fill="#d8f3e6"/>
+                  <!-- right branch -->
+                  <path d="M82 36 C100 34 118 28 132 18" stroke="#9fd4b5" strokeWidth="1.6" strokeLinecap="round"/>
+                  <path d="M132 18 C138 12 142 14 140 20 C136 30 124 36 112 38 C120 32 128 24 132 18Z" fill="#b7e5cc"/>
+                  <path d="M120 28 C126 22 130 24 128 30 C124 38 112 42 102 42 C110 36 116 30 120 28Z" fill="#c9edd9"/>
+                  <path d="M108 34 C114 28 118 30 116 36 C112 44 100 46 92 44 C98 40 104 36 108 34Z" fill="#d8f3e6"/>
                 </svg>
               </span>
 

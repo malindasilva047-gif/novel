@@ -19581,3 +19581,74 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   text-align: left;
   margin-bottom: 14px;
 }
+
+/* TOP_GENRES_LEFT_ALIGN_FIX */
+/* TOP_GENRES_LEFT_ALIGN_FIX — match Continue Reading left edge (no double padding) */
+
+/*
+  discovery-home--hero-only already has padding-inline: clamp(18px, 3vw, 44px).
+  Continue Reading uses ONLY that parent padding.
+  Top Genres was adding full-bleed-inner padding AGAIN → shifted right vs other sections.
+*/
+
+:root .main .home-page--minimal .discovery-home--hero-only > .home-top-genres,
+:root .main .home-page--minimal .home-top-genres.full-bleed,
+.main .home-page--minimal .home-top-genres {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-block: 14px 16px !important;
+  box-sizing: border-box !important;
+}
+
+/* Remove inner horizontal padding — inherit parent discovery-home inset only */
+:root .main .home-page--minimal .home-top-genres .full-bleed-inner,
+.main .home-page--minimal .home-top-genres .full-bleed-inner,
+:root .main .home-page--minimal .home-top-genres .home-section-inner,
+.main .home-page--minimal .home-top-genres .home-section-inner {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-inline: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Heading + track start on same left edge as Continue Reading / Trending titles */
+:root .main .home-page--minimal .home-top-genres .trending-header,
+:root .main .home-page--minimal .home-top-genres .trending-heading-copy,
+:root .main .home-page--minimal .home-top-genres .trending-title {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+  text-align: left !important;
+}
+
+:root .main .home-page--minimal .home-top-genres .arrow-carousel,
+:root .main .home-page--minimal .home-top-genres .arrow-carousel-viewport,
+:root .main .home-page--minimal .home-top-genres .arrow-carousel-track {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+/* First genre card flush with section left (no extra track padding) */
+:root .main .home-page--minimal .arrow-carousel .arrow-carousel-track.home-top-genres-track {
+  padding-left: 0 !important;
+  padding-right: 4px !important;
+}
+
+/* Non-minimal fallback: use same inset as trending full-bleed-inner */
+.main .home-page:not(.home-page--minimal) .home-top-genres .full-bleed-inner {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding-inline: clamp(18px, 3vw, 44px) !important;
+  box-sizing: border-box !important;
+}
+
+.member-home .member-genres {
+  padding-inline: 0 !important;
+}

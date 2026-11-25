@@ -107,14 +107,6 @@ async def log_request_path(request, call_next):
 
 app.mount("/uploads", StaticFiles(directory=UPLOAD_ROOT), name="uploads")
 
-# Performance: on-demand WebP/AVIF variants for covers (/api/img)
-try:
-    from app.register_perf_routes import register_perf_routes
-    register_perf_routes(app, fetch_all)
-except Exception as _perf_exc:  # noqa: BLE001
-    LOGGER.warning("perf routes skipped: %s", _perf_exc)
-
-
 
 class LibraryCreateRequest(BaseModel):
     book_id: int
@@ -704,6 +696,21 @@ def fetch_all(query: str, params: tuple[Any, ...] | None = None):
         return out
     return rows
 
+
+
+
+# --- Performance image variants (must run after fetch_all exists) ---
+def _register_perf_image_routes() -> None:
+    try:
+        from app.register_perf_routes import register_perf_routes
+        register_perf_routes(app, fetch_all)
+    except Exception as _perf_exc:  # noqa: BLE001
+        LOGGER.warning("perf routes skipped: %s", _perf_exc)
+
+
+@app.on_event("startup")
+async def _perf_routes_on_startup() -> None:
+    _register_perf_image_routes()
 
 def execute_write(query: str, params: tuple[Any, ...]):
     connection = get_connection()

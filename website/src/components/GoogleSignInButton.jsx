@@ -73,16 +73,19 @@ export default function GoogleSignInButton({ onSuccess }) {
           },
           auto_select: false,
           cancel_on_tap_outside: true,
-          use_fedcm_for_button: true,
+          // Avoid personalized "Continue as …" FedCM chrome when possible
+          use_fedcm_for_button: false,
+          itp_support: true,
         });
 
-        const width = Math.min(360, Math.floor(wrapRef.current?.clientWidth || 320));
+        const width = Math.max(280, Math.min(400, Math.floor(wrapRef.current?.clientWidth || 320)));
         if (buttonRef.current) {
           buttonRef.current.innerHTML = "";
           window.google.accounts.id.renderButton(buttonRef.current, {
             theme: "outline",
             size: "large",
             width,
+            type: "standard",
             text: "continue_with",
             shape: "pill",
             logo_alignment: "left",
@@ -109,10 +112,9 @@ export default function GoogleSignInButton({ onSuccess }) {
       <div className="google-btn-wrap">
         <div ref={buttonRef} className="google-btn-host" />
       </div>
-      {busy || !ready ? (
-        <p className="meta" role="status">{busy ? "Signing in with Google…" : "Loading Google sign-in…"}</p>
-      ) : null}
+      {busy ? <p className="meta" role="status">Signing in with Google…</p> : null}
       {error ? <div className="error-banner" role="alert">{error}</div> : null}
+      {!ready && !error ? <p className="meta" role="status">Loading Google sign-in…</p> : null}
     </div>
   );
 }

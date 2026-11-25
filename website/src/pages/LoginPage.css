@@ -78,16 +78,17 @@
     linear-gradient(180deg, rgba(4, 28, 20, 0.2) 0%, rgba(4, 28, 20, 0.15) 40%, rgba(3, 22, 16, 0.72) 100%);
 }
 
-/* Soft wave edge into form panel */
+/* Soft white S-curve matching mock (not black) */
 .ws-auth__wave {
   position: absolute;
-  top: 0;
-  right: -1px;
-  width: 72px;
-  height: 100%;
-  z-index: 2;
+  top: -1px;
+  right: -2px;
+  width: min(120px, 18%);
+  height: calc(100% + 2px);
+  z-index: 3;
   pointer-events: none;
   color: var(--ws-card);
+  filter: drop-shadow(-6px 0 12px rgba(0, 0, 0, 0.08));
 }
 
 .ws-auth__wave svg {
@@ -135,8 +136,9 @@
 }
 
 .ws-auth__hero-copy {
-  max-width: 13.5ch;
-  margin-bottom: 8vh;
+  max-width: 14ch;
+  margin-bottom: 6vh;
+  margin-left: 4%;
 }
 
 .ws-auth__hero-title {
@@ -152,17 +154,22 @@
 .ws-auth__hero-title em {
   font-style: italic;
   font-weight: 600;
-  color: #8ef0c4;
-  background: linear-gradient(180deg, transparent 62%, rgba(142, 240, 196, 0.35) 62%, rgba(142, 240, 196, 0.35) 78%, transparent 78%);
-  padding: 0 2px;
+  color: #9af5c8;
+  text-decoration: underline;
+  text-decoration-color: rgba(154, 245, 200, 0.85);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 6px;
+  background: none;
+  padding: 0 1px;
 }
 
 .ws-auth__hero-sub {
-  margin: 20px 0 0;
-  font-size: 1.02rem;
+  margin: 18px 0 0;
+  font-size: 1.05rem;
   font-weight: 500;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
   opacity: 0.95;
+  white-space: nowrap;
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.35);
 }
 
@@ -629,4 +636,71 @@ body.login-page-mode .app-shell {
   .ws-auth__row {
     grid-template-columns: 1fr;
   }
+}
+
+
+/* Custom Google pill — hide ugly personalized GIS chrome when using overlay pattern */
+.ws-auth__google-slot {
+  position: relative;
+  width: 100%;
+  min-height: 48px;
+}
+
+.ws-auth__google-custom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  border-radius: 999px;
+  border: 1.5px solid #e6e8eb;
+  background: #fff;
+  color: #1f2937;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  position: relative;
+  z-index: 2;
+}
+
+.ws-auth[data-theme="dark"] .ws-auth__google-custom {
+  background: #1a2621;
+  border-color: var(--ws-line);
+  color: var(--ws-ink);
+}
+
+.ws-auth__google-custom:hover {
+  background: #f7faf8;
+  border-color: #d1d5db;
+}
+
+.ws-auth__google-custom .g-logo {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Transparent GIS layer on top so real Google click works; custom art shows underneath */
+.ws-auth__google-hidden {
+  position: absolute;
+  inset: 0;
+  opacity: 0.01;
+  overflow: hidden;
+  z-index: 3;
+  cursor: pointer;
+}
+
+.ws-auth__google-hidden .google-signin-inline,
+.ws-auth__google-hidden .google-btn-wrap,
+.ws-auth__google-hidden .google-btn-host {
+  width: 100% !important;
+  height: 48px !important;
+}
+
+.ws-auth__google-custom {
+  z-index: 2;
+  pointer-events: none; /* visual only — clicks go to GIS layer */
 }

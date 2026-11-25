@@ -201,9 +201,17 @@ export default function LoginPage({ onSuccess }) {
           <div className="ws-auth__hero-bg" style={{ backgroundImage: `url(${HERO_IMAGE})` }} />
           <div className="ws-auth__hero-overlay" />
 
-          <div className="ws-auth__wave" aria-hidden="true">
-            <svg viewBox="0 0 72 680" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-              <path fill="currentColor" d="M72 0C48 80 18 140 22 220c5 90 55 120 48 210-6 80-40 130-48 250V0z"/>
+                    <div className="ws-auth__wave" aria-hidden="true">
+            <svg viewBox="0 0 100 1000" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                fill="currentColor"
+                d="M100 0
+                   C 70 80, 42 160, 48 280
+                   C 56 420, 92 480, 88 580
+                   C 84 700, 40 780, 48 900
+                   C 52 950, 70 980, 100 1000
+                   L 100 0 Z"
+              />
             </svg>
           </div>
 
@@ -240,14 +248,16 @@ export default function LoginPage({ onSuccess }) {
           <div className="ws-auth__panel-inner">
             <div className="ws-auth__logo-wrap">
 
-              <span className="ws-auth__leaves" aria-hidden="true">
+                            <span className="ws-auth__leaves" aria-hidden="true">
                 <svg viewBox="0 0 160 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 50c18-28 42-34 58-28-8 18-28 34-50 36-4 0-10-2-8-8z" fill="#b7e0cb" opacity=".85"/>
-                  <path d="M28 42c12-14 26-18 36-12" stroke="#7cb89a" strokeWidth="1.2" opacity=".7"/>
-                  <path d="M140 50c-18-28-42-34-58-28 8 18 28 34 50 36 4 0 10-2 8-8z" fill="#c5e8d6" opacity=".85"/>
-                  <path d="M132 42c-12-14-26-18-36-12" stroke="#7cb89a" strokeWidth="1.2" opacity=".7"/>
-                  <path d="M48 28c8-16 22-22 32-14-2 12-14 22-28 24-3 0-6-2-4-10z" fill="#d4f0e2" opacity=".9"/>
-                  <path d="M112 28c-8-16-22-22-32-14 2 12 14 22 28 24 3 0 6-2 4-10z" fill="#d4f0e2" opacity=".9"/>
+                  <path d="M12 48c8-22 28-38 48-40-6 22-22 42-44 48-5 1-8-2-4-8z" fill="#c8ebd8"/>
+                  <path d="M22 40c14-18 32-26 46-20" stroke="#8fc9a8" strokeWidth="1.4" strokeLinecap="round"/>
+                  <path d="M28 55c12-16 30-24 44-16" stroke="#a3d4b8" strokeWidth="1.2" strokeLinecap="round" opacity=".8"/>
+                  <path d="M148 48c-8-22-28-38-48-40 6 22 22 42 44 48 5 1 8-2 4-8z" fill="#d5f0e2"/>
+                  <path d="M138 40c-14-18-32-26-46-20" stroke="#8fc9a8" strokeWidth="1.4" strokeLinecap="round"/>
+                  <path d="M132 55c-12-16-30-24-44-16" stroke="#a3d4b8" strokeWidth="1.2" strokeLinecap="round" opacity=".8"/>
+                  <path d="M52 22c10-18 28-26 40-16-4 16-18 28-36 30-4 0-8-4-4-14z" fill="#e2f6eb"/>
+                  <path d="M108 22c-10-18-28-26-40-16 4 16 18 28 36 30 4 0 8-4 4-14z" fill="#e2f6eb"/>
                 </svg>
               </span>
 
@@ -497,14 +507,25 @@ export default function LoginPage({ onSuccess }) {
 
                 <div className="ws-auth__social">
                   <div className="ws-auth__google-slot">
-                    <GoogleSignInButton onSuccess={finishGoogleSignIn} />
+                    <button type="button" className="ws-auth__google-custom" tabIndex={-1} aria-hidden="true">
+                      <svg className="g-logo" viewBox="0 0 48 48" aria-hidden="true">
+                        <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.5-.4-3.5z"/>
+                        <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3.1l5.7-5.7C34.2 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+                        <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.3 35.9 26.8 37 24 37c-5.3 0-9.7-3.1-11.3-7.5l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
+                        <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l.1.1 6.2 5.2C39.2 37.3 44 32 44 24c0-1.3-.1-2.5-.4-3.5z"/>
+                      </svg>
+                      Continue with Google
+                    </button>
+                    <div className="ws-auth__google-hidden" aria-hidden="true">
+                      <GoogleSignInButton onSuccess={finishGoogleSignIn} />
+                    </div>
                   </div>
                   <button
                     type="button"
                     className="ws-auth__social-btn ws-auth__social-btn--discord"
                     onClick={() => showToast("Discord sign-in is coming soon.", "info")}
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="#5865F2" aria-hidden="true">
                       <path d="M20.3 4.3A16.8 16.8 0 0015.9 3l-.3.6a14.5 14.5 0 014 1.4 13.5 13.5 0 00-10.9 0 14.5 14.5 0 014-1.4L12.4 3a16.8 16.8 0 00-4.4 1.3C4.2 7.1 3.3 11.3 3.5 15.5a16.7 16.7 0 005.1 2.6l.7-1.1a10.8 10.8 0 01-1.7-.8l.4-.3c3.3 1.5 6.9 1.5 10.2 0l.4.3c-.5.3-1.1.6-1.7.8l.7 1.1a16.7 16.7 0 005.1-2.6c.4-5.1-.6-9.2-2.4-11.2zM9.7 13.6c-.8 0-1.5-.8-1.5-1.7s.7-1.7 1.5-1.7 1.5.8 1.5 1.7-.7 1.7-1.5 1.7zm4.6 0c-.8 0-1.5-.8-1.5-1.7s.7-1.7 1.5-1.7 1.5.8 1.5 1.7-.7 1.7-1.5 1.7z" />
                     </svg>
                     Continue with Discord

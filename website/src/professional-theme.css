@@ -19243,3 +19243,107 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
     max-width: 136px !important;
   }
 }
+
+/* TOP_GENRES_FULL_RAIL */
+/* TOP_GENRES_FULL_RAIL — all genres, full width, one-by-one arrows like story rails */
+
+/* Match Continue Reading / Trending full-bleed width — no empty right gap */
+:root .main .home-page--minimal .home-top-genres,
+.main .home-page .home-top-genres {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding-block: 14px !important;
+  box-sizing: border-box;
+}
+
+:root .main .home-page--minimal .home-top-genres .home-section-inner,
+.main .home-page .home-top-genres .home-section-inner {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding-inline: clamp(16px, 3vw, 44px) !important;
+  box-sizing: border-box;
+}
+
+.main .home-page .home-top-genres .home-section-heading--start,
+.member-home .member-genres .member-section-heading--start {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  margin: 0 0 12px;
+  text-align: left;
+}
+
+/* Keep arrows visible (override global opacity:0 on disabled) */
+:root .main .home-page--minimal .home-top-genres .arrow-carousel-control,
+:root .main .home-page .home-top-genres .arrow-carousel-control,
+.member-home .member-genres .arrow-carousel-control {
+  opacity: 1 !important;
+  z-index: 12 !important;
+}
+
+:root .main .home-page--minimal .home-top-genres .arrow-carousel-control:disabled,
+:root .main .home-page .home-top-genres .arrow-carousel-control:disabled,
+.member-home .member-genres .arrow-carousel-control:disabled {
+  opacity: 0.35 !important;
+  pointer-events: none !important;
+}
+
+.main .home-page .home-top-genres .arrow-carousel,
+.member-home .member-genres .arrow-carousel {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Horizontal track — same pattern as story rails */
+.main .arrow-carousel .arrow-carousel-track.home-top-genres-track,
+.main .arrow-carousel .arrow-carousel-track.member-genre-track {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  width: max-content !important;
+  max-width: none !important;
+  gap: 12px !important;
+  padding: 2px 4px 8px !important;
+}
+
+.main .arrow-carousel .arrow-carousel-track.home-top-genres-track > .arrow-carousel-item,
+.main .arrow-carousel .arrow-carousel-track.member-genre-track > .arrow-carousel-item {
+  flex: 0 0 auto !important;
+  width: 156px !important;
+  min-width: 156px !important;
+  max-width: 156px !important;
+}
+
+.main .arrow-carousel .arrow-carousel-track.home-top-genres-track > .arrow-carousel-item .home-top-genre,
+.main .arrow-carousel .arrow-carousel-track.member-genre-track > .arrow-carousel-item .member-genre-card {
+  display: grid;
+  width: 100%;
+  min-height: 108px;
+  height: 100%;
+  place-content: center;
+  gap: 6px;
+  padding: 14px 10px;
+  border: 1px solid var(--site-line);
+  border-radius: 14px;
+  background: var(--site-card);
+  color: var(--site-ink);
+  text-align: center;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.member-home .member-genres {
+  width: 100%;
+  max-width: none;
+}
+
+@media (max-width: 640px) {
+  .main .arrow-carousel .arrow-carousel-track.home-top-genres-track > .arrow-carousel-item,
+  .main .arrow-carousel .arrow-carousel-track.member-genre-track > .arrow-carousel-item {
+    width: 136px !important;
+    min-width: 136px !important;
+    max-width: 136px !important;
+  }
+}

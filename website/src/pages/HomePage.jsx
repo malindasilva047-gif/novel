@@ -438,7 +438,7 @@ function MemberBrowseHome({
     return Number(b.rating || 0) - Number(a.rating || 0);
   });
   const featureCover = resolveAssetUrl(feature?.cover_path || feature?.coverPath || "");
-  const genreList = (genres.length ? genres : [...new Set(discoverBooks.map((book) => book.primary_genre || book.genre).filter(Boolean))]).slice(0, 7);
+  const genreList = (genres.length ? genres : [...new Set(discoverBooks.map((book) => book.primary_genre || book.genre).filter(Boolean))]);
   const popularTags = tags.filter((tag) => tag.name).slice(0, 16);
   const sectionBooks = (predicate) => discoverBooks.filter(predicate);
   const recentlyUpdated = sectionBooks((book) => sectionNamesOf(book).includes("recently_updated"));
@@ -528,8 +528,6 @@ function MemberBrowseHome({
           label="Top genres"
           edgeGlow
           stepByItem
-          deferUntilVisible
-          deferHeight={140}
         >
           {genreList.map((genre, index) => (
             <Link to={`/genres/${encodeURIComponent(genre)}`} className="member-genre-card" key={genre}>
@@ -1322,7 +1320,7 @@ export default function HomePage({ user }) {
     Array.isArray(data?.trending) ? data.trending : [],
     discoveryBooks,
   ).slice(0, 5);
-  const topGenres = genreStoryCounts.slice(0, 8);
+  const topGenres = genreStoryCounts;
 
   usePageMeta({
     title: qParam ? `Search results for "${qParam}" | Wingsaga` : genreFilter ? `${genreFilter} Stories | Wingsaga` : "Home | Free Stories on Wingsaga",
@@ -1403,8 +1401,6 @@ export default function HomePage({ user }) {
                     label="Top genres"
                     edgeGlow
                     stepByItem
-                    deferUntilVisible
-                    deferHeight={120}
                   >
                     {topGenres.map((genre) => (
                       <Link to={`/genres/${encodeURIComponent(genre.name)}`} className="home-top-genre" key={genre.name}>

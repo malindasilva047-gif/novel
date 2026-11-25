@@ -28,6 +28,7 @@ function loadGisScript() {
 
 export default function GoogleSignInButton({ onSuccess }) {
   const buttonRef = useRef(null);
+  const wrapRef = useRef(null);
   const onSuccessRef = useRef(onSuccess);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -75,14 +76,16 @@ export default function GoogleSignInButton({ onSuccess }) {
           use_fedcm_for_button: true,
         });
 
+        const width = Math.min(360, Math.floor(wrapRef.current?.clientWidth || 320));
         if (buttonRef.current) {
           buttonRef.current.innerHTML = "";
           window.google.accounts.id.renderButton(buttonRef.current, {
-            theme: "filled_black",
+            theme: "outline",
             size: "large",
-            width: 320,
+            width,
             text: "continue_with",
             shape: "pill",
+            logo_alignment: "left",
           });
         }
         if (!cancelled) setReady(true);
@@ -102,11 +105,13 @@ export default function GoogleSignInButton({ onSuccess }) {
   }
 
   return (
-    <div className="google-signin-inline" aria-busy={busy}>
+    <div className="google-signin-inline" aria-busy={busy} ref={wrapRef}>
       <div className="google-btn-wrap">
         <div ref={buttonRef} className="google-btn-host" />
       </div>
-      {busy || !ready ? <p className="meta" role="status">{busy ? "Signing in with Google…" : "Loading Google sign-in…"}</p> : null}
+      {busy || !ready ? (
+        <p className="meta" role="status">{busy ? "Signing in with Google…" : "Loading Google sign-in…"}</p>
+      ) : null}
       {error ? <div className="error-banner" role="alert">{error}</div> : null}
     </div>
   );

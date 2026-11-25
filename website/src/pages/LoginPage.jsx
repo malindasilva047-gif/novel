@@ -200,6 +200,13 @@ export default function LoginPage({ onSuccess }) {
         <aside className="ws-auth__hero" aria-hidden={false}>
           <div className="ws-auth__hero-bg" style={{ backgroundImage: `url(${HERO_IMAGE})` }} />
           <div className="ws-auth__hero-overlay" />
+
+          <div className="ws-auth__wave" aria-hidden="true">
+            <svg viewBox="0 0 72 680" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+              <path fill="currentColor" d="M72 0C48 80 18 140 22 220c5 90 55 120 48 210-6 80-40 130-48 250V0z"/>
+            </svg>
+          </div>
+
           <div className="ws-auth__hero-content">
             <Link to="/" className="ws-auth__brand">
               <span className="ws-auth__brand-mark">W</span>
@@ -232,6 +239,18 @@ export default function LoginPage({ onSuccess }) {
 
           <div className="ws-auth__panel-inner">
             <div className="ws-auth__logo-wrap">
+
+              <span className="ws-auth__leaves" aria-hidden="true">
+                <svg viewBox="0 0 160 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 50c18-28 42-34 58-28-8 18-28 34-50 36-4 0-10-2-8-8z" fill="#b7e0cb" opacity=".85"/>
+                  <path d="M28 42c12-14 26-18 36-12" stroke="#7cb89a" strokeWidth="1.2" opacity=".7"/>
+                  <path d="M140 50c-18-28-42-34-58-28 8 18 28 34 50 36 4 0 10-2 8-8z" fill="#c5e8d6" opacity=".85"/>
+                  <path d="M132 42c-12-14-26-18-36-12" stroke="#7cb89a" strokeWidth="1.2" opacity=".7"/>
+                  <path d="M48 28c8-16 22-22 32-14-2 12-14 22-28 24-3 0-6-2-4-10z" fill="#d4f0e2" opacity=".9"/>
+                  <path d="M112 28c-8-16-22-22-32-14 2 12 14 22 28 24 3 0 6-2 4-10z" fill="#d4f0e2" opacity=".9"/>
+                </svg>
+              </span>
+
               <span className="ws-auth__logo">W</span>
             </div>
 
@@ -394,7 +413,11 @@ export default function LoginPage({ onSuccess }) {
                         aria-label={showPassword ? "Hide password" : "Show password"}
                         onClick={() => setShowPassword((v) => !v)}
                       >
-                        {showPassword ? "🙈" : "👁"}
+                        {showPassword ? (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 3l18 18M10.5 10.5a3 3 0 004 4M9.9 5.1A10.5 10.5 0 0121 12c-.7 1.2-1.6 2.3-2.7 3.2M6.1 6.1C4.7 7.3 3.6 8.7 3 12c1.8 4.5 6 7.5 9 7.5 1.2 0 2.4-.3 3.5-.8"/></svg>
+                        ) : (
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+                        )}
                       </button>
                     </div>
                   </label>
@@ -458,7 +481,11 @@ export default function LoginPage({ onSuccess }) {
 
                   <button type="submit" className="ws-auth__submit" disabled={busy}>
                     <span className="ws-auth__submit-icon" aria-hidden="true">
-                      →
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4" />
+                        <path d="M10 17l5-5-5-5" />
+                        <path d="M15 12H3" />
+                      </svg>
                     </span>
                     {busy ? "Please wait…" : registering ? "Create account" : "Login"}
                   </button>

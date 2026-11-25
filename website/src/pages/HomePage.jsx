@@ -1201,12 +1201,18 @@ export default function HomePage({ user }) {
       const books = Array.isArray(response?.items)
         ? response.items
         : Array.isArray(response?.books) ? response.books : [];
-      const covers = [...new Set([
-        tag.cover_path ? resolveAssetUrl(tag.cover_path) : "",
-        ...books
-        .map((book) => resolveAssetUrl(book?.cover_path || book?.coverPath || ""))
-        .filter(Boolean),
-      ])].filter(Boolean).slice(0, 3);
+      // Home hashtag collage: only related story covers (not admin hashtag hero/cover_path)
+      const covers = [...new Set(
+        books
+          .map((book) => resolveAssetUrl(
+            book?.cover_path
+            || book?.coverPath
+            || book?.cover_url
+            || book?.coverUrl
+            || ""
+          ))
+          .filter(Boolean),
+      )].slice(0, 3);
       while (covers.length > 0 && covers.length < 3) covers.push(covers[covers.length - 1]);
       return [normalizedTagName(tag.name), covers];
     })).then((entries) => {

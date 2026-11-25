@@ -561,26 +561,31 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
 
   return (
     <div className="profile-page">
-      <div
-        className={`profile-cover ${cover ? "has-image" : ""}`}
-        style={cover ? { backgroundImage: `linear-gradient(90deg, rgba(15, 11, 24, .45), rgba(15, 11, 24, .1)), url("${cover.replace(/["\\\n\r]/g, "")}")` } : undefined}
-      >
-        <div className="profile-cover-glow" />
+      <div className="profile-cover-shell">
+        <div
+          className={`profile-cover ${cover ? "has-image" : ""}`}
+          style={cover ? { backgroundImage: `linear-gradient(90deg, rgba(15, 11, 24, .45), rgba(15, 11, 24, .1)), url(${JSON.stringify(cover)})` } : undefined}
+        >
+          <div className="profile-cover-glow" />
+        </div>
         <input ref={coverInput} className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => { const file = event.target.files?.[0]; if (file) setImageCrop({ field: "cover_url", file }); event.target.value = ""; }} />
         <button
           type="button"
           className="profile-camera-btn profile-cover-camera"
           onClick={() => coverInput.current?.click()}
           disabled={imageBusy === "cover_url"}
-          aria-label={imageBusy === "cover_url" ? "Uploading cover photo" : "Change cover photo"}
-          title="Change cover photo"
+          aria-label={imageBusy === "cover_url" ? "Uploading cover photo" : "Edit cover photo"}
+          title="Edit cover photo"
         >
           {imageBusy === "cover_url" ? (
             <span className="profile-camera-busy" aria-hidden="true">…</span>
           ) : (
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M9 4.5 7.8 6H5.5A2.5 2.5 0 0 0 3 8.5v9A2.5 2.5 0 0 0 5.5 20h13a2.5 2.5 0 0 0 2.5-2.5v-9A2.5 2.5 0 0 0 18.5 6h-2.3L15 4.5H9Zm3 12.25A3.75 3.75 0 1 1 15.75 13 3.75 3.75 0 0 1 12 16.75Zm0-1.5A2.25 2.25 0 1 0 9.75 13 2.25 2.25 0 0 0 12 15.25Z" />
-            </svg>
+            <>
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M9 4.5 7.8 6H5.5A2.5 2.5 0 0 0 3 8.5v9A2.5 2.5 0 0 0 5.5 20h13a2.5 2.5 0 0 0 2.5-2.5v-9A2.5 2.5 0 0 0 18.5 6h-2.3L15 4.5H9Zm3 12.25A3.75 3.75 0 1 1 15.75 13 3.75 3.75 0 0 1 12 16.75Zm0-1.5A2.25 2.25 0 1 0 9.75 13 2.25 2.25 0 0 0 12 15.25Z" />
+              </svg>
+              <span className="profile-cover-camera-label">Edit cover</span>
+            </>
           )}
         </button>
       </div>

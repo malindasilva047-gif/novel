@@ -1066,3 +1066,92 @@
     border-radius: 50% !important;
   }
 }
+
+
+/* PROFILE_CAMERA_ADJUST — camera icons on cover + avatar; ImageAdjustModal for zoom/pan */
+.main .profile-page .profile-camera-btn {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--site-brand, #16785F) 92%, #0b3d31);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(8, 20, 16, .28);
+  cursor: pointer;
+  transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+}
+
+.main .profile-page .profile-camera-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.main .profile-page .profile-camera-btn:hover:not(:disabled),
+.main .profile-page .profile-camera-btn:focus-visible {
+  background: var(--site-brand, #16785F);
+  transform: scale(1.06);
+  outline: none;
+  box-shadow: 0 8px 18px rgba(8, 20, 16, .34);
+}
+
+.main .profile-page .profile-camera-btn:disabled {
+  opacity: .7;
+  cursor: wait;
+}
+
+.main .profile-page .profile-camera-busy {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.main .profile-page .profile-cover {
+  position: relative;
+}
+
+.main .profile-page .profile-cover-camera {
+  right: clamp(14px, 2vw, 28px);
+  bottom: 16px;
+  width: 44px;
+  height: 44px;
+}
+
+.main .profile-page .profile-cover-camera svg {
+  width: 22px;
+  height: 22px;
+}
+
+.main .profile-page .profile-avatar-frame {
+  position: relative;
+}
+
+.main .profile-page .profile-avatar-camera {
+  right: 2px;
+  bottom: 4px;
+  width: 36px;
+  height: 36px;
+}
+
+.main .profile-page .profile-avatar-camera svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 720px) {
+  .main .profile-page .profile-cover-camera {
+    width: 40px;
+    height: 40px;
+    right: 12px;
+    bottom: 12px;
+  }
+  .main .profile-page .profile-avatar-camera {
+    width: 32px;
+    height: 32px;
+  }
+}

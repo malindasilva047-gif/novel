@@ -253,13 +253,11 @@ export default function LoginPage({ onSuccess }) {
 
                                           <span className="ws-auth__leaves" aria-hidden="true">
                 <svg viewBox="0 0 160 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <!-- left branch -->
-                  <path d="M78 36 C60 34 42 28 28 18" stroke="#9fd4b5" strokeWidth="1.6" strokeLinecap="round"/>
+<path d="M78 36 C60 34 42 28 28 18" stroke="#9fd4b5" strokeWidth="1.6" strokeLinecap="round"/>
                   <path d="M28 18 C22 12 18 14 20 20 C24 30 36 36 48 38 C40 32 32 24 28 18Z" fill="#b7e5cc"/>
                   <path d="M40 28 C34 22 30 24 32 30 C36 38 48 42 58 42 C50 36 44 30 40 28Z" fill="#c9edd9"/>
                   <path d="M52 34 C46 28 42 30 44 36 C48 44 60 46 68 44 C62 40 56 36 52 34Z" fill="#d8f3e6"/>
-                  <!-- right branch -->
-                  <path d="M82 36 C100 34 118 28 132 18" stroke="#9fd4b5" strokeWidth="1.6" strokeLinecap="round"/>
+<path d="M82 36 C100 34 118 28 132 18" stroke="#9fd4b5" strokeWidth="1.6" strokeLinecap="round"/>
                   <path d="M132 18 C138 12 142 14 140 20 C136 30 124 36 112 38 C120 32 128 24 132 18Z" fill="#b7e5cc"/>
                   <path d="M120 28 C126 22 130 24 128 30 C124 38 112 42 102 42 C110 36 116 30 120 28Z" fill="#c9edd9"/>
                   <path d="M108 34 C114 28 118 30 116 36 C112 44 100 46 92 44 C98 40 104 36 108 34Z" fill="#d8f3e6"/>

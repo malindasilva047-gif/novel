@@ -115,11 +115,11 @@ export default function ArrowCarousel({
       aria-label={label}
       aria-roledescription="carousel"
     >
-      {edgeGlow && maxOffset > 0 ? (
-        <>
-          <div className="arrow-carousel-edge-glow arrow-carousel-edge-glow--previous" aria-hidden="true" />
-          <div className="arrow-carousel-edge-glow arrow-carousel-edge-glow--next" aria-hidden="true" />
-        </>
+      {edgeGlow && canGoPrev ? (
+        <div className="arrow-carousel-edge-glow arrow-carousel-edge-glow--previous" aria-hidden="true" />
+      ) : null}
+      {edgeGlow && canGoNext ? (
+        <div className="arrow-carousel-edge-glow arrow-carousel-edge-glow--next" aria-hidden="true" />
       ) : null}
       {showControls ? (
         <button

@@ -19347,3 +19347,112 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
     max-width: 136px !important;
   }
 }
+
+/* TOP_GENRES_ALIGN_NO_BLUR */
+/* TOP_GENRES_ALIGN_NO_BLUR — left align with other sections; no blur on first card */
+
+/* Same horizontal padding as Trending / Continue Reading */
+:root .main .home-page--minimal .home-top-genres,
+.main .home-page .home-top-genres {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding-block: 14px !important;
+  box-sizing: border-box;
+}
+
+:root .main .home-page--minimal .home-top-genres .home-section-inner,
+.main .home-page .home-top-genres .home-section-inner {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding-inline: clamp(18px, 3vw, 44px) !important;
+  box-sizing: border-box;
+}
+
+.main .home-page .home-top-genres .home-section-heading--start,
+.member-home .member-genres .member-section-heading--start {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 0;
+  text-align: left;
+}
+
+.main .home-page .home-top-genres .home-section-heading--start h2,
+.member-home .member-genres .member-section-heading--start h2 {
+  margin: 0;
+  text-align: left;
+}
+
+/* Never blur/fade first genre card at rest */
+.main .home-page .home-top-genres .arrow-carousel-edge-glow--previous,
+.member-home .member-genres .arrow-carousel-edge-glow--previous {
+  display: none !important;
+}
+
+/* When at start, hide left control completely so it does not cover first card */
+.main .home-page .home-top-genres .arrow-carousel-control--previous:disabled,
+.member-home .member-genres .arrow-carousel-control--previous:disabled {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Right arrow stays visible when more genres exist */
+.main .home-page .home-top-genres .arrow-carousel-control--next:not(:disabled),
+.member-home .member-genres .arrow-carousel-control--next:not(:disabled) {
+  opacity: 1 !important;
+}
+
+.main .home-page .home-top-genres .arrow-carousel,
+.member-home .member-genres .arrow-carousel {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.main .arrow-carousel .arrow-carousel-track.home-top-genres-track,
+.main .arrow-carousel .arrow-carousel-track.member-genre-track {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  width: max-content !important;
+  max-width: none !important;
+  gap: 12px !important;
+  padding: 2px 8px 8px 0 !important;
+}
+
+.main .arrow-carousel .arrow-carousel-track.home-top-genres-track > .arrow-carousel-item,
+.main .arrow-carousel .arrow-carousel-track.member-genre-track > .arrow-carousel-item {
+  flex: 0 0 auto !important;
+  width: 156px !important;
+  min-width: 156px !important;
+  max-width: 156px !important;
+}
+
+.main .arrow-carousel .arrow-carousel-track.home-top-genres-track > .arrow-carousel-item .home-top-genre,
+.main .arrow-carousel .arrow-carousel-track.member-genre-track > .arrow-carousel-item .member-genre-card {
+  display: grid;
+  width: 100%;
+  min-height: 108px;
+  place-content: center;
+  gap: 6px;
+  padding: 14px 10px;
+  border: 1px solid var(--site-line);
+  border-radius: 14px;
+  background: var(--site-card);
+  color: var(--site-ink);
+  text-align: center;
+  text-decoration: none;
+  box-sizing: border-box;
+  /* full opacity — never pre-faded */
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.member-home .member-genres {
+  width: 100%;
+  max-width: none;
+  padding-inline: clamp(18px, 3vw, 44px);
+  box-sizing: border-box;
+}

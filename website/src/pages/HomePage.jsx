@@ -526,7 +526,6 @@ function MemberBrowseHome({
           className="member-genre-track"
           itemClassName="member-genre-slide"
           label="Top genres"
-          edgeGlow
           stepByItem
         >
           {genreList.map((genre, index) => (
@@ -1399,7 +1398,6 @@ export default function HomePage({ user }) {
                     className="home-top-genres-track"
                     itemClassName="home-top-genre-slide"
                     label="Top genres"
-                    edgeGlow
                     stepByItem
                   >
                     {topGenres.map((genre) => (

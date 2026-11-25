@@ -519,11 +519,18 @@ function MemberBrowseHome({
       <ContinueReadingShelf books={continueReading} onResume={onResume} resumingId={resumingId} resumeMessage={resumeMessage} member />
 
       <section className="member-section member-genres" aria-labelledby="member-genres-title">
-        <div className="member-section-heading">
+        <div className="member-section-heading member-section-heading--start">
           <h2 id="member-genres-title">Top Genres</h2>
-          <Link to="/genres/Stories">All genres <span aria-hidden="true">→</span></Link>
         </div>
-        <div className="member-genre-grid">
+        <ArrowCarousel
+          className="member-genre-track"
+          itemClassName="member-genre-slide"
+          label="Top genres"
+          edgeGlow
+          stepByItem
+          deferUntilVisible
+          deferHeight={140}
+        >
           {genreList.map((genre, index) => (
             <Link to={`/genres/${encodeURIComponent(genre)}`} className="member-genre-card" key={genre}>
               <span aria-hidden="true">{["✦", "♡", "◈", "⌘", "☾", "✧", "➶"][index % 7]}</span>
@@ -531,7 +538,7 @@ function MemberBrowseHome({
               <small>{byGenre(discoverBooks, genre).length} stories</small>
             </Link>
           ))}
-        </div>
+        </ArrowCarousel>
       </section>
 
       <MemberStoryShelf title="Trending Now" books={trending} to="/" emptyMessage="Trending stories will appear here as readers find them." />
@@ -1386,18 +1393,27 @@ export default function HomePage({ user }) {
           {topGenres.length || genreCountError ? (
             <section className="home-top-genres" aria-labelledby="home-top-genres-title">
               <div className="home-section-inner">
-                <div className="home-section-heading">
+                <div className="home-section-heading home-section-heading--start">
                   <h2 id="home-top-genres-title">Top Genres</h2>
-                  <Link to="/genres/Stories">All genres <span aria-hidden="true">→</span></Link>
                 </div>
-                {topGenres.length ? <div className="home-top-genres-grid">
-                  {topGenres.map((genre) => (
-                    <Link to={`/genres/${encodeURIComponent(genre.name)}`} className="home-top-genre" key={genre.name}>
-                      <strong>{genre.name}</strong>
-                      <small>{Number(genre.story_count).toLocaleString()} {Number(genre.story_count) === 1 ? "story" : "stories"}</small>
-                    </Link>
-                  ))}
-                </div> : <p className="meta" role="status">Story counts are temporarily unavailable.</p>}
+                {topGenres.length ? (
+                  <ArrowCarousel
+                    className="home-top-genres-track"
+                    itemClassName="home-top-genre-slide"
+                    label="Top genres"
+                    edgeGlow
+                    stepByItem
+                    deferUntilVisible
+                    deferHeight={120}
+                  >
+                    {topGenres.map((genre) => (
+                      <Link to={`/genres/${encodeURIComponent(genre.name)}`} className="home-top-genre" key={genre.name}>
+                        <strong>{genre.name}</strong>
+                        <small>{Number(genre.story_count).toLocaleString()} {Number(genre.story_count) === 1 ? "story" : "stories"}</small>
+                      </Link>
+                    ))}
+                  </ArrowCarousel>
+                ) : <p className="meta" role="status">Story counts are temporarily unavailable.</p>}
               </div>
             </section>
           ) : null}

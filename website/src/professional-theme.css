@@ -18971,3 +18971,91 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   fill: var(--site-brand, #16856A) !important;
   stroke: var(--site-brand, #16856A) !important;
 }
+
+
+/* TOP_GENRES_ARROW_SLIDER */
+/* TOP_GENRES_ARROW_SLIDER — left-aligned heading, horizontal arrow rail like story cards */
+.main .home-page .home-top-genres .home-section-heading--start,
+.member-home .member-genres .member-section-heading--start {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+.main .home-page .home-top-genres .home-section-heading--start h2,
+.member-home .member-genres .member-section-heading--start h2 {
+  margin: 0;
+  text-align: left;
+}
+
+.main .home-page .home-top-genres .home-section-inner {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding-left: 0;
+  padding-right: 0;
+  text-align: left;
+}
+
+/* Horizontal genre cards inside ArrowCarousel */
+.main .home-page .home-top-genres-track,
+.member-home .member-genre-track {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.main .home-page .home-top-genre-slide,
+.member-home .member-genre-slide {
+  flex: 0 0 auto;
+  width: clamp(140px, 16vw, 180px);
+}
+
+.main .home-page .home-top-genre-slide .home-top-genre,
+.member-home .member-genre-slide .member-genre-card {
+  display: grid;
+  width: 100%;
+  min-height: 110px;
+  align-content: center;
+  justify-items: center;
+  gap: 6px;
+  padding: 14px 12px;
+  border: 1px solid var(--site-line);
+  border-radius: 14px;
+  background: var(--site-card);
+  color: var(--site-ink);
+  text-align: center;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.member-home .member-genre-slide .member-genre-card > span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--site-brand);
+  color: #fff;
+  font-size: 1rem;
+}
+
+.main .home-page .home-top-genres .arrow-carousel,
+.member-home .member-genres .arrow-carousel {
+  width: 100%;
+}
+
+/* Match other home section left edge */
+:root .main .home-page--minimal .discovery-home--hero-only > .home-top-genres {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+:root .main .home-page--minimal .home-top-genres .home-section-inner {
+  padding-left: var(--library-page-gutter, clamp(16px, 3vw, 32px));
+  padding-right: var(--library-page-gutter, clamp(16px, 3vw, 32px));
+  box-sizing: border-box;
+}

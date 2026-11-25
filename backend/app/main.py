@@ -107,6 +107,14 @@ async def log_request_path(request, call_next):
 
 app.mount("/uploads", StaticFiles(directory=UPLOAD_ROOT), name="uploads")
 
+# Performance: on-demand WebP/AVIF variants for covers (/api/img)
+try:
+    from app.register_perf_routes import register_perf_routes
+    register_perf_routes(app, fetch_all)
+except Exception as _perf_exc:  # noqa: BLE001
+    LOGGER.warning("perf routes skipped: %s", _perf_exc)
+
+
 
 class LibraryCreateRequest(BaseModel):
     book_id: int
@@ -3339,7 +3347,7 @@ async def upload_profile_image(
     file: UploadFile = File(...),
     _user: dict[str, Any] = Depends(require_user),
 ):
-    return await _save_uploaded_image(file)
+    return await _save_uploaded_image(file, optimize=True)
 
 
 @app.post("/api/support/upload-attachment")

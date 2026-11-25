@@ -27,5 +27,19 @@ export default defineConfig(({ mode }) => {
       headers: browserHeaders,
       proxy: apiProxy,
     },
+    build: {
+      target: "es2018",
+      cssCodeSplit: true,
+      sourcemap: false,
+      minify: "esbuild",
+      chunkSizeWarningLimit: 900,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            react: ["react", "react-dom", "react-router-dom"],
+          },
+        },
+      },
+    },
   };
 });

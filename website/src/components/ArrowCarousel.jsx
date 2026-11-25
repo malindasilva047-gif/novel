@@ -108,12 +108,12 @@ export default function ArrowCarousel({
           <div className="arrow-carousel-edge-glow arrow-carousel-edge-glow--next" aria-hidden="true" />
         </>
       ) : null}
-      {maxOffset > 0 ? (
+      {itemCount > 1 ? (
         <button
           type="button"
           className="arrow-carousel-control arrow-carousel-control--previous"
           aria-label={previousLabel}
-          disabled={offset <= 0}
+          disabled={offset <= 0 || maxOffset <= 0}
           onClick={() => move(-1)}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -138,12 +138,12 @@ export default function ArrowCarousel({
           <div className="arrow-carousel-placeholder" style={{ minHeight: `${deferHeight}px` }} aria-hidden="true" />
         )}
       </div>
-      {maxOffset > 0 ? (
+      {itemCount > 1 ? (
         <button
           type="button"
           className="arrow-carousel-control arrow-carousel-control--next"
           aria-label={nextLabel}
-          disabled={offset >= maxOffset}
+          disabled={offset >= maxOffset || maxOffset <= 0}
           onClick={() => move(1)}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">

@@ -19059,3 +19059,92 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   padding-right: var(--library-page-gutter, clamp(16px, 3vw, 32px));
   box-sizing: border-box;
 }
+
+
+/* TOP_GENRES_ARROW_SLIDER_V2 */
+/* TOP_GENRES_ARROW_SLIDER_V2 — force horizontal one-by-one genre carousel */
+.main .home-page .home-top-genres .home-section-heading--start,
+.member-home .member-genres .member-section-heading--start {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+.main .home-page .home-top-genres .home-section-heading--start h2,
+.member-home .member-genres .member-section-heading--start h2 {
+  margin: 0;
+  text-align: left;
+}
+
+.main .arrow-carousel .arrow-carousel-track.home-top-genres-track,
+.main .arrow-carousel .arrow-carousel-track.member-genre-track {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch;
+  gap: 12px !important;
+  width: max-content !important;
+  max-width: none !important;
+}
+
+.main .arrow-carousel .arrow-carousel-track.home-top-genres-track > .arrow-carousel-item,
+.main .arrow-carousel .arrow-carousel-track.member-genre-track > .arrow-carousel-item {
+  flex: 0 0 auto !important;
+  width: 160px !important;
+  min-width: 160px !important;
+  max-width: 160px !important;
+  box-sizing: border-box;
+}
+
+.main .arrow-carousel .arrow-carousel-track.home-top-genres-track > .arrow-carousel-item .home-top-genre,
+.main .arrow-carousel .arrow-carousel-track.member-genre-track > .arrow-carousel-item .member-genre-card {
+  display: grid;
+  width: 100%;
+  min-height: 110px;
+  height: 100%;
+  align-content: center;
+  justify-items: center;
+  gap: 6px;
+  padding: 14px 12px;
+  border: 1px solid var(--site-line);
+  border-radius: 14px;
+  background: var(--site-card);
+  color: var(--site-ink);
+  text-align: center;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.main .arrow-carousel .arrow-carousel-track.member-genre-track > .arrow-carousel-item .member-genre-card > span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--site-brand);
+  color: #fff;
+  font-size: 1rem;
+}
+
+.main .home-page .home-top-genres .arrow-carousel,
+.member-home .member-genres .arrow-carousel {
+  position: relative;
+  width: 100%;
+}
+
+/* Ensure controls visible above track */
+.main .home-page .home-top-genres .arrow-carousel-control,
+.member-home .member-genres .arrow-carousel-control {
+  z-index: 3;
+}
+
+@media (max-width: 640px) {
+  .main .arrow-carousel .arrow-carousel-track.home-top-genres-track > .arrow-carousel-item,
+  .main .arrow-carousel .arrow-carousel-track.member-genre-track > .arrow-carousel-item {
+    width: 140px !important;
+    min-width: 140px !important;
+    max-width: 140px !important;
+  }
+}

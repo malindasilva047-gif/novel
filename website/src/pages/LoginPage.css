@@ -1,0 +1,557 @@
+/* Wingsaga split login — matches marketing auth mock (UI only) */
+.ws-auth {
+  --ws-green: #16785f;
+  --ws-green-deep: #0f5c48;
+  --ws-green-soft: #e8f5f0;
+  --ws-ink: #1a1f1c;
+  --ws-mute: #6b7280;
+  --ws-line: #e5e7eb;
+  --ws-card: #ffffff;
+  --ws-page: #eef3f0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: linear-gradient(160deg, #e8f2ed 0%, #f4f7f5 45%, #e7eeea 100%);
+  box-sizing: border-box;
+}
+
+.ws-auth[data-theme="dark"] {
+  --ws-ink: #f3f5f4;
+  --ws-mute: #9ca3af;
+  --ws-line: #2b3832;
+  --ws-card: #17211d;
+  --ws-page: #0d1914;
+  --ws-green-soft: #1a2e28;
+  background: #0d1914;
+}
+
+.ws-auth *,
+.ws-auth *::before,
+.ws-auth *::after {
+  box-sizing: border-box;
+}
+
+.ws-auth__shell {
+  width: min(1080px, 100%);
+  min-height: min(640px, calc(100vh - 40px));
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  background: var(--ws-card);
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow:
+    0 4px 6px rgba(13, 25, 20, 0.04),
+    0 24px 64px rgba(13, 25, 20, 0.12);
+}
+
+/* ----- Hero (left) ----- */
+.ws-auth__hero {
+  position: relative;
+  min-height: 520px;
+  color: #fff;
+  isolation: isolate;
+}
+
+.ws-auth__hero-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.02);
+}
+
+.ws-auth__hero-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(8, 40, 30, 0.35) 0%, rgba(6, 30, 22, 0.55) 45%, rgba(4, 22, 16, 0.78) 100%),
+    linear-gradient(90deg, rgba(10, 50, 38, 0.25), transparent 55%);
+}
+
+.ws-auth__hero-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 28px 32px 40px;
+}
+
+.ws-auth__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.ws-auth__brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--ws-green);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 1.1rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.ws-auth__brand-name {
+  letter-spacing: -0.02em;
+}
+
+.ws-auth__hero-copy {
+  max-width: 16ch;
+  padding-bottom: 12px;
+}
+
+.ws-auth__hero-title {
+  margin: 0;
+  font-family: Georgia, "Fraunces", "Times New Roman", serif;
+  font-weight: 700;
+  font-size: clamp(2.1rem, 3.6vw, 3rem);
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.35);
+}
+
+.ws-auth__hero-title em {
+  font-style: italic;
+  color: #7dffc0;
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 6px;
+  text-decoration-color: rgba(125, 255, 192, 0.85);
+}
+
+.ws-auth__hero-sub {
+  margin: 18px 0 0;
+  font-size: 1.05rem;
+  opacity: 0.92;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* ----- Form panel (right) ----- */
+.ws-auth__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 28px 32px;
+  background: var(--ws-card);
+}
+
+.ws-auth__panel-top {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+.ws-auth__theme {
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--ws-line);
+  background: var(--ws-green-soft);
+  cursor: pointer;
+}
+
+.ws-auth__theme span {
+  width: 32px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  opacity: 0.55;
+}
+
+.ws-auth__theme span.is-active {
+  background: var(--ws-card);
+  opacity: 1;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.ws-auth__panel-inner {
+  width: min(380px, 100%);
+  margin: 0 auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 0 12px;
+}
+
+.ws-auth__logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+  position: relative;
+}
+
+.ws-auth__logo-wrap::before,
+.ws-auth__logo-wrap::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 42px;
+  height: 28px;
+  border-radius: 40% 60%;
+  background: radial-gradient(circle at 30% 40%, #b7e4d2, transparent 70%);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.ws-auth__logo-wrap::before {
+  left: calc(50% - 58px);
+  transform: translateY(-50%) rotate(-18deg);
+}
+
+.ws-auth__logo-wrap::after {
+  right: calc(50% - 58px);
+  transform: translateY(-50%) rotate(18deg) scaleX(-1);
+}
+
+.ws-auth__logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--ws-green);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 1.55rem;
+  box-shadow: 0 10px 28px rgba(22, 120, 95, 0.35);
+  position: relative;
+  z-index: 1;
+}
+
+.ws-auth__heading {
+  margin: 0;
+  text-align: center;
+  font-size: clamp(1.55rem, 2.4vw, 1.85rem);
+  font-weight: 800;
+  color: var(--ws-ink);
+  letter-spacing: -0.03em;
+}
+
+.ws-auth__lede {
+  margin: 8px 0 22px;
+  text-align: center;
+  color: var(--ws-mute);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.ws-auth__form {
+  display: grid;
+  gap: 14px;
+}
+
+.ws-auth__field {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.ws-auth__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.ws-auth__input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ws-auth__icon {
+  position: absolute;
+  left: 14px;
+  color: var(--ws-mute);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.ws-auth__input-wrap input,
+.ws-auth__input-wrap select {
+  width: 100%;
+  min-height: 48px;
+  border: 1.5px solid var(--ws-line);
+  border-radius: 12px;
+  padding: 0 44px 0 44px;
+  background: var(--ws-card);
+  color: var(--ws-ink);
+  font: inherit;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ws-auth__input-wrap select {
+  padding-left: 14px;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ws-mute) 50%),
+    linear-gradient(135deg, var(--ws-mute) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 55%, calc(100% - 12px) 55%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+.ws-auth__input-wrap input:focus,
+.ws-auth__input-wrap select:focus {
+  border-color: var(--ws-green);
+  box-shadow: 0 0 0 3px rgba(22, 120, 95, 0.15);
+}
+
+.ws-auth__input-wrap input::placeholder {
+  color: #9ca3af;
+}
+
+.ws-auth__eye {
+  position: absolute;
+  right: 10px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 6px;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.ws-auth__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.ws-auth__meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -2px;
+}
+
+.ws-auth__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: var(--ws-ink);
+  cursor: pointer;
+  user-select: none;
+}
+
+.ws-auth__check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--ws-green);
+}
+
+.ws-auth__check a {
+  color: var(--ws-green);
+}
+
+.ws-auth__forgot {
+  font-size: 0.88rem;
+  color: var(--ws-green);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.ws-auth__forgot:hover {
+  text-decoration: underline;
+}
+
+.ws-auth__error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.88rem;
+}
+
+.ws-auth[data-theme="dark"] .ws-auth__error {
+  background: #3f1d1d;
+  color: #fecaca;
+  border-color: #7f1d1d;
+}
+
+.ws-auth__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 50px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #1a8a6c 0%, var(--ws-green) 100%);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(22, 120, 95, 0.28);
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+}
+
+.ws-auth__submit:hover:not(:disabled) {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.ws-auth__submit:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.ws-auth__submit-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.ws-auth__divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 14px;
+  color: var(--ws-mute);
+  font-size: 0.82rem;
+}
+
+.ws-auth__divider::before,
+.ws-auth__divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--ws-line);
+}
+
+.ws-auth__social {
+  display: grid;
+  gap: 10px;
+}
+
+.ws-auth__google-slot {
+  min-height: 44px;
+  display: flex;
+  justify-content: center;
+}
+
+.ws-auth__google-slot > * {
+  width: 100% !important;
+  max-width: 100%;
+}
+
+.ws-auth__social-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 46px;
+  border-radius: 999px;
+  border: 1.5px solid var(--ws-line);
+  background: var(--ws-card);
+  color: var(--ws-ink);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ws-auth__social-btn:hover {
+  background: var(--ws-green-soft);
+  border-color: #c5d5ce;
+}
+
+.ws-auth__social-btn--discord {
+  color: #5865f2;
+}
+
+.ws-auth__switch {
+  margin: 22px 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--ws-mute);
+}
+
+.ws-auth__switch button,
+.ws-auth__link-btn {
+  border: 0;
+  background: none;
+  color: var(--ws-green);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ws-auth__link-btn {
+  margin-top: 10px;
+  text-align: center;
+  width: 100%;
+}
+
+/* Hide site chrome padding on auth route */
+body.login-page-mode .main {
+  padding: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+body.login-page-mode {
+  background: var(--ws-page, #eef3f0);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .ws-auth {
+    padding: 0;
+  }
+
+  .ws-auth__shell {
+    grid-template-columns: 1fr;
+    min-height: 100vh;
+    min-height: 100dvh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .ws-auth__hero {
+    min-height: 220px;
+  }
+
+  .ws-auth__hero-copy {
+    max-width: none;
+  }
+
+  .ws-auth__hero-title {
+    font-size: clamp(1.7rem, 7vw, 2.2rem);
+  }
+
+  .ws-auth__panel {
+    padding: 16px 20px 28px;
+  }
+
+  .ws-auth__row {
+    grid-template-columns: 1fr;
+  }
+}

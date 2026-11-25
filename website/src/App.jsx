@@ -54,6 +54,7 @@ export default function App() {
   const focusWorkspace = readingFocus || writingFocus;
   const guestLanding = isGuestUser(user) && path === "/"
     && !new URLSearchParams(location.search).get("q")?.trim();
+  const authPage = path === "/login";
   const showSiteChrome = !focusWorkspace;
   const searchingHome = path === "/"
     && Boolean(new URLSearchParams(location.search).get("q")?.trim());
@@ -158,12 +159,13 @@ export default function App() {
   useEffect(() => {
     document.body.classList.toggle("focus-workspace", focusWorkspace);
     document.body.classList.toggle("guest-landing-mode", guestLanding);
+    document.body.classList.toggle("login-page-mode", authPage);
     document.documentElement.classList.toggle("guest-landing-mode", guestLanding);
     return () => {
-      document.body.classList.remove("focus-workspace", "guest-landing-mode");
+      document.body.classList.remove("focus-workspace", "guest-landing-mode", "login-page-mode");
       document.documentElement.classList.remove("guest-landing-mode");
     };
-  }, [focusWorkspace, guestLanding]);
+  }, [focusWorkspace, guestLanding, authPage]);
 
   async function handleLogout() {
     try {
@@ -200,13 +202,13 @@ export default function App() {
     <div className="app-shell">
       <div ref={cursorAuraRef} className="site-cursor-aura" aria-hidden="true" />
       <ToastViewport />
-      {!focusWorkspace && <Header user={user} onLogout={handleLogout} onAuthSuccess={handleLoginSuccess} />}
+      {!focusWorkspace && !authPage && <Header user={user} onLogout={handleLogout} onAuthSuccess={handleLoginSuccess} />}
       <main className={`main${guestLanding ? " main--guest-landing" : ""}`}>
         {bootLoading ? (
           <div className="page-loading">Loading…</div>
         ) : (
           <>
-            {showSiteChrome && !searchingHome && !minimalHome && <SiteChrome pathname={path} />}
+            {showSiteChrome && !authPage && !searchingHome && !minimalHome && <SiteChrome pathname={path} />}
             <Suspense fallback={<div className="page-loading" role="status">Loading page…</div>}>
               <Routes>
                 <Route path="/" element={<HomePage user={user} />} />
@@ -271,7 +273,7 @@ export default function App() {
       </main>
       {!bootLoading && !recommendationsExcluded ? <YouMayAlsoLike excludeId={currentStoryId} title={readingFocus || storyReviewForm ? "Browse stories" : "Recommended for your next read"} compact={readingFocus} /> : null}
       {!bootLoading && minimalHome && !guestLanding ? <HomePageCTA /> : null}
-      {!bootLoading && !focusWorkspace && <Footer user={user} />}
+      {!bootLoading && !focusWorkspace && !authPage && <Footer user={user} />}
     </div>
   );
 }

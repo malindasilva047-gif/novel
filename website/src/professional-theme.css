@@ -20417,3 +20417,213 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
     width: 112px !important;
   }
 }
+
+/* LIBRARY_COMPLETED_TRANSPARENT_MATCH */
+/* LIBRARY_COMPLETED_TRANSPARENT_MATCH — no card background; profile-exact; creative menu */
+
+:root .main .library-page .library-completed-grid.profile-story-grid--home-pack,
+:root .main .library-experience .library-completed-grid.profile-story-grid--home-pack {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, 140px) !important;
+  gap: 16px 14px !important;
+  row-gap: 16px !important;
+  column-gap: 14px !important;
+  align-items: start !important;
+  justify-content: start !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  padding: 8px 0 20px !important;
+}
+
+:root .main .library-page .library-completed-grid > .library-completed-slot,
+:root .main .library-page .library-completed-grid > .profile-home-story-slot {
+  position: relative !important;
+  width: 140px !important;
+  min-width: 140px !important;
+  max-width: 140px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Kill every panel/card surface under the slot */
+:root .main .library-page .library-completed-grid .book-card,
+:root .main .library-page .library-completed-grid .book-card--shelf,
+:root .main .library-page .library-completed-grid .book-card--inkitt,
+:root .main .library-page .library-completed-grid .book-meta,
+:root .main .library-page .library-completed-grid .book-card-stats,
+:root .main .library-page .library-completed-grid .book-card-badges,
+:root .main .library-page .library-completed-grid .card-panel,
+:root .main .library-page .library-completed-grid .library-story-card {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+:root .main .library-page .library-completed-grid .book-card {
+  display: grid !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+:root .main .library-page .library-completed-grid .book-cover-wrap {
+  position: relative !important;
+  width: 140px !important;
+  aspect-ratio: 2 / 3 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: var(--site-surface, #eef2f0) !important;
+  box-shadow: 0 4px 14px rgba(10, 30, 20, .08) !important;
+}
+
+:root .main .library-page .library-completed-grid .book-cover-wrap img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+:root .main .library-page .library-completed-grid .book-meta {
+  display: grid !important;
+  gap: 2px !important;
+  margin: 0 !important;
+  padding: 8px 0 0 !important;
+}
+
+:root .main .library-page .library-completed-grid .book-title {
+  color: var(--site-ink) !important;
+  font-size: .82rem !important;
+  font-weight: 750 !important;
+  line-height: 1.25 !important;
+  background: transparent !important;
+}
+
+:root .main .library-page .library-completed-grid .book-author {
+  color: var(--site-muted) !important;
+  font-size: .72rem !important;
+  font-weight: 500 !important;
+  background: transparent !important;
+}
+
+/* Creative 3-dot control — glass orb, top-right on cover */
+:root .main .library-page .library-completed-grid .library-card-menu--top-right {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  z-index: 8 !important;
+  margin: 0 !important;
+}
+
+:root .main .library-page .library-completed-grid .library-card-menu--top-right > summary {
+  display: grid !important;
+  place-items: center !important;
+  width: 34px !important;
+  height: 34px !important;
+  padding: 0 !important;
+  border: 1px solid rgba(255, 255, 255, .55) !important;
+  border-radius: 999px !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.92), rgba(255,255,255,.72)) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  box-shadow: 0 6px 16px rgba(8, 20, 16, .22), inset 0 1px 0 rgba(255,255,255,.8) !important;
+  cursor: pointer !important;
+  list-style: none !important;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease !important;
+}
+
+:root .main .library-page .library-completed-grid .library-card-menu--top-right > summary::-webkit-details-marker {
+  display: none !important;
+}
+
+:root .main .library-page .library-completed-grid .library-card-menu--top-right > summary:hover {
+  transform: scale(1.06) !important;
+  background: #fff !important;
+  box-shadow: 0 8px 18px rgba(8, 20, 16, .28) !important;
+}
+
+:root .main .library-page .library-completed-grid .library-card-menu-orb {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+}
+
+:root .main .library-page .library-completed-grid .library-card-menu-orb i {
+  display: block !important;
+  width: 4px !important;
+  height: 4px !important;
+  border-radius: 50% !important;
+  background: #1d2420 !important;
+  box-shadow: 0 0 0 0.5px rgba(255,255,255,.35) !important;
+}
+
+:root .main .library-page .library-completed-grid .library-card-menu--top-right .library-card-menu-items {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  right: 0 !important;
+  z-index: 12 !important;
+  display: grid !important;
+  min-width: 176px !important;
+  padding: 6px !important;
+  border: 1px solid rgba(20, 40, 30, .08) !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, .98) !important;
+  box-shadow: 0 16px 36px rgba(10, 30, 20, .18) !important;
+  overflow: hidden !important;
+}
+
+:root .main .library-page .library-completed-grid .library-card-menu-items a,
+:root .main .library-page .library-completed-grid .library-card-menu-items button {
+  display: block !important;
+  width: 100% !important;
+  padding: 9px 12px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: var(--site-ink) !important;
+  text-align: left !important;
+  font: inherit !important;
+  font-size: .8rem !important;
+  font-weight: 650 !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+}
+
+:root .main .library-page .library-completed-grid .library-card-menu-items a:hover,
+:root .main .library-page .library-completed-grid .library-card-menu-items button:hover {
+  background: color-mix(in srgb, var(--site-brand, #16785F) 10%, #fff) !important;
+  color: var(--site-brand, #16785F) !important;
+}
+
+:root .main .library-page .library-completed-grid .library-card-menu-items button.is-danger {
+  color: #b42318 !important;
+}
+
+:root .main .library-page .library-completed-grid .library-card-menu-items button.is-danger:hover {
+  background: rgba(180, 35, 24, .08) !important;
+}
+
+@media (max-width: 720px) {
+  :root .main .library-page .library-completed-grid.profile-story-grid--home-pack {
+    grid-template-columns: repeat(auto-fill, 112px) !important;
+    gap: 12px 10px !important;
+  }
+  :root .main .library-page .library-completed-grid > .library-completed-slot,
+  :root .main .library-page .library-completed-grid > .profile-home-story-slot {
+    width: 112px !important;
+    min-width: 112px !important;
+    max-width: 112px !important;
+  }
+  :root .main .library-page .library-completed-grid .book-cover-wrap {
+    width: 112px !important;
+  }
+}

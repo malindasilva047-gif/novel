@@ -658,7 +658,9 @@ export default function LibraryPage({ user }) {
                     <BookCard book={book} variant="shelf" inkittStyle showRating showStatus />
                     <details className="library-card-menu library-card-menu--top-right">
                       <summary aria-label={`Actions for ${story.title || "this story"}`} title="Story actions">
-                        <span aria-hidden="true">•••</span>
+                        <span className="library-card-menu-orb" aria-hidden="true">
+                          <i /><i /><i />
+                        </span>
                       </summary>
                       <div className="library-card-menu-items">
                         <Link to={`/stories/${story.id}`} onClick={closeCardMenu}>Read again</Link>

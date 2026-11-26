@@ -33,65 +33,118 @@ const libraryShowcaseFallbacks = [
 ];
 
 function LibraryCinematicHero({ entries, busyEntry, onResume }) {
-  const entry = entries[0] || null;
-  const story = entry?.book || entry;
-  const showcaseBooks = libraryShowcaseFallbacks.map((fallback, index) => {
-    const readingEntry = entries[index] || null;
-    const readingStory = readingEntry?.book || readingEntry;
-    return {
-      entry: readingEntry,
-      story: readingStory,
-      title: readingStory?.title || fallback.title,
-      author: readingStory?.author || fallback.author,
-      cover: readingStory
-        ? resolveAssetUrl(readingStory.cover_path || readingStory.coverPath || "") || fallback.cover
-        : fallback.cover,
-      label: readingEntry ? "YOUR SHELF" : fallback.label,
-    };
-  });
+  const slides = useMemo(() => {
+    const fromEntries = (entries || []).slice(0, 8).map((entry, index) => {
+      const story = entry?.book || entry || {};
+      return {
+        key: entry?.id || story?.id || `entry-${index}`,
+        entry,
+        story,
+        title: story?.title || "Untitled story",
+        author: story?.author || story?.author_name || "Wingsaga author",
+        cover: resolveAssetUrl(story?.cover_path || story?.coverPath || "") || libraryShowcaseFallbacks[index % libraryShowcaseFallbacks.length].cover,
+        description: story?.description || story?.synopsis || "Pick up where you left off and keep the story moving.",
+        label: "YOUR SHELF",
+      };
+    });
+    if (fromEntries.length) return fromEntries;
+    return libraryShowcaseFallbacks.map((fallback, index) => ({
+      key: `fallback-${index}`,
+      entry: null,
+      story: null,
+      title: fallback.title,
+      author: fallback.author,
+      cover: fallback.cover,
+      description: "Discover heartfelt serials, late-night fantasy epics, and unforgettable characters crafted by independent storytellers.",
+      label: fallback.label,
+    }));
+  }, [entries]);
+
+  const [slideIndex, setSlideIndex] = useState(0);
+  const count = slides.length || 1;
+  const active = slides[slideIndex % count] || slides[0];
+
+  useEffect(() => {
+    setSlideIndex(0);
+  }, [entries]);
+
+  useEffect(() => {
+    if (count <= 1) return undefined;
+    const timer = window.setInterval(() => {
+      setSlideIndex((current) => (current + 1) % count);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [count, slideIndex]);
+
+  function go(delta) {
+    if (count <= 1) return;
+    setSlideIndex((current) => (current + delta + count) % count);
+  }
+
   return (
-    <section className="library-cinematic-hero" aria-label="Wingsaga featured stories">
+    <section className="library-cinematic-hero library-cinematic-hero--slider" aria-label="Wingsaga featured stories" aria-roledescription="carousel">
       <div className="library-cinematic-copy">
         <span className="library-kicker"><i aria-hidden="true" />WINGSAGA ORIGINALS &amp; READER FAVORITES</span>
-        <h1>{story?.title || "Everything is Life"}</h1>
-        <p>{story?.description || "Discover heartfelt serials, late-night fantasy epics, and unforgettable characters crafted by independent storytellers."}</p>
+        <h1>{active?.title || "Your reading shelf"}</h1>
+        <p>{active?.description}</p>
         <div className="library-cinematic-actions">
-          {entry ? (
-            <button type="button" className="library-featured-button" onClick={() => onResume(entry)} disabled={busyEntry === entry.id}>
-              {busyEntry === entry.id ? "Opening..." : <>Start reading <span aria-hidden="true">&#8594;</span></>}
+          {active?.entry ? (
+            <button type="button" className="library-featured-button" onClick={() => onResume(active.entry)} disabled={busyEntry === active.entry.id}>
+              {busyEntry === active.entry.id ? "Opening..." : <>Continue reading <span aria-hidden="true">&#8594;</span></>}
             </button>
-          ) : <Link className="library-featured-button" to="/">Start reading <span aria-hidden="true">&#8594;</span></Link>}
+          ) : (
+            <Link className="library-featured-button" to="/">Start reading <span aria-hidden="true">&#8594;</span></Link>
+          )}
           <a className="library-cinematic-secondary" href="#collectionSection">Explore stories <span aria-hidden="true">&#8599;</span></a>
         </div>
       </div>
       <div className="library-cinematic-showcase">
         <div className="library-showcase-platform" aria-hidden="true" />
-        <div className="library-cinematic-covers" aria-label="Featured Wingsaga book covers">
-          {showcaseBooks.map((book, index) => {
+        <div className="library-cinematic-covers library-cinematic-covers--slider" aria-label="Featured Wingsaga book covers">
+          {slides.map((book, index) => {
+            const isActive = index === (slideIndex % count);
             const contents = <>
               <img src={book.cover} alt="" loading={index < 2 ? "eager" : "lazy"} decoding="async" onError={(event) => { event.currentTarget.style.display = "none"; }} />
               <span className="library-showcase-shade" aria-hidden="true" />
               <span className="library-showcase-label">{book.label}</span>
-              <span className="library-showcase-title">
-                {!book.story && index === 0 ? <>Crimson<br />Crown</>
-                  : !book.story && index === 1 ? <>the<br />shape<br /><em>of</em> us</>
-                    : !book.story && index === 2 ? <>BLACK<br />HEARTS</>
-                      : !book.story && index === 3 ? <>Whispers in<br />the Mist</>
-                        : book.title}
-              </span>
+              <span className="library-showcase-title">{book.title}</span>
               <span className="library-showcase-author">{book.author}</span>
             </>;
-            return book.entry ? (
-              <Link className={`library-cinematic-cover library-cinematic-cover--${index + 1}`} to={`/stories/${book.story.id}`} key={book.entry.id || book.story.id} aria-label={`Open ${book.title}`}>
+            const className = `library-cinematic-cover library-cinematic-cover--${(index % 4) + 1}${isActive ? " is-active" : ""}`;
+            return book.entry && book.story?.id ? (
+              <Link className={className} to={`/stories/${book.story.id}`} key={book.key} aria-label={`Open ${book.title}`} aria-hidden={!isActive}>
                 {contents}
               </Link>
             ) : (
-              <div className={`library-cinematic-cover library-cinematic-cover--${index + 1}`} key={`showcase-${index}`} aria-label={`${book.title} by ${book.author}`}>
+              <div className={className} key={book.key} aria-label={`${book.title} by ${book.author}`} aria-hidden={!isActive}>
                 {contents}
               </div>
             );
           })}
         </div>
+        {count > 1 ? (
+          <div className="library-hero-slider-controls">
+            <button type="button" className="library-hero-arrow library-hero-arrow--prev" onClick={() => go(-1)} aria-label="Previous featured story">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" /></svg>
+            </button>
+            <div className="library-hero-dots" role="tablist" aria-label="Featured slides">
+              {slides.map((slide, index) => (
+                <button
+                  key={slide.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={index === (slideIndex % count)}
+                  className={`library-hero-dot${index === (slideIndex % count) ? " is-active" : ""}`}
+                  onClick={() => setSlideIndex(index)}
+                  aria-label={`Show ${slide.title}`}
+                />
+              ))}
+            </div>
+            <button type="button" className="library-hero-arrow library-hero-arrow--next" onClick={() => go(1)} aria-label="Next featured story">
+              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6" /></svg>
+            </button>
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -581,7 +634,7 @@ export default function LibraryPage({ user }) {
       </header>
       <div className="profile-tabs library-tabs" role="tablist" aria-label="Library sections" onKeyDown={handleLibraryTabKeyDown}>
         <button type="button" role="tab" id="library-tab-continue-reading" aria-controls="library-panel-continue-reading" aria-selected={tab === "continue-reading"} tabIndex={tab === "continue-reading" ? 0 : -1} className={`profile-tab ${tab === "continue-reading" ? "active" : ""}`} onClick={() => selectLibraryTab("continue-reading")}>
-          <span className="library-tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg></span> Ongoing <span className="tab-count">{continueReadingEntries.length}</span>
+          <span className="library-tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg></span> Continue reading <span className="tab-count">{continueReadingEntries.length}</span>
         </button>
         <button type="button" role="tab" id="library-tab-lists" aria-controls="library-panel-lists" aria-selected={tab === "lists"} tabIndex={tab === "lists" ? 0 : -1} className={`profile-tab ${tab === "lists" ? "active" : ""}`} onClick={() => selectLibraryTab("lists")}>
           <span className="library-tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M7 4.5h10a2 2 0 0 1 2 2V21l-7-3.5L5 21V6.5a2 2 0 0 1 2-2Z" /></svg></span> Reading lists <span className="tab-count">{readingLists.length}</span>

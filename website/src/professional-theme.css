@@ -20085,3 +20085,143 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
     column-gap: 10px !important;
   }
 }
+
+/* LIBRARY_COMPLETED_EXACT_PROFILE */
+/* LIBRARY_COMPLETED_EXACT_PROFILE — strip library-story-grid influence; pure profile home-pack */
+
+/* Parent panel shouldn't constrain card chrome */
+:root .main .library-page .library-completed-grid.profile-story-grid--home-pack,
+:root .main .library-experience .library-completed-grid.profile-story-grid--home-pack,
+:root .main .library-page--full .library-completed-grid.profile-story-grid--home-pack {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+  gap: 16px 14px !important;
+  row-gap: 16px !important;
+  column-gap: 14px !important;
+  align-items: start !important;
+  justify-content: start !important;
+  justify-items: start !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 8px 0 16px !important;
+  box-sizing: border-box !important;
+}
+
+:root .main .library-page .library-completed-grid > .profile-home-story-slot,
+:root .main .library-page .library-completed-grid > .library-completed-slot,
+:root .main .library-experience .library-completed-grid > .profile-home-story-slot,
+:root .main .library-experience .library-completed-grid > .library-completed-slot {
+  position: relative !important;
+  display: grid !important;
+  gap: 8px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+}
+
+/* Exact profile BookCard reset */
+:root .main .library-page .library-completed-grid .book-card,
+:root .main .library-page .library-completed-grid .book-card--shelf,
+:root .main .library-page .library-completed-grid .book-card--inkitt,
+:root .main .library-experience .library-completed-grid .book-card {
+  display: grid !important;
+  gap: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:root .main .library-page .library-completed-grid .book-cover-wrap,
+:root .main .library-experience .library-completed-grid .book-cover-wrap {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  aspect-ratio: 2 / 3 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: var(--site-surface, #f3f5f4) !important;
+  box-shadow: 0 4px 14px rgba(10, 30, 20, .08) !important;
+}
+
+:root .main .library-page .library-completed-grid .book-cover-wrap img,
+:root .main .library-experience .library-completed-grid .book-cover-wrap img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 8px !important;
+}
+
+/* Typography — align with profile/home inkitt cards */
+:root .main .library-page .library-completed-grid .book-meta {
+  display: grid !important;
+  gap: 2px !important;
+  padding: 8px 2px 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+:root .main .library-page .library-completed-grid .book-title {
+  margin: 0 !important;
+  color: var(--site-ink) !important;
+  font-size: .82rem !important;
+  font-weight: 750 !important;
+  line-height: 1.25 !important;
+}
+
+:root .main .library-page .library-completed-grid .book-author {
+  margin: 0 !important;
+  color: var(--site-muted) !important;
+  font-size: .72rem !important;
+  font-weight: 500 !important;
+}
+
+/* Kill library-card-panel leftovers if any */
+:root .main .library-page .library-completed-grid .library-story-card,
+:root .main .library-page .library-completed-grid .card-panel {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+:root .main .library-page .library-completed-grid .library-card-menu > summary {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  border: 1px solid var(--site-line) !important;
+  border-radius: 999px !important;
+  background: var(--site-card, #fff) !important;
+  cursor: pointer !important;
+  list-style: none !important;
+}
+
+:root .main .library-page .library-completed-grid .library-card-menu > summary::-webkit-details-marker {
+  display: none !important;
+}
+
+@media (max-width: 720px) {
+  :root .main .library-page .library-completed-grid.profile-story-grid--home-pack,
+  :root .main .library-experience .library-completed-grid.profile-story-grid--home-pack {
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)) !important;
+    gap: 12px 10px !important;
+    row-gap: 12px !important;
+    column-gap: 10px !important;
+  }
+}

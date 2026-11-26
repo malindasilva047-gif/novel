@@ -62,7 +62,7 @@ export default function App() {
   const currentStoryId = path.match(/^\/stories\/(\d+)/)?.[1];
   const storyReviewsFocus = /^\/stories\/\d+\/reviews$/.test(path);
   const storyReviewForm = /^\/stories\/\d+\/review$/.test(path);
-  const recommendationsExcluded = path === "/" || path === "/discover" || path === "/login" || path === "/profile" || path === "/library" || path === "/community" || path === "/notifications" || path.startsWith("/write") || path.startsWith("/manage-stories") || path.startsWith("/account") || path.startsWith("/tags/") || path.startsWith("/genres/") || path === "/subscription" || /^\/stories\/\d+$/.test(path) || storyReviewsFocus;
+  const recommendationsExcluded = path === "/" || path === "/discover" || path === "/login" || path === "/profile" || path === "/library" || path === "/community" || path === "/notifications" || path.startsWith("/write") || path.startsWith("/manage-stories") || path.startsWith("/account") || path.startsWith("/authors/") || path.startsWith("/tags/") || path.startsWith("/genres/") || path === "/subscription" || /^\/stories\/\d+$/.test(path) || storyReviewsFocus;
 
   useEffect(() => {
     const aura = cursorAuraRef.current;

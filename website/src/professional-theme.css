@@ -19988,3 +19988,100 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
     column-gap: 10px !important;
   }
 }
+
+/* LIBRARY_COMPLETED_PROFILE_CARDS */
+/* LIBRARY_COMPLETED_PROFILE_CARDS — Completed tab = exact profile Stories cards */
+
+:root .main .library-page .library-story-grid.profile-story-grid--home-pack.library-completed-grid,
+:root .main .library-experience .library-story-grid.profile-story-grid--home-pack.library-completed-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+  gap: 16px 14px !important;
+  row-gap: 16px !important;
+  column-gap: 14px !important;
+  align-items: start !important;
+  justify-content: start !important;
+  justify-items: start !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 4px 0 12px !important;
+  box-sizing: border-box !important;
+}
+
+:root .main .library-page .library-completed-grid > .profile-home-story-slot,
+:root .main .library-page .library-completed-grid > .library-completed-slot,
+:root .main .library-experience .library-completed-grid > .profile-home-story-slot {
+  position: relative !important;
+  display: grid !important;
+  gap: 8px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+}
+
+/* Same BookCard chrome as profile Stories */
+:root .main .library-page .library-completed-grid .book-card,
+:root .main .library-experience .library-completed-grid .book-card {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
+
+:root .main .library-page .library-completed-grid .book-cover-wrap,
+:root .main .library-experience .library-completed-grid .book-cover-wrap {
+  width: 100% !important;
+  aspect-ratio: 2 / 3 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 14px rgba(10, 30, 20, .08) !important;
+}
+
+:root .main .library-page .library-completed-grid .book-cover-wrap img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* Menu sits under card like manage link on profile */
+:root .main .library-page .library-completed-grid .library-card-menu {
+  position: relative !important;
+  margin: 0 !important;
+}
+
+:root .main .library-page .library-completed-grid .library-card-menu > summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--site-line);
+  border-radius: 999px;
+  background: var(--site-card, #fff);
+  cursor: pointer;
+  list-style: none;
+}
+
+:root .main .library-page .library-completed-grid .library-card-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  :root .main .library-page .library-story-grid.profile-story-grid--home-pack.library-completed-grid,
+  :root .main .library-experience .library-story-grid.profile-story-grid--home-pack.library-completed-grid {
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)) !important;
+    gap: 12px 10px !important;
+    row-gap: 12px !important;
+    column-gap: 10px !important;
+  }
+}

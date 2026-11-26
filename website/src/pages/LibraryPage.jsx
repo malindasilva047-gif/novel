@@ -634,12 +634,28 @@ export default function LibraryPage({ user }) {
           {!loading && tab === "completed" && completed.length ? (
             <>
               <div className="library-shelf-heading"><div><span className="eyebrow">THE STORIES YOU FINISHED</span><h2>Your completed stories</h2></div><span>{completed.length} {completed.length === 1 ? "story" : "stories"}</span></div>
-              <div className="library-story-grid">
+              <div className="library-story-grid profile-story-grid profile-story-grid--home-pack library-completed-grid" data-home-pack="true">
               {completed.map((entry) => {
                 const story = entry.book || entry;
+                const book = {
+                  id: story.id || entry.book_id,
+                  title: story.title || "Untitled story",
+                  author: story.author || story.author_name || "Wingsaga author",
+                  cover_path: story.cover_path || story.coverPath || "",
+                  rating: story.rating != null ? story.rating : 0,
+                  view_count: Number(story.view_count || story.read_count || story.reads || 0),
+                  read_count: Number(story.read_count || story.view_count || story.reads || 0),
+                  genre: story.genre || story.primary_genre || story.secondary_genre || "",
+                  primary_genre: story.primary_genre || story.genre || "",
+                  secondary_genre: story.secondary_genre || story.genre || story.primary_genre || "",
+                  publication_status: story.status_text || story.status || story.publication_status || "Completed",
+                  status: story.status_text || story.status || "Completed",
+                  status_text: story.status_text || story.status || "Completed",
+                  is_completed: true,
+                };
                 return (
-                  <article className="library-story-card card-panel is-completed" key={entry.id || story.id}>
-                    <BookCard book={story} variant="shelf" link={false} showStatus={false} coverOverlay={<span className="library-cover-finished">✓ Finished</span>} />
+                  <div className="profile-home-story-slot home-story-card-slot library-completed-slot" key={entry.id || story.id}>
+                    <BookCard book={book} variant="shelf" inkittStyle showRating showStatus />
                     <details className="library-card-menu">
                       <summary aria-label={`Actions for ${story.title || "this story"}`} title="Story actions">
                         <span aria-hidden="true">•••</span>
@@ -653,7 +669,7 @@ export default function LibraryPage({ user }) {
                         <button type="button" className="is-danger" disabled={busyEntry === entry.id} onClick={(event) => { closeCardMenu(event); onRemoveEntry(entry); }}>Remove from library</button>
                       </div>
                     </details>
-                  </article>
+                  </div>
                 );
               })}
               </div>

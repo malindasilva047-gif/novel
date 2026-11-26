@@ -656,7 +656,7 @@ export default function LibraryPage({ user }) {
                 return (
                   <div className="profile-home-story-slot home-story-card-slot library-completed-slot" key={entry.id || story.id}>
                     <BookCard book={book} variant="shelf" inkittStyle showRating showStatus />
-                    <details className="library-card-menu">
+                    <details className="library-card-menu library-card-menu--top-right">
                       <summary aria-label={`Actions for ${story.title || "this story"}`} title="Story actions">
                         <span aria-hidden="true">•••</span>
                       </summary>

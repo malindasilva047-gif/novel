@@ -19918,3 +19918,73 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
     max-width: 112px !important;
   }
 }
+
+/* WRITER_DESK_GAP_MATCH_PROFILE */
+/* WRITER_DESK_GAP_MATCH_PROFILE — exact same gap as Profile Stories tab */
+
+/* Mirror: .main .profile-page .profile-story-grid--home-pack { gap: 16px 14px } */
+:root .main .writer-story-list.profile-story-grid--home-pack,
+:root .main .writer-dashboard .writer-story-list.profile-story-grid--home-pack,
+:root .main .writer-page .writer-story-list.profile-story-grid--home-pack,
+.main .writer-story-list.profile-story-grid.profile-story-grid--home-pack {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+  gap: 16px 14px !important;
+  row-gap: 16px !important;
+  column-gap: 14px !important;
+  align-items: start !important;
+  justify-content: start !important;
+  justify-items: start !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Slot width same spirit as profile home-pack cards */
+:root .main .writer-story-list.profile-story-grid--home-pack > .profile-home-story-slot,
+:root .main .writer-story-list.profile-story-grid--home-pack > .writer-story-slot,
+:root .main .writer-story-list.profile-story-grid--home-pack > .home-story-card-slot {
+  display: grid !important;
+  gap: 8px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+:root .main .writer-story-list.profile-story-grid--home-pack .book-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:root .main .writer-story-list.profile-story-grid--home-pack .book-cover-wrap {
+  width: 100% !important;
+  aspect-ratio: 2 / 3 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 14px rgba(10, 30, 20, .08) !important;
+}
+
+/* Override any older writer-story-list gap:0 / dense grids */
+.main .writer-story-list,
+.main .writer-dashboard .writer-story-list {
+  gap: 16px 14px !important;
+  column-gap: 14px !important;
+  row-gap: 16px !important;
+}
+
+@media (max-width: 720px) {
+  :root .main .writer-story-list.profile-story-grid--home-pack,
+  :root .main .writer-dashboard .writer-story-list.profile-story-grid--home-pack {
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)) !important;
+    gap: 12px 10px !important;
+    row-gap: 12px !important;
+    column-gap: 10px !important;
+  }
+}

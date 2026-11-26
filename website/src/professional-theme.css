@@ -21197,3 +21197,269 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   width: 22px;
   background: var(--site-brand, #16785F);
 }
+
+/* LIBRARY_HERO_IMMERSIVE */
+/* LIBRARY_HERO_IMMERSIVE — full-bleed cover bg + creative layout */
+
+:root .main .library-page .library-cinematic-hero--immersive,
+:root .main .library-experience > .library-cinematic-hero.library-cinematic-hero--immersive {
+  position: relative !important;
+  display: block !important;
+  overflow: hidden !important;
+  min-height: 520px !important;
+  margin: 0 0 40px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 0 28px 28px !important;
+  background-color: #0c1612 !important;
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  transition: background-image .6s ease !important;
+}
+
+:root .main .library-page .library-cinematic-hero--immersive::before,
+:root .main .library-page .library-cinematic-hero--immersive::after {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+}
+
+:root .main .library-page .library-hero-bg-glow {
+  position: absolute;
+  inset: auto -10% -30% auto;
+  width: min(55vw, 520px);
+  height: min(55vw, 520px);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(22,133,106,.35) 0%, rgba(22,133,106,0) 70%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+:root .main .library-page .library-cinematic-inner {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+  gap: clamp(24px, 4vw, 48px);
+  align-items: center;
+  width: min(1280px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: clamp(40px, 6vw, 72px) 0;
+  box-sizing: border-box;
+}
+
+:root .main .library-page .library-cinematic-hero--immersive .library-cinematic-copy {
+  width: 100% !important;
+  max-width: 560px !important;
+  color: #f5f7f6 !important;
+}
+
+:root .main .library-page .library-cinematic-hero--immersive .library-kicker {
+  color: rgba(255,255,255,.78) !important;
+}
+
+:root .main .library-page .library-cinematic-hero--immersive .library-hero-eyebrow {
+  margin: 10px 0 0 !important;
+  color: rgba(255,255,255,.7) !important;
+  font-size: .78rem !important;
+  font-weight: 650 !important;
+  letter-spacing: .04em !important;
+  text-transform: uppercase !important;
+}
+
+:root .main .library-page .library-cinematic-hero--immersive .library-cinematic-copy h1 {
+  margin: 10px 0 0 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-size: clamp(2rem, 4vw, 3.2rem) !important;
+  font-weight: 800 !important;
+  line-height: 1.08 !important;
+  text-shadow: 0 10px 30px rgba(0,0,0,.35) !important;
+}
+
+:root .main .library-page .library-cinematic-hero--immersive .library-hero-desc {
+  margin: 14px 0 0 !important;
+  max-width: 46ch !important;
+  color: rgba(245,247,246,.84) !important;
+  font-size: 1rem !important;
+  line-height: 1.55 !important;
+}
+
+:root .main .library-page .library-cinematic-hero--immersive .library-cinematic-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+:root .main .library-page .library-cinematic-hero--immersive .library-featured-button {
+  background: #16856A !important;
+  color: #fff !important;
+  border: 0 !important;
+  box-shadow: 0 12px 28px rgba(0,0,0,.25) !important;
+}
+
+:root .main .library-page .library-cinematic-hero--immersive .library-cinematic-secondary {
+  color: rgba(255,255,255,.9) !important;
+  border-color: rgba(255,255,255,.35) !important;
+  background: rgba(255,255,255,.08) !important;
+}
+
+:root .main .library-page .library-hero-slider-controls--copy {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+:root .main .library-page .library-cinematic-hero--immersive .library-hero-arrow {
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255,255,255,.28);
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+
+:root .main .library-page .library-cinematic-hero--immersive .library-hero-arrow:hover {
+  background: rgba(255,255,255,.22);
+  border-color: rgba(255,255,255,.5);
+  color: #fff;
+}
+
+:root .main .library-page .library-cinematic-hero--immersive .library-hero-dot {
+  background: rgba(255,255,255,.35);
+}
+
+:root .main .library-page .library-cinematic-hero--immersive .library-hero-dot.is-active {
+  background: #fff;
+}
+
+:root .main .library-page .library-cinematic-showcase {
+  position: relative;
+  display: grid !important;
+  gap: 16px;
+  justify-items: center;
+  min-height: 0 !important;
+}
+
+:root .main .library-page .library-hero-feature-stage {
+  position: relative;
+  width: min(100%, 280px);
+  aspect-ratio: 2 / 3;
+}
+
+:root .main .library-page .library-hero-feature-card {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  border-radius: 18px;
+  opacity: 0;
+  transform: translateY(16px) scale(.94);
+  pointer-events: none;
+  box-shadow: 0 28px 60px rgba(0,0,0,.45);
+  transition: opacity .45s ease, transform .45s ease;
+  background: #14201b;
+}
+
+:root .main .library-page .library-hero-feature-card.is-active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  z-index: 2;
+}
+
+:root .main .library-page .library-hero-feature-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+:root .main .library-page .library-hero-feature-shade {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 48%;
+  background: linear-gradient(to top, rgba(0,0,0,.72), transparent);
+  pointer-events: none;
+}
+
+:root .main .library-page .library-hero-feature-meta {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  display: grid;
+  gap: 2px;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0,0,0,.4);
+}
+
+:root .main .library-page .library-hero-feature-meta .library-showcase-label {
+  font-size: .65rem;
+  letter-spacing: .08em;
+  opacity: .85;
+}
+
+:root .main .library-page .library-hero-feature-meta .library-showcase-title {
+  font-size: 1rem;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+:root .main .library-page .library-hero-feature-meta .library-showcase-author {
+  font-size: .75rem;
+  opacity: .88;
+}
+
+:root .main .library-page .library-hero-thumb-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 320px;
+}
+
+:root .main .library-page .library-hero-thumb {
+  width: 44px;
+  height: 62px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255,255,255,.08);
+  cursor: pointer;
+  opacity: .7;
+  transition: opacity .15s ease, border-color .15s ease, transform .15s ease;
+}
+
+:root .main .library-page .library-hero-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+:root .main .library-page .library-hero-thumb.is-active {
+  opacity: 1;
+  border-color: #fff;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 900px) {
+  :root .main .library-page .library-cinematic-inner {
+    grid-template-columns: 1fr;
+    width: min(100% - 32px, 1280px);
+    padding: 36px 0 42px;
+  }
+  :root .main .library-page .library-cinematic-hero--immersive {
+    min-height: 0 !important;
+    border-radius: 0 0 20px 20px !important;
+  }
+  :root .main .library-page .library-hero-feature-stage {
+    width: min(100%, 220px);
+  }
+}

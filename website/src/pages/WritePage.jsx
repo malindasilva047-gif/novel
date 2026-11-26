@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getMyStories, resolveAssetUrl } from "../api";
+import BookCard from "../components/BookCard";
 import { isGuestUser } from "../utils/guest";
 
 function getPublishedCount(story) {
@@ -220,7 +221,7 @@ export default function WritePage({ user }) {
         </div>
       )}
 
-      <section className="writer-story-list" id="writer-story-list" aria-label="Your stories">
+      <section className="writer-story-list profile-story-grid profile-story-grid--home-pack" id="writer-story-list" data-home-pack="true" aria-label="Your stories">
         {loading && <p className="writer-list-message">Loading your stories…</p>}
         {!loading && !error && visibleStories.length === 0 && (
           <div className="writer-list-empty">
@@ -236,30 +237,40 @@ export default function WritePage({ user }) {
         {!loading && visibleStories.map((story, index) => {
           const publishedCount = getPublishedCount(story);
           const published = publishedCount > 0;
-          const tags = [
-            ...(Array.isArray(story.tags) ? story.tags : []),
-            story.genre_name || story.genre,
-            story.is_completed ? "Completed" : !published ? "Draft" : "",
-          ].filter(Boolean).slice(0, 3);
-          const cover = resolveAssetUrl(story.cover_path || story.cover_url || story.cover_image || "");
           const menuOpen = openMenuId === story.id;
+          const book = {
+            id: story.id,
+            title: story.title || "Untitled story",
+            author: story.author_name || story.author || "You",
+            cover_path: story.cover_path || story.cover_url || story.cover_image || story.coverPath || "",
+            rating: story.rating != null ? story.rating : 0,
+            view_count: Number(story.view_count || story.read_count || story.reads || 0),
+            read_count: Number(story.read_count || story.view_count || story.reads || 0),
+            genre: story.genre || story.primary_genre || story.secondary_genre || story.genre_name || "",
+            primary_genre: story.primary_genre || story.genre || story.genre_name || "",
+            secondary_genre: story.secondary_genre || story.genre || story.primary_genre || "",
+            publication_status: story.status_text || story.status || story.publication_status || (published ? "Published" : "Draft"),
+            status: story.status_text || story.status || (published ? "Published" : "Draft"),
+            status_text: story.status_text || story.status || (published ? "Published" : "Draft"),
+            is_completed: story.is_completed,
+          };
 
           return (
-            <article className="writer-story-card" key={story.id || story.title || index}>
-              <div className={`writer-story-cover writer-cover-${(index % 5) + 1}`}>
-                <Link to={`/write/${story.id}`} className="writer-story-cover-link" aria-label={`Open ${story.title || "story"}`}>
-                  {cover ? <img src={cover} alt="" /> : <span className="writer-cover-title">{story.title || "Untitled story"}</span>}
+            <div className="profile-home-story-slot home-story-card-slot writer-story-slot" key={story.id || story.title || index}>
+              <BookCard book={book} variant="shelf" inkittStyle showRating showStatus />
+              <div
+                className="writer-story-card-footer"
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) setOpenMenuId(null);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") setOpenMenuId(null);
+                }}
+              >
+                <Link className="profile-story-manage-link" to={`/write/${story.id}`}>
+                  Manage story <span aria-hidden="true">→</span>
                 </Link>
-                <span className={`writer-story-status ${published ? "published" : "draft"}`}>{published ? "Published" : "Draft"}</span>
-                <div
-                  className="writer-story-menu-wrap"
-                  onBlur={(event) => {
-                    if (!event.currentTarget.contains(event.relatedTarget)) setOpenMenuId(null);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Escape") setOpenMenuId(null);
-                  }}
-                >
+                <div className="writer-story-menu-wrap">
                   <button
                     className="writer-story-menu-button"
                     type="button"
@@ -269,30 +280,16 @@ export default function WritePage({ user }) {
                   >
                     <span aria-hidden="true">⋮</span>
                   </button>
-                  {menuOpen && (
+                  {menuOpen ? (
                     <div className="writer-story-menu">
                       <Link to={`/write/${story.id}`}>Manage chapters</Link>
                       <Link to={`/write/new?story=${encodeURIComponent(story.id)}`}>Edit story details</Link>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
-              <div className="writer-story-body">
-                <Link className="writer-story-title" to={`/write/${story.id}`}>{story.title || "Untitled story"}</Link>
-                <p className="writer-story-author">{story.author_name || story.author || "You"}</p>
-                {tags.length > 0 && (
-                  <div className="writer-story-tags">
-                    {tags.map((tag, tagIndex) => <span className="writer-story-tag" key={`${tag}-${tagIndex}`}>{tag}</span>)}
-                  </div>
-                )}
-                <div className="writer-story-meta">
-                  <span>{Number(story.chapter_count || 0)} chapters</span>
-                  <span className="writer-meta-dot" aria-hidden="true" />
-                  <span>{publishedCount} published</span>
-                </div>
-                <p className="writer-story-updated">{formatUpdated(getUpdatedAt(story))}</p>
-              </div>
-            </article>
+              <p className="writer-story-updated">{formatUpdated(getUpdatedAt(story))}</p>
+            </div>
           );
         })}
       </section>

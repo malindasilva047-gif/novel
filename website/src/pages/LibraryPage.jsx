@@ -634,6 +634,7 @@ export default function LibraryPage({ user }) {
           {!loading && tab === "completed" && completed.length ? (
             <>
               <div className="library-shelf-heading"><div><span className="eyebrow">THE STORIES YOU FINISHED</span><h2>Your completed stories</h2></div><span>{completed.length} {completed.length === 1 ? "story" : "stories"}</span></div>
+              <div className="profile-page library-completed-as-profile">
               <div className="profile-story-grid profile-story-grid--home-pack library-completed-grid" data-home-pack="true">
               {completed.map((entry) => {
                 const story = entry.book || entry;
@@ -674,6 +675,7 @@ export default function LibraryPage({ user }) {
                   </div>
                 );
               })}
+              </div>
               </div>
             </>
           ) : null}

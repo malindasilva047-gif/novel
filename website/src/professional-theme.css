@@ -21011,3 +21011,107 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   background: #fff !important;
   box-shadow: 0 14px 32px rgba(10,30,20,.16) !important;
 }
+
+/* LIBRARY_COMPLETED_PROFILE_WRAPPER */
+/* LIBRARY_COMPLETED_PROFILE_WRAPPER — use real profile-page CSS; black dots no circle */
+
+/* Isolate wrapper so it only affects completed grid, not whole library chrome */
+:root .main .library-page .library-completed-as-profile.profile-page {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: none !important;
+}
+
+/* Extra safety: description / meta never get a panel bg */
+:root .main .library-page .library-completed-as-profile .book-meta,
+:root .main .library-page .library-completed-as-profile .book-title,
+:root .main .library-page .library-completed-as-profile .book-author,
+:root .main .library-page .library-completed-as-profile .book-card-stats,
+:root .main .library-page .library-completed-as-profile .book-card-badges,
+:root .main .library-page .library-completed-as-profile .book-card,
+:root .main .library-page .library-completed-as-profile .profile-home-story-slot,
+:root .main .library-page .library-completed-as-profile .library-completed-slot {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+/* Black vertical dots, no circle / no glass */
+:root .main .library-page .library-completed-as-profile .library-card-menu--top-right,
+:root .main .library-page .library-completed-grid .library-card-menu--top-right {
+  position: absolute !important;
+  top: 6px !important;
+  right: 6px !important;
+  z-index: 10 !important;
+  background: transparent !important;
+}
+
+:root .main .library-page .library-completed-as-profile .library-card-menu--top-right > summary,
+:root .main .library-page .library-completed-grid .library-card-menu--top-right > summary {
+  display: grid !important;
+  place-items: center !important;
+  width: 24px !important;
+  height: 34px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  cursor: pointer !important;
+  list-style: none !important;
+}
+
+:root .main .library-page .library-completed-as-profile .library-card-menu--top-right > summary::-webkit-details-marker,
+:root .main .library-page .library-completed-grid .library-card-menu--top-right > summary::-webkit-details-marker {
+  display: none !important;
+}
+
+:root .main .library-page .library-completed-as-profile .library-card-menu--top-right > summary:hover,
+:root .main .library-page .library-completed-grid .library-card-menu--top-right > summary:hover {
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+:root .main .library-page .library-completed-as-profile .library-card-menu-orb,
+:root .main .library-page .library-completed-grid .library-card-menu-orb {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  background: transparent !important;
+}
+
+:root .main .library-page .library-completed-as-profile .library-card-menu-orb i,
+:root .main .library-page .library-completed-grid .library-card-menu-orb i {
+  display: block !important;
+  width: 4px !important;
+  height: 4px !important;
+  border-radius: 50% !important;
+  background: #111111 !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+:root .main .library-page .library-completed-as-profile .library-card-menu--top-right .library-card-menu-items {
+  position: absolute !important;
+  top: calc(100% + 4px) !important;
+  right: 0 !important;
+  z-index: 20 !important;
+  min-width: 170px !important;
+  padding: 6px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(20,40,30,.1) !important;
+  background: #fff !important;
+  box-shadow: 0 14px 32px rgba(10,30,20,.16) !important;
+}

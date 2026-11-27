@@ -489,7 +489,6 @@ export default function Header({ user, onLogout, onAuthSuccess }) {
                     onClick={() => {
                       closeMenu();
                       onLogout?.();
-                      navigate("/");
                     }}
                   >
                     Log out
@@ -675,7 +674,7 @@ export default function Header({ user, onLogout, onAuthSuccess }) {
                   <Link role="menuitem" to="/contests" onClick={closeMenu}>Writing contests</Link>
                   <Link role="menuitem" to="/write" onClick={closeMenu}>Write a story</Link>
                   {user && !isGuest ? (
-                    <button type="button" role="menuitem" onClick={() => { closeMenu(); onLogout?.(); navigate("/"); }}>Sign out</button>
+                    <button type="button" role="menuitem" onClick={() => { closeMenu(); onLogout?.(); }}>Sign out</button>
                   ) : (
                     <button type="button" role="menuitem" onClick={() => { closeMenu(); openAuth("signin"); }}>Sign in</button>
                   )}

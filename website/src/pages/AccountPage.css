@@ -91,6 +91,19 @@
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.35);
 }
 
+.account-action-hint {
+  margin: 10px 0 0;
+  color: var(--site-muted);
+  font-size: .78rem;
+  line-height: 1.5;
+}
+
+.account-action-hint a {
+  color: var(--site-brand);
+  font-weight: 650;
+  text-decoration: underline;
+}
+
 .account-action-dialog h3 {
   margin: 0 0 8px;
   color: var(--site-ink);

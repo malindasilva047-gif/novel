@@ -583,6 +583,70 @@ export function submitAllChapters(storyId, payload = {}) {
   });
 }
 
+export function friendlyAuthError(error) {
+  const message = String(error?.message || error || "");
+  const lower = message.toLowerCase();
+  if (lower.includes("banned")) return "This account is banned. Contact support if you believe this is a mistake.";
+  if (lower.includes("suspended")) return "This account is temporarily suspended. Try again later or contact support.";
+  if (lower.includes("deleted")) return "This account has been deleted by an administrator.";
+  if (lower.includes("session revoked")) return "Your session was ended (security). Please sign in again.";
+  if (lower.includes("not verified") || lower.includes("email not verified")) {
+    return "Your email is not verified yet. Enter the verification code we emailed you, then sign in.";
+  }
+  if (error?.status === 401 || /invalid (email|username) or password/i.test(message)) {
+    return "Invalid username/email or password. If you only used Google before, use Continue with Google.";
+  }
+  return message;
+}
+
+async function finishWebCookieSession(result) {
+  if (result?.cookie_session) return result;
+  const token = result?.access_token || result?.token;
+  if (!token) throw new Error("The server did not return a session token.");
+  const session = await request("/api/auth/web/session", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: "{}",
+  });
+  return { ...result, ...session, cookie_session: true };
+}
+
+/**
+ * Username or email + password, matching the mobile app's login path.
+ * Uses /api/auth/login first (blocks unverified, banned, suspended, and
+ * restores a deactivated/deletion-pending account) and falls back to the
+ * legacy email endpoint, then converts the bearer session to the website's
+ * secure httpOnly cookie session.
+ */
+export async function loginAccount({ identifier, password }) {
+  const ident = String(identifier || "").trim();
+  if (!ident) throw new Error("Enter username or email.");
+  if (!password) throw new Error("Enter your password.");
+  let result;
+  try {
+    result = await request("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email: ident, username: ident, password }),
+    });
+  } catch (error) {
+    const message = String(error?.message || error).toLowerCase();
+    const canFallback = error?.status === 404 || message.includes("404") || message.includes("timeout") || message.includes("timed out");
+    if (!canFallback) throw error;
+    result = await request("/api/auth/email", {
+      method: "POST",
+      body: JSON.stringify({ email: ident, password, mode: "login", username: ident }),
+    });
+  }
+  return finishWebCookieSession(result);
+}
+
+export function linkEmailPassword({ email, username, password }) {
+  return request("/api/me/link-email", {
+    method: "POST",
+    body: JSON.stringify({ email, username, password }),
+  });
+}
+
 export function emailAuth({ email, display_name = "", password = "", username = "", mode = "login" }) {
   return request("/api/auth/email", {
     method: "POST",

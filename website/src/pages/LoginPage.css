@@ -403,6 +403,11 @@
   color: #16785f;
   text-decoration: none;
   font-weight: 600;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
 }
 
 .ws-auth__forgot:hover { text-decoration: underline; }

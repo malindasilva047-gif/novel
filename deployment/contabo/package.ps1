@@ -1,5 +1,9 @@
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+# Git for Windows ships GNU tar, which treats "C:\..." as a remote host.
+# Use the Windows tar (bsdtar) so Windows archive paths work.
+$tarExe = Join-Path $env:SystemRoot 'System32\tar.exe'
+if (-not (Test-Path -LiteralPath $tarExe)) { $tarExe = 'tar.exe' }
 $stage = Join-Path $env:TEMP ("novelhub-contabo-" + [guid]::NewGuid().ToString('N'))
 $archive = "$stage.tar.gz"
 
@@ -26,6 +30,6 @@ foreach ($file in @('compose.yml', 'nginx.conf')) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot $file) -Destination (Join-Path $stage 'deployment\contabo')
 }
 
-tar.exe -czf $archive -C $stage .
+& $tarExe -czf $archive -C $stage .
 if ($LASTEXITCODE -ne 0) { throw 'Could not create deployment archive.' }
 Get-Item -LiteralPath $archive | Select-Object FullName, Length

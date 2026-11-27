@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { commentWallPost, deleteWallPost, getBootstrap, getLibrary, getMe, getMyReviews, getMyStories, getReadingLists, getToken, getUserActivity, getUserWall, likeWallPost, postUserWall, resolveAssetUrl, updateMe, uploadProfileImage } from "../api";
+import { commentWallPost, deleteWallPost, getBootstrap, getLibrary, getMe, getMyReviews, getMyStories, getReadingLists, getToken, getUserActivity, getUserWall, likeWallPost, linkEmailPassword, postUserWall, resolveAssetUrl, updateMe, uploadProfileImage } from "../api";
 import { isGuestUser } from "../utils/guest";
 import WallPostCard from "../components/WallPostCard";
 import BookCard from "../components/BookCard";
@@ -445,12 +445,32 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
     try {
       const displayName = String(form.get("display_name") || "").trim();
       const country = String(form.get("country") || "").trim();
-      if (setupRequired && (!displayName || !birthday.iso || !country)) {
-        throw new Error("Display name, birthday, and country are required to complete your profile.");
+      const genderValue = String(form.get("gender") || "").trim();
+      const usernameValue = String(form.get("username") || "").trim().replace(/^@+/, "").toLowerCase();
+      const passwordValue = String(form.get("new_password") || "");
+      const confirmValue = String(form.get("confirm_password") || "");
+      const passwordIsValid = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(passwordValue);
+      if (setupRequired) {
+        if (!displayName || !birthday.iso || !country) {
+          throw new Error("Display name, birthday, and country are required to complete your profile.");
+        }
+        if (!genderValue) throw new Error("Select your gender to complete your profile.");
+        if (!/^[a-z0-9_]{3,32}$/.test(usernameValue)) {
+          throw new Error("Username must be 3–32 letters, numbers, or underscores.");
+        }
+        if (!passwordIsValid) {
+          throw new Error("Password needs 8+ characters, a letter, a number, and a symbol.");
+        }
+        if (passwordValue !== confirmValue) throw new Error("Passwords do not match.");
+        // Google accounts start without a password; set one first so the user
+        // can sign in with email and confirm deactivation/deletion later.
+        await linkEmailPassword({ email: me?.email || "", username: usernameValue, password: passwordValue });
+      } else if (passwordValue && !passwordIsValid) {
+        throw new Error("Password needs 8+ characters, a letter, a number, and a symbol.");
       }
       const profilePayload = {
         display_name: displayName,
-        username: String(form.get("username") || "").trim(),
+        username: usernameValue,
         bio: String(form.get("bio") || "").trim(),
         gender: String(form.get("gender") || "").trim(),
         birth_date: birthday.iso,
@@ -473,6 +493,15 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
         saved = await updateMe(profilePayload);
         usernameCooldownMessage = err.message || "Your username is still within its change cooldown.";
       }
+      if (!setupRequired && passwordValue) {
+        // Same optional password link as the app's Profile settings sheet, so
+        // Google-only accounts can confirm deactivation or deletion.
+        await linkEmailPassword({
+          email: me?.email || "",
+          username: usernameCooldownMessage ? username : usernameValue,
+          password: passwordValue,
+        });
+      }
       const updatedUser = await getMe();
       if (setupRequired && saved?.profile_complete !== true && updatedUser?.profile_complete !== true) {
         throw new Error("Your profile was saved, but setup could not be verified. Please try again.");
@@ -483,7 +512,9 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
       showToast(
         usernameCooldownMessage
           ? `Profile saved; username unchanged. ${usernameCooldownMessage}`
-          : setupRequired ? "Your profile is complete." : "Profile saved to your account.",
+          : setupRequired ? "Your profile is complete."
+            : passwordValue ? "Profile saved. You can now sign in with your username and password."
+              : "Profile saved to your account.",
         usernameCooldownMessage ? "warning" : "success",
       );
     } catch (err) { showToast(err.message || "Could not save profile.", "error"); }
@@ -702,7 +733,7 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
                 {setupRequired ? (
                   <div className="profile-setup-notice" role="status">
                     <strong>Finish setting up your profile</strong>
-                    <span>Add your name, birthday, and country to complete your account.</span>
+                    <span>Add your name, birthday, gender, username, and a password to complete your account.</span>
                   </div>
                 ) : (
                   <div className="profile-actions-bar">
@@ -714,10 +745,10 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
             </div>
             {editing ? <form className="profile-edit-form" onSubmit={saveProfile}>
               <label>Display name<input name="display_name" defaultValue={me?.display_name || ""} maxLength={80} required /></label>
-              <label>Username<input name="username" defaultValue={username} maxLength={40} pattern="[A-Za-z0-9_.]+" required /></label>
+              <label>Username<input name="username" defaultValue={username} maxLength={40} pattern={setupRequired ? "[A-Za-z0-9_]{3,32}" : "[A-Za-z0-9_.]+"} required /></label>
               <label>About you<textarea name="bio" defaultValue={me?.bio || ""} rows={3} maxLength={500} /></label>
               <label>Gender
-                <select name="gender" defaultValue={me?.gender || ""}>
+                <select name="gender" defaultValue={me?.gender || ""} required={setupRequired}>
                   <option value="">Select gender</option>
                   {me?.gender && !PROFILE_GENDERS.includes(me.gender) ? <option value={me.gender}>{me.gender}</option> : null}
                   {PROFILE_GENDERS.map((gender) => <option key={gender} value={gender}>{gender}</option>)}
@@ -755,6 +786,24 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
                   {PROFILE_COUNTRIES.map((country) => <option key={country} value={country}>{country}</option>)}
                 </select>
               </label>
+              {setupRequired ? (
+                <>
+                  <label>Password
+                    <input name="new_password" type="password" autoComplete="new-password" minLength={8} required placeholder="8+ characters with a letter, number, and symbol" />
+                  </label>
+                  <label>Confirm password
+                    <input name="confirm_password" type="password" autoComplete="new-password" minLength={8} required />
+                  </label>
+                  <p className="meta">
+                    Google accounts need a password so you can also sign in with email and confirm account deactivation or deletion later.
+                  </p>
+                </>
+              ) : (
+                <label>New password (optional)
+                  <input name="new_password" type="password" autoComplete="new-password" minLength={8} placeholder="Set this to enable username and password sign in" />
+                  <small className="meta">Set this to enable username and password sign in. You need a password to confirm account deactivation or deletion.</small>
+                </label>
+              )}
               {[
                 ["facebook_url", "Facebook profile", me?.facebook_url, "facebook.com/…"],
                 ["youtube_url", "YouTube profile", me?.youtube_url, "youtube.com/…"],

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { emailAuth, googleAuth, registerAccount, resendEmailVerification, setToken, verifyEmail } from "../api";
+import { friendlyAuthError, googleAuth, loginAccount, registerAccount, resendEmailVerification, setToken, verifyEmail } from "../api";
 import { showToast } from "./ToastViewport";
 
 const GOOGLE_CLIENT_ID = (import.meta.env.VITE_GOOGLE_CLIENT_ID || "").trim();
@@ -12,6 +12,17 @@ function latestAllowedBirthDate() {
   const date = new Date();
   date.setFullYear(date.getFullYear() - 16);
   return date.toISOString().slice(0, 10);
+}
+
+function ageInYears(isoDate) {
+  const birth = new Date(`${isoDate}T00:00:00`);
+  if (!isoDate || Number.isNaN(birth.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return age;
 }
 
 function loadGisScript() {
@@ -92,9 +103,9 @@ export default function AuthModal({ open, mode = "signin", onClose, onSuccess })
               if (!token) throw new Error("No access token from server");
               setToken(token);
               await onSuccessRef.current?.(token, res);
-              showToast("Signed in successfully.", "success");
+              showToast(res?.account_status_message || "Signed in successfully.", "success");
             } catch (e) {
-              const message = String(e.message || e);
+              const message = friendlyAuthError(e);
               setError(message);
               showToast(message, "error");
             } finally {
@@ -145,10 +156,12 @@ export default function AuthModal({ open, mode = "signin", onClose, onSuccess })
     setLoading(true);
     try {
       const em = email.trim().toLowerCase();
-      if (!em) throw new Error("Email is required");
+      if (!em) throw new Error("Username or email is required");
       if (authMode === "signup") {
         if (username.trim().replace(/^@/, "").length < 3) throw new Error("Choose a username with at least 3 characters.");
         if (!birthDate || !gender) throw new Error("Enter your birthday and select your gender.");
+        const age = ageInYears(birthDate);
+        if (age === null || age < 16) throw new Error("You must be at least 16 to create an account.");
         if (password.length < 8 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
           throw new Error("Use at least 8 characters with a letter, number, and symbol.");
         }
@@ -173,29 +186,17 @@ export default function AuthModal({ open, mode = "signin", onClose, onSuccess })
         setError("");
         return;
       }
-      const res = await emailAuth({
-        email: em,
-        password,
-        mode: "login",
-      });
+      const res = await loginAccount({ identifier: email.trim(), password });
       const token = res?.cookie_session
         ? "cookie-session"
         : (res?.access_token || res?.token);
-      if (!token) throw new Error("No access token returned");
+      if (!token) throw new Error("No session token returned");
       setToken(token);
       await onSuccess?.(token, res);
-      showToast("Signed in successfully.", "success");
+      showToast(res?.account_status_message || "Signed in successfully.", "success");
     } catch (err) {
-      const msg = String(err.message || err);
-      if (msg.includes("401") || /invalid email or password/i.test(msg)) {
-        setError(
-          authMode === "signin"
-            ? "Invalid email or password. If you only used Google before, use Google Sign-In or Sign up with a password."
-            : msg
-        );
-      } else {
-        setError(msg);
-      }
+      const msg = friendlyAuthError(err);
+      setError(msg);
       showToast(msg, "error");
     } finally {
       setLoading(false);
@@ -313,13 +314,13 @@ export default function AuthModal({ open, mode = "signin", onClose, onSuccess })
             </label>
           ) : null}
           <label>
-            Email
+            {authMode === "signup" ? "Email" : "User ID or Email"}
             <input
-              type="email"
+              type={authMode === "signup" ? "email" : "text"}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@email.com"
-              autoComplete="email"
+              placeholder={authMode === "signup" ? "you@email.com" : "Username or email"}
+              autoComplete={authMode === "signup" ? "email" : "username"}
               required
             />
           </label>

@@ -5324,6 +5324,27 @@ html[data-theme="light"] .main {
   background: var(--site-card) !important;
   color: var(--site-ink) !important;
 }
+:root[data-theme="dark"] .site-header--pro .header-more-menu :is(a,button) {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .site-header--pro .header-more-menu :is(a,button):hover {
+  background: var(--site-raised) !important;
+  color: var(--site-brand-light) !important;
+}
+/* Guest landing more menu in light mode: solid white surface, black text. */
+:root:not([data-theme="dark"]) .site-header.site-header--pro .header-more-menu {
+  border-color: #E5E7EB !important;
+  background: #FFFFFF !important;
+  color: #111827 !important;
+  box-shadow: 0 18px 48px rgba(17,24,39,.14) !important;
+}
+:root:not([data-theme="dark"]) .site-header.site-header--pro .header-more-menu :is(a,button) {
+  color: #111827 !important;
+}
+:root:not([data-theme="dark"]) .site-header.site-header--pro .header-more-menu :is(a,button):hover {
+  background: #F3F4F6 !important;
+  color: #111827 !important;
+}
 @media (max-width: 1120px) {
   .site-header--pro .nav-genres-panel {
     position: static !important;
@@ -24041,4 +24062,180 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 :root[data-theme="dark"] .main .library-page.library-experience .library-continue-shelf .continue-reading-card .continue-reading-progress button:hover:not(:disabled) {
   color: var(--site-brand-light) !important;
   -webkit-text-fill-color: var(--site-brand-light) !important;
+}
+
+/* ==========================================================================
+   LIBRARY COMPLETED = PROFILE STORY CARD (final parity)
+   The Completed shelf renders the same BookCard as Profile → Stories. Earlier
+   library-only blocks still force 168px panel cards with larger type, so this
+   block is the single source of truth and reuses the profile card's responsive
+   width variable, gaps, cover treatment, typography and chip styling.
+   ========================================================================== */
+.main .library-page .profile-page.library-completed-as-profile {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  max-width: none !important;
+}
+
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid.profile-story-grid--home-pack {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, var(--profile-story-card-width, 140px)) !important;
+  justify-content: start !important;
+  align-items: start !important;
+  gap: 20px 12px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid > .library-completed-slot,
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid > .profile-home-story-slot {
+  position: relative !important;
+  display: block !important;
+  width: var(--profile-story-card-width, 140px) !important;
+  min-width: 0 !important;
+  max-width: var(--profile-story-card-width, 140px) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+}
+
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid .book-card,
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid .book-card--shelf,
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid .book-card--inkitt {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--site-ink) !important;
+  transition: transform .22s ease !important;
+}
+
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid .book-card:hover {
+  transform: translateY(-4px) !important;
+  filter: brightness(1.04);
+}
+
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid .book-cover-wrap {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 2 / 3 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: var(--site-surface) !important;
+  box-shadow: none !important;
+}
+
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid .book-cover-wrap img,
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid .book-cover,
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid .book-cover-fallback {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 6px !important;
+}
+
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid .book-card:hover .book-cover-wrap img {
+  transform: scale(1.045) !important;
+}
+
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid .book-meta {
+  display: grid !important;
+  grid-template-rows: 2.5em 1.25em 1.15em 1.2em !important;
+  gap: 2px !important;
+  margin: 0 !important;
+  padding: 7px 1px 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid .book-title {
+  display: -webkit-box !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  color: var(--site-ink) !important;
+  font-size: .72rem !important;
+  font-weight: 750 !important;
+  line-height: 1.25 !important;
+  white-space: normal !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+}
+
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid .book-author {
+  overflow: hidden !important;
+  margin: 0 !important;
+  color: var(--site-muted) !important;
+  font-size: .62rem !important;
+  font-weight: 500 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid .book-card-stats {
+  display: flex !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  color: var(--site-muted) !important;
+  font-size: .6rem !important;
+}
+
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid .book-card-stats span:last-child {
+  display: none !important;
+}
+
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid .book-card-badges {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 4px !important;
+  min-height: 18px !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+}
+
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid :is(.book-tag-chip, .book-status-chip) {
+  display: inline-flex !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  padding: 2px 5px !important;
+  border: 0 !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  color: var(--site-muted) !important;
+  font-size: .55rem !important;
+  line-height: 1.15 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.main .library-page .profile-page.library-completed-as-profile .library-completed-grid .book-rating-badge {
+  top: 8px !important;
+  left: 8px !important;
+  padding: 3px 6px !important;
+  font-size: .6rem !important;
 }

@@ -3,7 +3,8 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import HomePageCTA from "./components/HomePageCTA";
-import ToastViewport from "./components/ToastViewport";
+import ToastViewport, { showToast } from "./components/ToastViewport";
+import SignOutDialog from "./components/SignOutDialog";
 import SiteChrome from "./components/SiteChrome";
 import YouMayAlsoLike from "./components/YouMayAlsoLike";
 import { getMe, guestLogin, setToken, getToken, clearToken, revokeCurrentSession, initializeWebSession } from "./api";
@@ -47,6 +48,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [bootLoading, setBootLoading] = useState(true);
   const [profileSetupRequired, setProfileSetupRequired] = useState(false);
+  const [signOutOpen, setSignOutOpen] = useState(false);
   const cursorAuraRef = useRef(null);
   const path = location.pathname;
 
@@ -126,6 +128,7 @@ export default function App() {
       if (status === 401 || status === 403 || !status) {
         clearToken();
       }
+      if (status === 403 && e?.message) showToast(e.message, "error");
       setUser(null);
       return null;
     }
@@ -163,6 +166,13 @@ export default function App() {
     setGuestSession(isGuestUser(user));
   }, [user]);
 
+  // First-time social sign-ups must finish the profile form before browsing,
+  // matching the mobile app's blocking onboarding step.
+  useEffect(() => {
+    if (!profileSetupRequired || !user || path === "/profile") return;
+    navigate("/profile?setup=1", { replace: true });
+  }, [profileSetupRequired, user, path, navigate]);
+
   useEffect(() => {
     document.body.classList.toggle("focus-workspace", focusWorkspace);
     document.body.classList.toggle("guest-landing-mode", guestLanding);
@@ -184,6 +194,9 @@ export default function App() {
       setUser(null);
       setProfileSetupRequired(false);
       sessionStorage.removeItem("novelhub_profile_setup_user");
+      setSignOutOpen(false);
+      // The mobile app returns to its login screen after signing out.
+      navigate("/login", { replace: true });
     }
   }
 
@@ -209,7 +222,12 @@ export default function App() {
     <div className="app-shell">
       <div ref={cursorAuraRef} className="site-cursor-aura" aria-hidden="true" />
       <ToastViewport />
-      {!focusWorkspace && !authPage && <Header user={user} onLogout={handleLogout} onAuthSuccess={handleLoginSuccess} />}
+      <SignOutDialog
+        open={signOutOpen}
+        onCancel={() => setSignOutOpen(false)}
+        onConfirm={handleLogout}
+      />
+      {!focusWorkspace && !authPage && <Header user={user} onLogout={() => setSignOutOpen(true)} onAuthSuccess={handleLoginSuccess} />}
       <main className={`main${guestLanding ? " main--guest-landing" : ""}`}>
         {bootLoading ? (
           <div className="page-loading">Loading…</div>
@@ -255,7 +273,7 @@ export default function App() {
                   }
                 />
                 <Route path="/notifications" element={<RequireAuth user={user}><NotificationsPage user={user} /></RequireAuth>} />
-                <Route path="/account" element={<RequireAuth user={user}><AccountPage user={user} onLogout={handleLogout} /></RequireAuth>} />
+                <Route path="/account" element={<RequireAuth user={user}><AccountPage user={user} onLogout={handleLogout} onSignOut={() => setSignOutOpen(true)} /></RequireAuth>} />
                 <Route path="/account/help" element={<AccountHelp />} />
                 <Route path="/account/contact" element={<AccountContact user={user} />} />
                 <Route path="/account/stats" element={<RequireAuth user={user}><AccountStats user={user} /></RequireAuth>} />

@@ -1,0 +1,76 @@
+.signout-overlay {
+  position: fixed;
+  z-index: 3000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(5, 18, 13, 0.62);
+  backdrop-filter: blur(4px);
+}
+
+.signout-dialog {
+  display: flex;
+  width: min(100%, 420px);
+  max-height: calc(100vh - 40px);
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: clamp(22px, 3vw, 30px);
+  overflow-y: auto;
+  border: 1px solid var(--site-line);
+  border-radius: 20px;
+  background: var(--site-card);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+.signout-dialog-icon {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 6px;
+  place-items: center;
+  border: 2px solid #9ca3af;
+  border-radius: 50%;
+  color: #6b7280;
+}
+
+.signout-dialog-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.signout-dialog h3 {
+  margin: 0;
+  color: var(--site-ink);
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.signout-dialog p {
+  margin: 0;
+  color: var(--site-muted);
+  font-size: .88rem;
+  line-height: 1.5;
+}
+
+.signout-dialog-buttons {
+  display: flex;
+  width: 100%;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.signout-dialog-buttons .btn {
+  flex: 1 1 0;
+  min-height: 46px;
+  justify-content: center;
+}
+
+@media (max-width: 460px) {
+  .signout-overlay { padding: 14px; }
+  .signout-dialog-buttons { flex-direction: column-reverse; }
+}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { emailAuth, registerAccount, resendEmailVerification, setToken, verifyEmail } from "../api";
+import { friendlyAuthError, loginAccount, registerAccount, resendEmailVerification, setToken, verifyEmail } from "../api";
 import { showToast } from "../components/ToastViewport";
 import GoogleSignInButton from "../components/GoogleSignInButton";
 import "./LoginPage.css";
@@ -19,6 +19,18 @@ function latestAllowedBirthDate() {
   date.setFullYear(date.getFullYear() - 16);
   return date.toISOString().slice(0, 10);
 }
+
+function ageInYears(isoDate) {
+  const birth = new Date(`${isoDate}T00:00:00`);
+  if (!isoDate || Number.isNaN(birth.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  if (today.getMonth() < birth.getMonth() || (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return age;
+}
+
 
 export default function LoginPage({ onSuccess }) {
   const navigate = useNavigate();
@@ -80,7 +92,7 @@ export default function LoginPage({ onSuccess }) {
     } catch {
       /* profile refresh optional */
     }
-    showToast("Signed in successfully.", "success");
+    showToast(authResult?.account_status_message || "Signed in successfully.", "success");
     navigate(authResult?.is_new_user ? "/profile?setup=1" : returnTo, { replace: true });
   }
 
@@ -92,21 +104,21 @@ export default function LoginPage({ onSuccess }) {
       const normalizedEmail = email.trim().toLowerCase();
       let response;
       if (mode === "register") {
+        if (!displayName.trim()) throw new Error("Please enter a name");
         if (username.trim().replace(/^@/, "").length < 3) {
-          throw new Error("Choose a username with at least 3 characters.");
+          throw new Error("At least 3 characters");
         }
-        if (!birthDate || !gender) throw new Error("Enter your birthday and select your gender.");
-        if (
-          password.length < 8 ||
-          !/[A-Za-z]/.test(password) ||
-          !/[0-9]/.test(password) ||
-          !/[^A-Za-z0-9]/.test(password)
-        ) {
-          throw new Error("Use at least 8 characters with a letter, number, and symbol.");
-        }
-        if (password !== confirmPassword) throw new Error("Passwords do not match.");
+        if (!birthDate) throw new Error("Please select your birthday");
+        if (!gender) throw new Error("Select sex");
+        const age = ageInYears(birthDate);
+        if (age === null || age < 16) throw new Error("You must be at least 16 to create an account");
+        if (password.length < 8) throw new Error("At least 8 characters");
+        if (!/[A-Za-z]/.test(password)) throw new Error("Include a letter");
+        if (!/[0-9]/.test(password)) throw new Error("Include a number");
+        if (!/[^A-Za-z0-9]/.test(password)) throw new Error("Include a symbol");
+        if (password !== confirmPassword) throw new Error("Passwords do not match");
         if (!acceptedTerms) {
-          throw new Error("Agree to the Privacy Policy and Terms to create an account.");
+          throw new Error("Please agree to Privacy Policy and Terms");
         }
         response = await registerAccount({
           email: normalizedEmail,
@@ -128,14 +140,16 @@ export default function LoginPage({ onSuccess }) {
         setVerificationSent(Boolean(response.email_sent));
         return;
       }
-      response = await emailAuth({ email: normalizedEmail, password, mode: "login" });
+      if (!email.trim()) throw new Error("Enter user ID or email");
+      if (!password) throw new Error("Enter password");
+      response = await loginAccount({ identifier: email.trim(), password });
       const token = response?.cookie_session
         ? "cookie-session"
         : response?.access_token || response?.token || response?.accessToken;
       if (!token) throw new Error("The server did not return a session token.");
       await finish(token, response);
     } catch (err) {
-      const message = String(err.message || err);
+      const message = friendlyAuthError(err);
       setError(message);
       showToast(message, "error");
     } finally {
@@ -188,6 +202,7 @@ export default function LoginPage({ onSuccess }) {
     } catch {
       /* ignore */
     }
+    if (authResult?.account_status_message) showToast(authResult.account_status_message, "success");
     navigate(authResult?.is_new_user ? "/profile?setup=1" : returnTo, { replace: true });
   }
 
@@ -316,26 +331,26 @@ export default function LoginPage({ onSuccess }) {
                   {registering ? (
                     <>
                       <label className="ws-auth__field">
-                        <span className="ws-auth__label">Display name</span>
+                        <span className="ws-auth__label">Name</span>
                         <div className="ws-auth__input-wrap">
                           <input
                             value={displayName}
                             onChange={(e) => setDisplayName(e.target.value)}
                             required
                             autoComplete="nickname"
-                            placeholder="Your name"
+                            placeholder="Enter your full name"
                           />
                         </div>
                       </label>
                       <label className="ws-auth__field">
-                        <span className="ws-auth__label">Username</span>
+                        <span className="ws-auth__label">User ID</span>
                         <div className="ws-auth__input-wrap">
                           <input
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             required
                             autoComplete="username"
-                            placeholder="@username"
+                            placeholder="Choose a user ID"
                           />
                         </div>
                       </label>
@@ -353,7 +368,7 @@ export default function LoginPage({ onSuccess }) {
                           </div>
                         </label>
                         <label className="ws-auth__field">
-                          <span className="ws-auth__label">Gender</span>
+                          <span className="ws-auth__label">Sex</span>
                           <div className="ws-auth__input-wrap">
                             <select value={gender} onChange={(e) => setGender(e.target.value)} required>
                               <option value="">Select</option>
@@ -383,7 +398,7 @@ export default function LoginPage({ onSuccess }) {
                   ) : null}
 
                   <label className="ws-auth__field">
-                    <span className="ws-auth__label">Email Address</span>
+                    <span className="ws-auth__label">{registering ? "Email" : "User ID"}</span>
                     <div className="ws-auth__input-wrap">
                       <span className="ws-auth__icon" aria-hidden="true">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -392,18 +407,18 @@ export default function LoginPage({ onSuccess }) {
                         </svg>
                       </span>
                       <input
-                        type="email"
+                        type={registering ? "email" : "text"}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        autoComplete="email"
-                        placeholder="Email Address"
+                        autoComplete={registering ? "email" : "username"}
+                        placeholder={registering ? "Enter your email" : "Enter your user ID"}
                       />
                     </div>
                   </label>
 
                   <label className="ws-auth__field">
-                    <span className="ws-auth__label">Password</span>
+                    <span className="ws-auth__label">{registering ? "New Password" : "Password"}</span>
                     <div className="ws-auth__input-wrap">
                       <span className="ws-auth__icon" aria-hidden="true">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -418,7 +433,7 @@ export default function LoginPage({ onSuccess }) {
                         minLength={registering ? 8 : 1}
                         required
                         autoComplete={registering ? "new-password" : "current-password"}
-                        placeholder="Password"
+                        placeholder={registering ? "Create a new password" : "Enter your password"}
                       />
                       <button
                         type="button"
@@ -438,7 +453,7 @@ export default function LoginPage({ onSuccess }) {
                   {registering ? (
                     <>
                       <label className="ws-auth__field">
-                        <span className="ws-auth__label">Confirm password</span>
+                        <span className="ws-auth__label">Re-enter Password</span>
                         <div className="ws-auth__input-wrap">
                           <input
                             type="password"
@@ -446,7 +461,7 @@ export default function LoginPage({ onSuccess }) {
                             onChange={(e) => setConfirmPassword(e.target.value)}
                             autoComplete="new-password"
                             required
-                            placeholder="Confirm password"
+                            placeholder="Re-enter your password"
                           />
                         </div>
                       </label>
@@ -459,12 +474,12 @@ export default function LoginPage({ onSuccess }) {
                         />
                         <span>
                           I agree to the{" "}
-                          <a href="/account/terms" target="_blank" rel="noreferrer">
-                            Terms
-                          </a>{" "}
-                          and{" "}
                           <a href="/account/privacy" target="_blank" rel="noreferrer">
                             Privacy Policy
+                          </a>{" "}
+                          and{" "}
+                          <a href="/account/terms" target="_blank" rel="noreferrer">
+                            Terms of Service
                           </a>
                           .
                         </span>
@@ -480,9 +495,13 @@ export default function LoginPage({ onSuccess }) {
                         />
                         <span>Remember me</span>
                       </label>
-                      <Link className="ws-auth__forgot" to="/login?auth=login">
+                      <button
+                        type="button"
+                        className="ws-auth__forgot"
+                        onClick={() => navigate("/account/contact")}
+                      >
                         Forgot password?
-                      </Link>
+                      </button>
                     </div>
                   )}
 
@@ -500,7 +519,7 @@ export default function LoginPage({ onSuccess }) {
                         <path d="M15 12H3" />
                       </svg>
                     </span>
-                    {busy ? "Please wait…" : registering ? "Create account" : "Login"}
+                    {busy ? "Please wait…" : registering ? "Sign Up" : "Login"}
                   </button>
                 </form>
 

@@ -516,16 +516,18 @@ export function AccountLanguage() {
 const ACCOUNT_ACTIONS = {
   deactivate: {
     title: "Deactivate your account?",
-    body: "Enter your password to confirm. Your profile and stories are preserved, and you will be signed out. Sign in again any time to reactivate your account.",
+    body: "Enter your password to confirm. Your profile and stories will be preserved, and you will be signed out. Sign in again any time to reactivate your account.",
     confirmLabel: "Deactivate",
-    success: "Your account is deactivated. Sign in again to reactivate it.",
+    success: "Your account is deactivated. You will be signed out; sign in again to reactivate it.",
+    errorPrefix: "Could not deactivate account",
     run: deactivateMyAccount,
   },
   delete: {
     title: "Schedule account deletion?",
-    body: "Enter your password to confirm. Your account and authored stories are scheduled for permanent deletion and you will be signed out. Sign in within 30 days to cancel; after that, your account data is permanently removed.",
+    body: "Enter your password to confirm. Your account and authored stories will be scheduled for permanent deletion. You will be signed out. Sign in within 30 days to cancel; after that, your account data will be permanently removed.",
     confirmLabel: "Delete account",
-    success: "Account deletion is scheduled. Sign in within 30 days to cancel it.",
+    success: "Account deletion is scheduled. You will be signed out. Sign in within 30 days to cancel deletion.",
+    errorPrefix: "Could not schedule account deletion",
     run: deleteMyAccount,
   },
 };
@@ -565,9 +567,9 @@ function ProfileManagement({ onLogout }) {
       setAction("");
       setPassword("");
       showToast(config.success);
-      onLogout?.();
+      await onLogout?.();
     } catch (err) {
-      setError(err?.message || "Could not update your account. Please try again.");
+      setError(`${config.errorPrefix}: ${err?.message || "Please try again."}`);
     } finally {
       setBusy(false);
     }
@@ -615,6 +617,10 @@ function ProfileManagement({ onLogout }) {
                 disabled={busy}
               />
             </label>
+            <p className="account-action-hint">
+              No password yet (for example, a Google-only account)? Set one in{" "}
+              <Link to="/profile">Profile settings</Link> under “New password (optional)”, then come back here.
+            </p>
             {error ? <p className="account-action-error" role="alert">{error}</p> : null}
             <div className="account-action-buttons">
               <button type="button" className="btn btn-ghost" onClick={close} disabled={busy}>Cancel</button>
@@ -641,7 +647,7 @@ export function AccountSimple({ title, body }) {
   );
 }
 
-export default function AccountPage({ user, onLogout }) {
+export default function AccountPage({ user, onLogout, onSignOut }) {
   const guest = isGuestUser(user);
   const name = user?.display_name || user?.email || "Reader";
   const initial = String(name).trim().charAt(0).toUpperCase() || "R";
@@ -688,7 +694,7 @@ export default function AccountPage({ user, onLogout }) {
       {!guest ? (
         <section className="more-signout card-panel">
           <div><h2>Need a different account?</h2><p className="meta">Sign out from this device and continue with another account.</p></div>
-          <button type="button" className="btn btn-ghost" onClick={() => onLogout?.()}>Sign out</button>
+          <button type="button" className="btn btn-ghost" onClick={() => (onSignOut || onLogout)?.()}>Sign out</button>
         </section>
       ) : (
         <div className="more-guest-note"><p className="meta">You can explore stories as a guest. Sign in is needed to save preferences and sync your reading.</p></div>

@@ -8,6 +8,7 @@ import {
   deleteReadingList,
   getBookChapters,
   getLibrary,
+  getLibraryHero,
   getRecommendations,
   getReadingListDetail,
   getReadingLists,
@@ -16,6 +17,10 @@ import {
   updateLibraryEntry,
 } from "../api";
 import { isGuestUser } from "../utils/guest";
+// Reuse the exact profile story-card styling for the Completed shelf.
+import "./ProfilePage.css";
+// Reuse the genre hero artwork so both pages share one static banner design.
+import "./GenrePage.css";
 import { getLocalReadingEntries, getReadingProgressPercent, mergeReadingEntries, readingEntryTimestamp, removeLocalReadingProgress, saveLocalReadingProgress } from "../utils/readingProgress";
 
 function itemsFrom(response) {
@@ -25,167 +30,89 @@ function itemsFrom(response) {
   return [];
 }
 
-const libraryShowcaseFallbacks = [
-  { title: "Crimson Crown", author: "K. Thorne", cover: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=400&q=80", label: "BOOK I" },
-  { title: "The Shape of Us", author: "S. Mugabe", cover: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=500&q=80", label: "A NOVEL" },
-  { title: "Black Hearts", author: "Jenna Wood", cover: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=400&q=80", label: "JENNA WOOD" },
-  { title: "Whispers in the Mist", author: "Elena Vance", cover: "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?auto=format&fit=crop&w=400&q=80", label: "ELENA VANCE" },
-];
-
-function LibraryCinematicHero({ entries, busyEntry, onResume }) {
-  const slides = useMemo(() => {
-    const fromEntries = (entries || []).slice(0, 8).map((entry, index) => {
-      const story = entry?.book || entry || {};
-      return {
-        key: entry?.id || story?.id || `entry-${index}`,
-        entry,
-        story,
-        title: story?.title || "Untitled story",
-        author: story?.author || story?.author_name || "Wingsaga author",
-        cover: resolveAssetUrl(story?.cover_path || story?.coverPath || "") || libraryShowcaseFallbacks[index % libraryShowcaseFallbacks.length].cover,
-        description: story?.description || story?.synopsis || "Discover heartfelt serials, late-night fantasy epics, and unforgettable characters crafted by independent storytellers.",
-        label: "YOUR SHELF",
-      };
-    });
-    if (fromEntries.length) return fromEntries;
-    return libraryShowcaseFallbacks.map((fallback, index) => ({
-      key: `fallback-${index}`,
-      entry: null,
-      story: null,
-      title: fallback.title,
-      author: fallback.author,
-      cover: fallback.cover,
-      description: "Discover heartfelt serials, late-night fantasy epics, and unforgettable characters crafted by independent storytellers.",
-      label: fallback.label,
-    }));
-  }, [entries]);
-
-  const [slideIndex, setSlideIndex] = useState(0);
-  const count = slides.length || 1;
-  const active = slides[slideIndex % count] || slides[0];
-
-  // Classic 4-book fan from current window of slides / fallbacks
-  const showcaseBooks = useMemo(() => {
-    const base = slides.length ? slides : [];
-    return libraryShowcaseFallbacks.map((fallback, index) => {
-      const item = base[(slideIndex + index) % Math.max(base.length, 1)] || null;
-      if (item) {
+/* Static library hero — same frame and cover fan as the genre pages, but no
+   autoplay, arrows or dots so the page stays calm and cheap to render. */
+function LibraryStaticHero({ entries, busyEntry, onResume, heroImage }) {
+  const covers = useMemo(() => {
+    const seen = new Set();
+    return (entries || [])
+      .map((entry) => {
+        const story = entry?.book || entry || {};
+        const cover = resolveAssetUrl(story?.cover_path || story?.coverPath || "");
+        if (!cover || seen.has(cover)) return null;
+        seen.add(cover);
         return {
-          key: `${item.key}-${index}`,
-          entry: item.entry,
-          story: item.story,
-          title: item.title,
-          author: item.author,
-          cover: item.cover || fallback.cover,
-          label: item.entry ? "YOUR SHELF" : fallback.label,
+          key: entry?.id || story?.id || cover,
+          entry,
+          id: story?.id,
+          cover,
+          title: story?.title || "Untitled story",
+          author: story?.author || story?.author_name || "Wingsaga author",
         };
-      }
-      return {
-        key: `fallback-${index}`,
-        entry: null,
-        story: null,
-        title: fallback.title,
-        author: fallback.author,
-        cover: fallback.cover,
-        label: fallback.label,
-      };
-    });
-  }, [slides, slideIndex]);
-
-  useEffect(() => {
-    setSlideIndex(0);
+      })
+      .filter(Boolean)
+      .slice(0, 4);
   }, [entries]);
 
-  useEffect(() => {
-    if (count <= 1) return undefined;
-    const timer = window.setInterval(() => {
-      setSlideIndex((current) => (current + 1) % count);
-    }, 5000);
-    return () => window.clearInterval(timer);
-  }, [count, slideIndex]);
-
-  function go(delta) {
-    if (count <= 1) return;
-    setSlideIndex((current) => (current + delta + count) % count);
-  }
-
-  const bannerStyle = active?.cover
-    ? {
-        "--library-hero-banner": `url(${JSON.stringify(active.cover)})`,
-      }
+  const primary = covers[0];
+  const banner = heroImage || primary?.cover || "";
+  const bannerStyle = banner
+    ? { "--genre-hero-banner": `url(${JSON.stringify(banner)})` }
     : undefined;
 
   return (
-    <section
-      className="library-cinematic-hero library-cinematic-hero--banner"
-      aria-label="Wingsaga featured stories"
-      aria-roledescription="carousel"
-      style={bannerStyle}
-    >
-      <div className="library-cinematic-copy">
-        <span className="library-kicker"><i aria-hidden="true" />WINGSAGA ORIGINALS &amp; READER FAVORITES</span>
-        <h1>{active?.title || "Your reading shelf"}</h1>
-        <p>{active?.description}</p>
-        <div className="library-cinematic-actions">
-          {active?.entry ? (
-            <button type="button" className="library-featured-button" onClick={() => onResume(active.entry)} disabled={busyEntry === active.entry.id}>
-              {busyEntry === active.entry.id ? "Opening..." : <>Continue reading <span aria-hidden="true">&#8594;</span></>}
-            </button>
-          ) : (
-            <Link className="library-featured-button" to="/">Start reading <span aria-hidden="true">&#8594;</span></Link>
-          )}
-          <a className="library-cinematic-secondary" href="#collectionSection">Explore stories <span aria-hidden="true">&#8599;</span></a>
-        </div>
-        {count > 1 ? (
-          <div className="library-hero-slider-controls">
-            <button type="button" className="library-hero-arrow library-hero-arrow--prev" onClick={() => go(-1)} aria-label="Previous featured story">
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" /></svg>
-            </button>
-            <div className="library-hero-dots" role="tablist" aria-label="Featured slides">
-              {slides.map((slide, index) => (
-                <button
-                  key={slide.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={index === (slideIndex % count)}
-                  className={`library-hero-dot${index === (slideIndex % count) ? " is-active" : ""}`}
-                  onClick={() => setSlideIndex(index)}
-                  aria-label={`Show ${slide.title}`}
-                />
-              ))}
-            </div>
-            <button type="button" className="library-hero-arrow library-hero-arrow--next" onClick={() => go(1)} aria-label="Next featured story">
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6" /></svg>
-            </button>
-          </div>
-        ) : null}
-      </div>
-      <div className="library-cinematic-showcase">
-        <div className="library-showcase-platform" aria-hidden="true" />
-        <div className="library-cinematic-covers library-cinematic-covers--centered" aria-label="Featured Wingsaga book covers">
-          {showcaseBooks.map((book, index) => {
-            const contents = (
-              <>
-                <img src={book.cover} alt="" loading={index < 2 ? "eager" : "lazy"} decoding="async" onError={(event) => { event.currentTarget.style.display = "none"; }} />
-                <span className="library-showcase-shade" aria-hidden="true" />
-                <span className="library-showcase-label">{book.label}</span>
-                <span className="library-showcase-title">{book.title}</span>
-                <span className="library-showcase-author">{book.author}</span>
-              </>
-            );
-            return book.entry && book.story?.id ? (
-              <Link className={`library-cinematic-cover library-cinematic-cover--${index + 1}`} to={`/stories/${book.story.id}`} key={book.key} aria-label={`Open ${book.title}`}>
-                {contents}
-              </Link>
+    <div className="library-hero-host genre-explorer-page">
+      <section className="genre-cinematic-hero library-genre-hero" style={bannerStyle} aria-label="Your library">
+        <div className="genre-cinematic-copy">
+          <nav className="genre-breadcrumbs" aria-label="Breadcrumb">
+            <Link to="/">Home</Link>
+            <span aria-hidden="true">/</span>
+            <span aria-current="page">Library</span>
+          </nav>
+          <span className="genre-cinematic-kicker"><i aria-hidden="true" />YOUR COLLECTION · WINGSAGA</span>
+          <h1>Your library</h1>
+          <div className="genre-cinematic-actions">
+            {primary?.entry && primary.id ? (
+              <button type="button" className="genre-cinematic-primary" onClick={() => onResume(primary.entry)} disabled={busyEntry === primary.entry.id}>
+                {busyEntry === primary.entry.id ? "Opening…" : <>Continue reading <span aria-hidden="true">→</span></>}
+              </button>
             ) : (
-              <div className={`library-cinematic-cover library-cinematic-cover--${index + 1}`} key={book.key} aria-label={`${book.title} by ${book.author}`}>
-                {contents}
-              </div>
-            );
-          })}
+              <Link className="genre-cinematic-primary" to="/">Start reading <span aria-hidden="true">→</span></Link>
+            )}
+            <a className="genre-cinematic-secondary" href="#collectionSection">
+              Explore collection <span aria-hidden="true">↗</span>
+            </a>
+          </div>
         </div>
-      </div>
-    </section>
+        <div className="genre-cinematic-showcase">
+          <div className="genre-showcase-platform" aria-hidden="true" />
+          <div className="genre-cinematic-covers">
+            {!covers.length ? (
+              <div className="genre-cinematic-cover genre-cinematic-cover--2 genre-cinematic-fallback" aria-hidden="true">
+                <span className="genre-cinematic-fallback-letter">L</span>
+                <span className="genre-showcase-label">Your collection</span>
+                <span className="genre-showcase-title">Library</span>
+                <span className="genre-showcase-author">Wingsaga</span>
+              </div>
+            ) : null}
+            {covers.map((book, index) => (
+              <Link
+                key={book.key}
+                className={`genre-cinematic-cover genre-cinematic-cover--${index + 1}`}
+                to={book.id ? `/stories/${book.id}` : "/"}
+                aria-label={`Open ${book.title}`}
+              >
+                <img src={book.cover} alt="" loading={index < 2 ? "eager" : "lazy"} decoding="async" />
+                <span className="genre-showcase-shade" aria-hidden="true" />
+                <span className="genre-showcase-label">YOUR SHELF</span>
+                <span className="genre-showcase-title">{book.title}</span>
+                <span className="genre-showcase-author">{book.author}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -194,7 +121,6 @@ function LibraryContinueCard({ entry, busyEntry, onResume, onSetStatus, onRemove
   const progress = getReadingProgressPercent(entry);
   const cover = resolveAssetUrl(story.cover_path || story.coverPath || "");
   const chapter = Math.max(1, Number(entry.last_chapter_number || 1));
-  const paragraph = Math.max(1, Number(entry.last_paragraph_index || 0) + 1);
   return (
     <article className="continue-reading-card" key={entry.id || story.id}>
       <Link className="continue-reading-cover" to={`/stories/${story.id}`} aria-label={`Open ${story.title || "story"}`}>
@@ -203,9 +129,6 @@ function LibraryContinueCard({ entry, busyEntry, onResume, onSetStatus, onRemove
       </Link>
       <div className="continue-reading-copy">
         <span className="continue-reading-chapter">Chapter {chapter}{entry.chapters ? ` / ${entry.chapters}` : ""}</span>
-        {entry.last_paragraph_index !== null && entry.last_paragraph_index !== undefined
-          ? <span className="continue-reading-paragraph">Last read: paragraph {paragraph}</span>
-          : null}
         <Link className="continue-reading-title" to={`/stories/${story.id}`}>{story.title || "Untitled story"}</Link>
         <span className="continue-reading-author">by {story.author || "Wingsaga author"}</span>
         <div className="continue-reading-progress">
@@ -282,6 +205,7 @@ export default function LibraryPage({ user }) {
   const [activeListItems, setActiveListItems] = useState([]);
   const [listBusy, setListBusy] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [heroImage, setHeroImage] = useState("");
   const loadId = useRef(0);
   const listDialogRef = useRef(null);
   const readingGridRef = useRef(null);
@@ -290,6 +214,16 @@ export default function LibraryPage({ user }) {
     const requestedTab = searchParams.get("tab");
     setTab(requestedTab === "lists" || requestedTab === "completed" ? requestedTab : "continue-reading");
   }, [searchParams]);
+
+  useEffect(() => {
+    let active = true;
+    getLibraryHero()
+      .then((response) => {
+        if (active) setHeroImage(resolveAssetUrl(response?.image_path || ""));
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (guest) return;
@@ -658,7 +592,7 @@ export default function LibraryPage({ user }) {
 
   return (
     <div className="page library-page library-page--full library-experience">
-      <LibraryCinematicHero entries={guest ? [] : heroEntries} busyEntry={busyEntry} onResume={resumeEntry} />
+      <LibraryStaticHero entries={guest ? [] : heroEntries} busyEntry={busyEntry} onResume={resumeEntry} heroImage={heroImage} />
 
       <section id="collectionSection" className="library-saved-library" aria-labelledby="library-saved-title">
       <header className="library-section-heading library-saved-heading">

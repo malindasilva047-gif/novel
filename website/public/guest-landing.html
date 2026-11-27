@@ -570,11 +570,11 @@ html{padding-bottom:0!important;margin-bottom:0!important}
 <section id="faq" style="padding-top:20px;padding-bottom:24px">
   <div class="wrap"><h2 class="reveal" style="text-align:center">Questions, answered</h2>
   <div class="faq reveal">
-   <details><summary>Can I earn from my stories?</summary><p>We are building ways for authors to earn from their work. They are not available yet, so for now the best thing you can do is keep writing and grow your readers. Everything you publish now will be waiting for them.</p></details>
-   <details><summary>Is it free to read?</summary><p>Yes. Most stories are free. Some authors offer paid chapters or early access.</p></details>
-   <details><summary>How do I start publishing?</summary><p>Create an account, open the editor and write your first chapter. You can save it as a draft until you are ready.</p></details>
-   <details><summary>Can I read offline?</summary><p>Yes, you can read smoothly directly through our web platform on any device.</p></details>
-   <details><summary>Is there a mobile app?</summary><p>Not right now. For now the website works seamlessly on any phone or desktop browser.</p></details>
+   <details><summary>Can I earn from my stories?</summary><p>We are actively working on ways for authors to earn from their stories, though monetization features aren't live just yet. Right now, the best thing you can do is keep writing, build your audience, and grow your readership—everything you publish today will be right there when earning options arrive.</p></details>
+   <details><summary>Is it free to read?</summary><p>Yes, completely free. We don't charge any money to read stories on the platform.</p></details>
+   <details><summary>How do I start publishing?</summary><p>Create your account, open the editor, and start writing your first chapter. You can save your work as a draft anytime and hit publish whenever you're ready to share it with readers.</p></details>
+   <details><summary>Can I read offline?</summary><p>Offline reading isn't available just yet, though we're actively working on adding it. It will be supported in a future app update—so stay tuned!</p></details>
+   <details><summary>Is there a mobile app?</summary><p>Yes! An Android app is available now. You can download it directly using the link in the footer or search for WingSaga on the Google Play Store.</p></details>
   </div></div>
 </section>
 <div class="toast" id="toast" role="status"></div>
@@ -669,6 +669,14 @@ if(tb){
   tb.textContent=root.dataset.theme==='dark'?'☀':'☾';
   tb.onclick=()=>{const t=root.dataset.theme==='dark'?'light':'dark';root.dataset.theme=t;tb.textContent=t==='dark'?'☀':'☾';setMeta(t);try{localStorage.setItem('nh-theme',t)}catch(e){}};
 }
+/* the app shell owns the theme switch — follow it when it changes */
+window.addEventListener('message',e=>{
+  const d=e&&e.data;if(!d||d.type!=='novelhub:theme')return;
+  const t=d.theme==='dark'?'dark':'light';
+  root.dataset.theme=t;setMeta(t);
+  if(tb)tb.textContent=t==='dark'?'☀':'☾';
+  try{localStorage.setItem('nh-theme',t)}catch(err){}
+});
 const dlg=$('#auth');
 function setMode(m){if(!dlg)return;dlg.dataset.m=m;const L=m==='login';const aT=$('#aT'),aGo=$('#aGo'),aName=$('#aName'),aSw=$('#aSw');if(aT)aT.textContent=L?'Welcome back':'Join '+CONFIG.brand;if(aGo)aGo.textContent=L?'Log in':'Create account';if(aName)aName.hidden=L;if(aSw)aSw.textContent=L?'New here? Sign up':'Have an account? Log in'}
 $$('[data-auth]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();mobileNav&&mobileNav.classList.remove('open');if(dlg){setMode(a.dataset.auth);dlg.showModal?dlg.showModal():dlg.setAttribute('open','')}else{window.top.location.href='/login'}}));

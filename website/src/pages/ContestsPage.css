@@ -1,0 +1,741 @@
+/* Writing contests — editorial challenge page */
+.main .contest-page.page-shell {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  margin: 0 auto;
+  padding: clamp(16px, 2.2vw, 28px) clamp(14px, 2.6vw, 40px) clamp(56px, 7vw, 90px);
+  background:
+    radial-gradient(900px 260px at 10% -80px, color-mix(in srgb, var(--site-brand) 9%, transparent), transparent 70%),
+    transparent;
+  color: var(--site-ink);
+}
+
+/* ============================= HERO ============================= */
+.main .contest-page .contest-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  align-items: center;
+  gap: clamp(22px, 4vw, 56px);
+  min-height: 0;
+  padding: clamp(28px, 4.4vw, 60px);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, #fff 18%, var(--site-brand-strong)) !important;
+  border-radius: 22px;
+  background:
+    radial-gradient(ellipse at 88% 10%, rgba(167, 226, 190, 0.26), transparent 42%),
+    radial-gradient(ellipse at 4% 100%, rgba(9, 55, 40, 0.5), transparent 44%),
+    linear-gradient(118deg, #0e3227 0%, #176a50 58%, #123a2d 100%) !important;
+  box-shadow: 0 22px 54px rgba(9, 40, 29, 0.22);
+  color: #fff !important;
+  isolation: isolate;
+}
+
+.main .contest-page .contest-hero-copy {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+}
+
+.main .contest-page .contest-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: clamp(18px, 3vw, 30px);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.78rem;
+}
+
+.main .contest-page .contest-crumbs a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.main .contest-page .contest-crumbs a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.main .contest-page .contest-hero .eyebrow {
+  color: #d3efdc !important;
+  font-size: 0.71rem;
+  font-weight: 750;
+  letter-spacing: 0.16em;
+}
+
+.main .contest-page .contest-hero h1 {
+  max-width: 13ch;
+  margin: 12px 0 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: clamp(2.4rem, 5vw, 4.3rem);
+  font-weight: 650;
+  letter-spacing: -0.05em;
+  line-height: 1.02;
+  color: #fff !important;
+  overflow-wrap: anywhere;
+}
+
+.main .contest-page .contest-hero-copy > p {
+  max-width: 52ch;
+  margin: 16px 0 0;
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: clamp(0.9rem, 1.2vw, 1rem);
+  line-height: 1.7;
+}
+
+.main .contest-page .contest-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.main .contest-page .contest-hero-actions .btn {
+  min-height: 46px;
+  padding: 11px 20px;
+  border: 1px solid #fff;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
+  color: #174b39 !important;
+  font-size: 0.86rem;
+  font-weight: 720;
+}
+
+.main .contest-page .contest-hero-actions .btn:hover {
+  background: #effaf3;
+}
+
+.main .contest-page .contest-hero-link {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  padding: 10px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff !important;
+  font-size: 0.84rem;
+  font-weight: 650;
+  text-decoration: none;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.main .contest-page .contest-hero-link:hover {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.main .contest-page .contest-hero-feature {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: clamp(22px, 2.6vw, 32px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(143, 217, 191, 0.2), transparent 52%),
+    rgba(6, 34, 24, 0.55) !important;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px);
+  animation: none;
+}
+
+.main .contest-page .contest-feature-star {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  margin-bottom: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(143, 217, 191, 0.35), rgba(22, 120, 95, 0.55));
+  color: #fff;
+  font-size: 1.35rem;
+}
+
+.main .contest-page .contest-hero-feature .eyebrow {
+  color: #b9e7d1 !important;
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+}
+
+.main .contest-page .contest-hero-feature h2 {
+  margin: 9px 0;
+  color: #fff !important;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: clamp(1.35rem, 2.2vw, 1.75rem);
+  font-weight: 650;
+  line-height: 1.16;
+}
+
+.main .contest-page .contest-hero-feature p {
+  margin: 0;
+  color: rgba(235, 248, 241, 0.82) !important;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.main .contest-page .contest-hero-feature .contest-deadline {
+  display: inline-flex;
+  margin-top: 16px;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #d6f3e3 !important;
+  font-size: 0.73rem;
+  font-weight: 650;
+}
+
+.main .contest-page .contest-hero-orbit {
+  position: absolute;
+  z-index: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.main .contest-page .contest-hero-orbit--one {
+  top: -170px;
+  right: -60px;
+  width: 350px;
+  height: 350px;
+}
+
+.main .contest-page .contest-hero-orbit--two {
+  bottom: -220px;
+  left: 38%;
+  width: 420px;
+  height: 420px;
+}
+
+/* =========================== CONTENT =========================== */
+.main .contest-page .contest-content {
+  margin-top: clamp(30px, 5vw, 52px);
+  scroll-margin-top: calc(var(--header-h, 72px) + 18px);
+}
+
+.main .contest-page .contest-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px 20px;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--site-line);
+}
+
+.main .contest-page .contest-section-head > div {
+  min-width: 0;
+}
+
+.main .contest-page .contest-section-head .eyebrow {
+  color: var(--site-brand-strong);
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.15em;
+}
+
+.main .contest-page .contest-section-head h2 {
+  margin: 7px 0 5px;
+  color: var(--site-ink);
+  font-family: "Fraunces", Georgia, serif;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.main .contest-page .contest-section-head p {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--site-muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.main .contest-page .contest-section-head .btn {
+  flex: 0 0 auto;
+}
+
+.main .contest-page .contest-admin-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 14px;
+  margin: 0 0 24px;
+  padding: 20px;
+  border: 1px solid var(--site-line) !important;
+  border-radius: 14px;
+  background: var(--site-card) !important;
+}
+
+.main .contest-page .contest-admin-form > div {
+  grid-column: 1 / -1;
+}
+
+.main .contest-page .contest-admin-form h3 {
+  margin: 5px 0 0;
+  color: var(--site-ink);
+  font-family: "Fraunces", Georgia, serif;
+}
+
+.main .contest-page .contest-admin-form .eyebrow {
+  color: var(--site-brand-strong);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+}
+
+.main .contest-page .contest-admin-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--site-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.main .contest-page .contest-admin-form input {
+  min-width: 0;
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid var(--site-line);
+  border-radius: 9px;
+  background: var(--site-bg);
+  color: var(--site-ink);
+  font: inherit;
+}
+
+.main .contest-page .contest-admin-form input:focus {
+  border-color: var(--site-brand);
+  outline: 2px solid color-mix(in srgb, var(--site-brand) 22%, transparent);
+  outline-offset: 1px;
+}
+
+.main .contest-page .contest-admin-form .btn {
+  min-height: 42px;
+}
+
+.main .contest-page .contest-notice {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid color-mix(in srgb, var(--site-brand) 30%, var(--site-line));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--site-brand) 8%, var(--site-card));
+  color: var(--site-brand-strong);
+  font-size: 0.85rem;
+  font-weight: 650;
+}
+
+.main .contest-page .contest-loading {
+  padding: 40px 0;
+  color: var(--site-muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.main .contest-page .contest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr));
+  gap: clamp(14px, 1.8vw, 22px);
+}
+
+.main .contest-page .contest-entry-card {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 268px;
+  flex-direction: column;
+  padding: clamp(18px, 2vw, 24px);
+  overflow: hidden;
+  border: 1px solid var(--site-line) !important;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--site-brand) 12%, transparent), transparent 42%),
+    var(--site-card) !important;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--site-bg) 12%, transparent);
+  color: var(--site-ink);
+  animation: none;
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.main .contest-page .contest-entry-card::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--site-brand), var(--site-brand-light), transparent);
+  content: "";
+}
+
+.main .contest-page .contest-entry-card:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--site-brand) 45%, var(--site-line)) !important;
+  box-shadow: var(--site-shadow-hover);
+}
+
+.main .contest-page .contest-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.main .contest-page .contest-card-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--site-brand) 18%, var(--site-line));
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--site-brand) 10%, var(--site-card));
+  color: var(--site-brand-strong);
+  font-size: 1.3rem;
+}
+
+.main .contest-page .contest-open-pill {
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--site-brand) 25%, var(--site-line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--site-brand) 7%, var(--site-card));
+  color: var(--site-brand-strong);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.main .contest-page .contest-entry-card .eyebrow {
+  color: var(--site-muted);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.main .contest-page .contest-entry-card h3 {
+  margin: 8px 0;
+  color: var(--site-ink) !important;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: clamp(1.2rem, 1.9vw, 1.42rem);
+  font-weight: 650;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.main .contest-page .contest-entry-card > p {
+  margin: 0;
+  color: var(--site-muted) !important;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.main .contest-page .contest-card-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 22px;
+}
+
+.main .contest-page .contest-card-foot > span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.main .contest-page .contest-card-foot small {
+  color: var(--site-muted);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.main .contest-page .contest-card-foot strong {
+  overflow: hidden;
+  color: var(--site-ink);
+  font-size: 0.8rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.main .contest-page .contest-card-foot .btn {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 8px 13px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.main .contest-page .contest-delete {
+  align-self: flex-start;
+  margin-top: 14px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #d9534f;
+  font-size: 0.78rem;
+  font-weight: 650;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.main .contest-page .contest-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: clamp(34px, 5vw, 54px) 20px;
+  border: 1px solid var(--site-line) !important;
+  border-radius: 16px;
+  background: var(--site-card) !important;
+  text-align: center;
+}
+
+.main .contest-page .contest-empty > span {
+  color: var(--site-brand-strong);
+  font-size: 2.2rem;
+}
+
+.main .contest-page .contest-empty h3 {
+  margin: 6px 0 0;
+  color: var(--site-ink);
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.4rem;
+}
+
+.main .contest-page .contest-empty p {
+  max-width: 54ch;
+  margin: 0;
+  color: var(--site-muted);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.main .contest-page .contest-encouragement {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px 26px;
+  margin-top: clamp(30px, 4vw, 44px);
+  padding: clamp(20px, 2.4vw, 28px);
+  border: 1px solid var(--site-line);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--site-brand) 5%, var(--site-card));
+}
+
+.main .contest-page .contest-encouragement .eyebrow {
+  color: var(--site-brand-strong);
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+}
+
+.main .contest-page .contest-encouragement p {
+  max-width: 62ch;
+  margin: 7px 0 0;
+  color: var(--site-muted) !important;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  line-height: 1.5;
+}
+
+.main .contest-page .contest-encouragement > a {
+  flex: 0 0 auto;
+  color: var(--site-brand-strong) !important;
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.main .contest-page .contest-encouragement > a:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+:root[data-theme="dark"] .main .contest-page .contest-encouragement > a,
+:root[data-theme="dark"] .main .contest-page .contest-section-head .eyebrow,
+:root[data-theme="dark"] .main .contest-page .contest-open-pill,
+:root[data-theme="dark"] .main .contest-page .contest-notice {
+  color: #a9e3c6 !important;
+}
+
+/* Hero copy must stay light on the gradient in every theme. The shared legacy
+   light-mode text pass is very broad, so these overrides are ID-scoped. */
+#root .main .contest-page .contest-hero h1,
+#root .main .contest-page .contest-hero-feature h2 {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+#root .main .contest-page .contest-hero-copy > p,
+#root .main .contest-page .contest-hero-feature p {
+  color: rgba(255, 255, 255, .9) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, .9) !important;
+}
+#root .main .contest-page .contest-hero .eyebrow,
+#root .main .contest-page .contest-hero-feature .eyebrow {
+  color: #C8F0DA !important;
+  -webkit-text-fill-color: #C8F0DA !important;
+}
+#root .main .contest-page .contest-hero-actions .btn,
+#root .main .contest-page .contest-hero-actions .btn:hover {
+  border-color: #FFFFFF !important;
+  background: #FFFFFF !important;
+  color: #14503A !important;
+  -webkit-text-fill-color: #14503A !important;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .18) !important;
+}
+
+/* ========================= RESPONSIVE ========================= */
+@media (max-width: 1080px) {
+  .main .contest-page .contest-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .main .contest-page .contest-hero {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 30px 26px;
+  }
+
+  .main .contest-page .contest-hero-feature {
+    max-width: 520px;
+  }
+}
+
+/* Dark mode: deep-green hero and calmer cards on the dark canvas. */
+:root[data-theme="dark"] .main .contest-page .contest-hero {
+  background:
+    radial-gradient(ellipse at 90% 6%, rgba(99, 220, 172, 0.2), transparent 42%),
+    radial-gradient(ellipse at 4% 100%, rgba(3, 24, 17, 0.72), transparent 46%),
+    linear-gradient(118deg, #082019 0%, #0f4b39 58%, #0a2a20 100%) !important;
+  border-color: rgba(190, 235, 212, .16) !important;
+  box-shadow: 0 24px 58px rgba(0, 0, 0, .42);
+}
+:root[data-theme="dark"] .main .contest-page .contest-hero-feature {
+  border-color: rgba(255, 255, 255, .22) !important;
+  background: rgba(5, 22, 16, .5) !important;
+}
+:root[data-theme="dark"] .main .contest-page .contest-entry-card {
+  border-color: rgba(190, 235, 212, .14) !important;
+  background:
+    radial-gradient(circle at 100% 0, rgba(99, 220, 172, .1), transparent 44%),
+    #121F1A !important;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .28);
+}
+:root[data-theme="dark"] .main .contest-page .contest-entry-card:hover {
+  border-color: rgba(99, 220, 172, .45) !important;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .4);
+}
+:root[data-theme="dark"] .main .contest-page .contest-card-icon,
+:root[data-theme="dark"] .main .contest-page .contest-open-pill {
+  border-color: rgba(99, 220, 172, .28) !important;
+  background: rgba(99, 220, 172, .12) !important;
+  color: #9CECCC !important;
+}
+:root[data-theme="dark"] .main .contest-page .contest-entry-card h3,
+:root[data-theme="dark"] .main .contest-page .contest-card-foot strong { color: #EFF7F2 !important; }
+:root[data-theme="dark"] .main .contest-page .contest-entry-card > p,
+:root[data-theme="dark"] .main .contest-page .contest-card-foot small,
+:root[data-theme="dark"] .main .contest-page .contest-entry-card .eyebrow,
+:root[data-theme="dark"] .main .contest-page .contest-loading { color: #A2B8AC !important; }
+:root[data-theme="dark"] .main .contest-page .contest-encouragement {
+  border-color: rgba(190, 235, 212, .14) !important;
+  background: rgba(99, 220, 172, .07) !important;
+}
+:root[data-theme="dark"] .main .contest-page .contest-encouragement p { color: #C6D8CE !important; }
+:root[data-theme="dark"] .main .contest-page .contest-empty {
+  border-color: rgba(190, 235, 212, .14) !important;
+  background: #121F1A !important;
+  color: #A2B8AC !important;
+}
+:root[data-theme="dark"] .main .contest-page .contest-empty h3 { color: #EFF7F2 !important; }
+
+/* Light mode: a soft mint frame keeps the hero from feeling flat. */
+:root:not([data-theme="dark"]) .main .contest-page .contest-section-head { border-bottom-color: var(--site-line); }
+
+@media (max-width: 760px) {
+  .main .contest-page .contest-admin-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .main .contest-page .contest-admin-form > div,
+  .main .contest-page .contest-admin-form .btn {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 620px) {
+  .main .contest-page.page-shell {
+    padding: 14px 12px 56px;
+  }
+
+  .main .contest-page .contest-hero {
+    padding: 24px 20px;
+    border-radius: 17px;
+  }
+
+  .main .contest-page .contest-hero h1 {
+    font-size: clamp(2.2rem, 10vw, 3rem);
+  }
+
+  .main .contest-page .contest-hero-actions .btn,
+  .main .contest-page .contest-hero-link {
+    min-height: 42px;
+    padding: 9px 15px;
+    font-size: 0.8rem;
+  }
+
+  .main .contest-page .contest-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .main .contest-page .contest-entry-card {
+    min-height: 0;
+  }
+
+  .main .contest-page .contest-admin-form {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px;
+  }
+
+  .main .contest-page .contest-admin-form > div,
+  .main .contest-page .contest-admin-form .btn {
+    grid-column: auto;
+  }
+
+  .main .contest-page .contest-section-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .main .contest-page .contest-encouragement {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main .contest-page .contest-entry-card,
+  .main .contest-page .contest-hero-link,
+  .main .contest-page .contest-hero-actions .btn {
+    transition: none;
+  }
+
+  .main .contest-page .contest-entry-card:hover {
+    transform: none;
+  }
+}

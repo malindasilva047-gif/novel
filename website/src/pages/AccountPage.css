@@ -1,0 +1,200 @@
+/* Account — profile management (deactivate / delete) */
+.main .account-page .account-danger {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px 28px;
+  margin-top: 26px;
+  padding: clamp(20px, 2.6vw, 28px);
+  border: 1px solid color-mix(in srgb, #d9534f 26%, var(--site-line));
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, #d9534f 7%, transparent), transparent 46%),
+    var(--site-card) !important;
+}
+
+.main .account-page .account-danger-copy {
+  min-width: 0;
+  flex: 1 1 420px;
+}
+
+.main .account-page .account-danger .eyebrow {
+  color: #c24a45;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+}
+
+.main .account-page .account-danger h2 {
+  margin: 7px 0 6px;
+  color: var(--site-ink);
+  font-family: "Fraunces", Georgia, serif;
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.main .account-page .account-danger p {
+  max-width: 64ch;
+  margin: 0;
+  color: var(--site-muted);
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+.main .account-page .account-danger-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.main .account-page .account-danger-actions .btn {
+  min-height: 42px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.main .account-page .account-danger-actions .btn-danger {
+  border-color: #c24a45;
+  background: #c24a45;
+  color: #fff;
+}
+
+.main .account-page .account-danger-actions .btn-danger:hover {
+  background: #a93c38;
+}
+
+.account-action-overlay {
+  position: fixed;
+  z-index: 3000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(5, 18, 13, 0.62);
+  backdrop-filter: blur(4px);
+}
+
+.account-action-dialog {
+  display: flex;
+  width: min(100%, 460px);
+  max-height: calc(100vh - 40px);
+  flex-direction: column;
+  padding: clamp(20px, 3vw, 28px);
+  overflow-y: auto;
+  border: 1px solid var(--site-line);
+  border-radius: 18px;
+  background: var(--site-card);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.35);
+}
+
+.account-action-dialog h3 {
+  margin: 0 0 8px;
+  color: var(--site-ink);
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.account-action-dialog > p {
+  margin: 0 0 16px;
+  color: var(--site-muted);
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+.account-action-dialog label {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 6px;
+  color: var(--site-muted);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.account-action-dialog input {
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid var(--site-line);
+  border-radius: 10px;
+  background: var(--site-bg);
+  color: var(--site-ink);
+  font: inherit;
+}
+
+.account-action-dialog input:focus {
+  border-color: var(--site-brand);
+  outline: 2px solid color-mix(in srgb, var(--site-brand) 22%, transparent);
+  outline-offset: 1px;
+}
+
+.account-action-error {
+  margin: 8px 0 0;
+  color: #d9534f;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.account-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.account-action-buttons .btn {
+  min-height: 42px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-size: 0.83rem;
+  font-weight: 650;
+}
+
+.account-action-buttons .btn-danger {
+  border-color: #c24a45;
+  background: #c24a45;
+  color: #fff;
+}
+
+.account-action-buttons .btn-danger:hover {
+  background: #a93c38;
+}
+
+:root[data-theme="dark"] .main .account-page .account-danger-actions .btn-danger,
+:root[data-theme="dark"] .account-action-buttons .btn-danger {
+  border-color: #e2685f;
+  background: #c94f47;
+  color: #fff;
+}
+
+@media (max-width: 620px) {
+  .main .account-page .account-danger {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .main .account-page .account-danger-actions {
+    width: 100%;
+  }
+
+  .main .account-page .account-danger-actions .btn {
+    flex: 1 1 auto;
+  }
+
+  .account-action-overlay {
+    padding: 14px;
+  }
+
+  .account-action-buttons {
+    flex-direction: column-reverse;
+  }
+
+  .account-action-buttons .btn {
+    width: 100%;
+  }
+}

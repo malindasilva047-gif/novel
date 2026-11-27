@@ -97,6 +97,18 @@ export default function ChapterPage({ user }) {
   const [busy, setBusy] = useState(false);
   const [reactionCounts, setReactionCounts] = useState({});
   const [mine, setMine] = useState([]);
+  // Paragraph hearts stay instant and device-local, like the Flutter reader.
+  const [likedParagraphs, setLikedParagraphs] = useState(() => new Set());
+  const currentUserId = user?.user_id || user?.id;
+  const selfCommentedParagraphs = useMemo(() => {
+    if (currentUserId == null) return new Set();
+    return new Set(
+      comments
+        .filter((comment) => Number(comment.paragraph_index) >= 0
+          && String(comment.user_id) === String(currentUserId))
+        .map((comment) => Number(comment.paragraph_index)),
+    );
+  }, [comments, currentUserId]);
   const [liked, setLiked] = useState(false);
   const [likeBusy, setLikeBusy] = useState(false);
   const [fontSize, setFontSize] = useState(() => {
@@ -138,6 +150,25 @@ export default function ChapterPage({ user }) {
     if (!chapter) return 1;
     return Number(chapter.chapter_number) || 1;
   }, [chapter]);
+
+  const paragraphLikesKey = `novelhub:paragraph-likes:${id}:${chapterNumber}`;
+
+  useEffect(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem(paragraphLikesKey) || "[]");
+      setLikedParagraphs(new Set(Array.isArray(raw) ? raw.map(Number).filter(Number.isFinite) : []));
+    } catch {
+      setLikedParagraphs(new Set());
+    }
+  }, [paragraphLikesKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(paragraphLikesKey, JSON.stringify([...likedParagraphs]));
+    } catch {
+      /* storage can be unavailable in private mode */
+    }
+  }, [paragraphLikesKey, likedParagraphs]);
 
   const paragraphs = useMemo(() => {
     return parseRichTextParagraphs(chapter?.content);
@@ -343,7 +374,19 @@ export default function ChapterPage({ user }) {
     try {
       const res = await getChapterReactions(id, num);
       setReactionCounts(res?.counts || res || {});
-      setMine(res?.mine || []);
+      const serverMine = Array.isArray(res?.mine) ? res.mine : [];
+      setMine(serverMine);
+      const serverParagraphs = serverMine
+        .map((label) => /^paragraph:(\d+):Like$/.exec(label))
+        .filter(Boolean)
+        .map((match) => Number(match[1]));
+      if (serverParagraphs.length) {
+        setLikedParagraphs((current) => {
+          const next = new Set(current);
+          serverParagraphs.forEach((index) => next.add(index));
+          return next;
+        });
+      }
     } catch {
       setReactionCounts({});
       setMine([]);
@@ -598,12 +641,37 @@ export default function ChapterPage({ user }) {
       navigate("/login", { state: { returnTo: `/stories/${id}/chapters/${chapterId}` } });
       return;
     }
+    const paraMatch = /^paragraph:(\d+):Like$/.exec(label);
+    const paraIndex = paraMatch ? Number(paraMatch[1]) : null;
+    const wasLiked = paraIndex != null && likedParagraphs.has(paraIndex);
+    // Instant feedback: the heart turns red on press, then the server confirms.
+    if (paraIndex != null) {
+      setLikedParagraphs((current) => {
+        const next = new Set(current);
+        if (wasLiked) next.delete(paraIndex);
+        else next.add(paraIndex);
+        return next;
+      });
+      setReactionCounts((prev) => ({
+        ...prev,
+        [label]: Math.max(0, Number(prev[label] || 0) + (wasLiked ? -1 : 1)),
+      }));
+    }
     try {
       const res = await toggleChapterReaction(id, chapterNumber, label);
+      const nowSelected = typeof res?.selected === "boolean" ? res.selected : !wasLiked;
       setReactionCounts((prev) => ({
         ...prev,
         [label]: res?.count ?? (prev[label] || 0),
       }));
+      if (paraIndex != null) {
+        setLikedParagraphs((current) => {
+          const next = new Set(current);
+          if (nowSelected) next.add(paraIndex);
+          else next.delete(paraIndex);
+          return next;
+        });
+      }
       if (res?.selected) {
         setMine((m) => (m.includes(label) ? m : [...m, label]));
       } else {
@@ -611,6 +679,18 @@ export default function ChapterPage({ user }) {
       }
       await loadReactions(chapterNumber);
     } catch (err) {
+      if (paraIndex != null) {
+        setLikedParagraphs((current) => {
+          const next = new Set(current);
+          if (wasLiked) next.add(paraIndex);
+          else next.delete(paraIndex);
+          return next;
+        });
+        setReactionCounts((prev) => ({
+          ...prev,
+          [label]: Math.max(0, Number(prev[label] || 0) + (wasLiked ? 1 : -1)),
+        }));
+      }
       setMsg(String(err.message || err));
     }
   }
@@ -936,8 +1016,7 @@ export default function ChapterPage({ user }) {
             {paragraphs.length ? (
               paragraphs.map((p, i) => {
                 const count = Number(paraCounts[i] || paraCounts[String(i)] || 0);
-                const paraLikeLabel = `paragraph:${i}:Like`;
-                const paraLiked = Array.isArray(mine) && mine.includes(paraLikeLabel);
+                const selfCommented = selfCommentedParagraphs.has(i);
                 return (
                 <div key={i} className="para-block">
                   <div className="para-row">
@@ -945,7 +1024,7 @@ export default function ChapterPage({ user }) {
                     <div className="para-actions" aria-label={`Paragraph ${i + 1} actions`}>
                       <button
                         type="button"
-                        className={`para-bubble ${count > 0 ? "has-comments" : ""}`}
+                        className={`para-bubble${count > 0 ? " has-comments" : ""}${selfCommented ? " is-self-commented" : ""}`}
                         onClick={() => openPara(i)}
                         title="Paragraph comments"
                         aria-label={`View ${count} comments on paragraph ${i + 1}`}
@@ -953,7 +1032,7 @@ export default function ChapterPage({ user }) {
                         <svg viewBox="0 0 24 24" aria-hidden="true" className="para-bubble-icon">
                           <path
                             d="M20 11.5a7.5 7.5 0 0 1-8 7.5 8.7 8.7 0 0 1-3.4-.7L4 20l1.2-3.4A7.2 7.2 0 0 1 4 12c0-4.1 3.6-7.5 8-7.5s8 3.1 8 7Z"
-                            fill={count > 0 ? "currentColor" : "none"}
+                            fill="none"
                             stroke="currentColor"
                             strokeWidth="1.8"
                             strokeLinejoin="round"
@@ -963,7 +1042,7 @@ export default function ChapterPage({ user }) {
                       </button>
                       {(() => {
                         const label = `paragraph:${i}:Like`;
-                        const selected = mine.includes(label);
+                        const selected = likedParagraphs.has(i) || mine.includes(label);
                         const reactionCount = Number(reactionCounts[label] || 0);
                         return (
                           <button

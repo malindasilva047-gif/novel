@@ -136,7 +136,8 @@ export default function StoryPage({ user }) {
       if (Number.isFinite(Number(res?.likes_count))) {
         setBook((current) => current ? { ...current, likes_count: Number(res.likes_count) } : current);
       }
-      setMsg(res?.self ? "You cannot like your own story." : nowLiked ? "Liked" : "Unliked");
+      if (res?.self) setMsg("You cannot like your own story.");
+      else setMsg((current) => (current === "Liked" || current === "Unliked" ? "" : current));
     } catch (e) {
       setMsg(String(e.message || e));
     }

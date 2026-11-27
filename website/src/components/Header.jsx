@@ -72,7 +72,8 @@ export default function Header({ user, onLogout, onAuthSuccess }) {
     } catch {
       // Theme remains usable for this session when storage is unavailable.
     }
-    document.querySelector(".guest-landing-reference")?.contentWindow?.postMessage(
+    const guestLandingFrame = document.querySelector(".guest-landing-frame, .guest-landing-reference");
+    guestLandingFrame?.contentWindow?.postMessage(
       { type: "novelhub:theme", theme },
       window.location.origin,
     );
@@ -337,15 +338,15 @@ export default function Header({ user, onLogout, onAuthSuccess }) {
   }
 
   function openAuth(mode) {
-    if (location.pathname === "/login") {
-      const currentState = location.state && typeof location.state === "object"
-        ? location.state
-        : {};
-      navigate("/login", { state: { ...currentState, authMode: mode === "signup" ? "signup" : "signin" } });
-      return;
-    }
+    // Always use the full sign-in page so every entry point (profile icon,
+    // the more menu and the mobile menu) lands on the same screen.
+    const currentState = location.state && typeof location.state === "object"
+      ? location.state
+      : {};
     setAuthMode(mode);
-    setAuthOpen(true);
+    setAuthOpen(false);
+    const returnTo = currentState.returnTo || (location.pathname === "/login" ? "/" : `${location.pathname}${location.search}`);
+    navigate("/login", { state: { ...currentState, returnTo, authMode: mode === "signup" ? "signup" : "signin" } });
   }
 
   function closeMenu() {

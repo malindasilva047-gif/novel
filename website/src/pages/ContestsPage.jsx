@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { adminCreateContest, adminDeleteContest, getContests, getToken } from "../api";
 import { isGuestUser } from "../utils/guest";
+import "./ContestsPage.css";
 
 export default function ContestsPage({ user }) {
   const [contests, setContests] = useState([]);
@@ -65,21 +66,89 @@ export default function ContestsPage({ user }) {
   return (
     <main className="contest-page page-shell">
       <header className="contest-hero">
-        <div className="contest-hero-copy"><span className="eyebrow">A PROMPT. A PAGE. A POSSIBILITY.</span><h1>Let your next story surprise you.</h1><p>Writing challenges give a fresh idea somewhere to grow. Find a theme, follow the feeling, and make it your own.</p><Link className="btn btn-primary" to="/write">Start a story <span aria-hidden="true">→</span></Link></div>
-        <div className="contest-hero-feature" aria-label={featured ? `Featured contest: ${featured.title}` : "Writing challenge status"}><span className="contest-feature-star">✦</span><span className="eyebrow">{featured ? "IN THE SPOTLIGHT" : "YOUR NEXT PROMPT"}</span><h2>{featured?.title || (loading ? "Finding the next prompt" : "No featured prompt yet")}</h2><p>{featured?.theme || (loading ? "Checking the latest community writing challenges." : "There isn’t a featured challenge right now. Browse the open calls below or begin your own story.")}</p>{featured?.deadline ? <span className="contest-deadline">{featured.deadline}</span> : null}</div>
-        <div className="contest-hero-note" aria-hidden="true">Make it yours <span>✧</span></div>
+        <div className="contest-hero-copy">
+          <nav className="contest-crumbs" aria-label="Breadcrumb">
+            <Link to="/">Home</Link>
+            <span aria-hidden="true">/</span>
+            <Link to="/contests">Writing contests</Link>
+          </nav>
+          <span className="eyebrow">A PROMPT. A PAGE. A POSSIBILITY.</span>
+          <h1>Let your next story surprise you.</h1>
+          <p>Writing challenges give a fresh idea somewhere to grow. Find a theme, follow the feeling, and make it your own.</p>
+          <div className="contest-hero-actions">
+            <Link className="btn btn-primary" to="/write">Start a story <span aria-hidden="true">→</span></Link>
+            <a className="contest-hero-link" href="#open-calls">See open calls</a>
+          </div>
+        </div>
+        <div className="contest-hero-feature" aria-label={featured ? `Featured contest: ${featured.title}` : "Writing challenge status"}>
+          <span className="contest-feature-star" aria-hidden="true">✦</span>
+          <span className="eyebrow">{featured ? "IN THE SPOTLIGHT" : "YOUR NEXT PROMPT"}</span>
+          <h2>{featured?.title || (loading ? "Finding the next prompt" : "No featured prompt yet")}</h2>
+          <p>{featured?.theme || (loading ? "Checking the latest community writing challenges." : "There isn’t a featured challenge right now. Browse the open calls below or begin your own story.")}</p>
+          {featured?.deadline ? <span className="contest-deadline">{featured.deadline}</span> : null}
+        </div>
+        <span className="contest-hero-orbit contest-hero-orbit--one" aria-hidden="true" />
+        <span className="contest-hero-orbit contest-hero-orbit--two" aria-hidden="true" />
       </header>
 
-      <section className="contest-content">
-        <div className="contest-section-head"><div><span className="eyebrow">OPEN CALLS</span><h2>Find your writing spark</h2><p className="meta">Choose a challenge and turn a theme into a world only you could write.</p></div>{canManage ? <button className="btn btn-ghost" type="button" onClick={() => setAdminMode((value) => !value)}>{adminMode ? "Close tools" : "Contest tools"}</button> : null}</div>
+      <section className="contest-content" id="open-calls">
+        <div className="contest-section-head">
+          <div>
+            <span className="eyebrow">OPEN CALLS</span>
+            <h2>Find your writing spark</h2>
+            <p className="meta">Choose a challenge and turn a theme into a world only you could write.</p>
+          </div>
+          {canManage ? <button className="btn btn-ghost" type="button" onClick={() => setAdminMode((value) => !value)}>{adminMode ? "Close tools" : "Contest tools"}</button> : null}
+        </div>
         {error ? <div className="error-banner" role="alert">{error}</div> : null}
         {notice ? <p className="contest-notice" role="status">{notice}</p> : null}
-        {canManage && adminMode ? <form className="contest-admin-form card-panel" onSubmit={addContest}><div><span className="eyebrow">CONTEST MANAGER</span><h3>Add a writing challenge</h3></div><label>Title<input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required maxLength={120} /></label><label>Theme<input value={form.theme} onChange={(event) => setForm({ ...form, theme: event.target.value })} maxLength={250} /></label><label>Deadline<input value={form.deadline} onChange={(event) => setForm({ ...form, deadline: event.target.value })} placeholder="Open entry" maxLength={80} /></label><button className="btn btn-primary" type="submit" disabled={saving}>{saving ? "Creating…" : "Create challenge"}</button></form> : null}
+        {canManage && adminMode ? (
+          <form className="contest-admin-form card-panel" onSubmit={addContest}>
+            <div><span className="eyebrow">CONTEST MANAGER</span><h3>Add a writing challenge</h3></div>
+            <label>Title<input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required maxLength={120} /></label>
+            <label>Theme<input value={form.theme} onChange={(event) => setForm({ ...form, theme: event.target.value })} maxLength={250} /></label>
+            <label>Deadline<input value={form.deadline} onChange={(event) => setForm({ ...form, deadline: event.target.value })} placeholder="Open entry" maxLength={80} /></label>
+            <button className="btn btn-primary" type="submit" disabled={saving}>{saving ? "Creating…" : "Create challenge"}</button>
+          </form>
+        ) : null}
         {loading ? <div className="contest-loading">Finding your next prompt…</div> : null}
-        {!loading && contests.length ? <div className="contest-grid">{contests.map((contest, index) => <article className={`contest-entry-card ${index % 3 === 1 ? "contest-entry-card--rose" : index % 3 === 2 ? "contest-entry-card--blue" : ""}`} key={contest.id}><div className="contest-card-top"><span className="contest-card-icon" aria-hidden="true">{index % 3 === 1 ? "♡" : index % 3 === 2 ? "✧" : "✦"}</span><span className="contest-open-pill">Open for entries</span></div><span className="eyebrow">WRITING CHALLENGE</span><h3>{contest.title}</h3><p>{contest.theme || "Bring your own voice to this community prompt."}</p><div className="contest-card-foot"><span><small>SUBMISSION</small><strong>{contest.deadline || "Open entry"}</strong></span><Link className="btn btn-primary" to="/write">Write yours <span aria-hidden="true">→</span></Link></div>{adminMode && canManage ? <button className="contest-delete" type="button" disabled={deleting === contest.id} onClick={() => removeContest(contest.id)}>{deleting === contest.id ? "Removing…" : "Remove challenge"}</button> : null}</article>)}</div> : null}
-        {!loading && !contests.length ? <div className="contest-empty card-panel"><span aria-hidden="true">✧</span><h3>A new prompt is on its way.</h3><p className="meta">There are no open writing challenges at the moment. Your next story can still start today.</p><Link className="btn btn-primary" to="/write">Write your own story</Link></div> : null}
+        {!loading && contests.length ? (
+          <div className="contest-grid">
+            {contests.map((contest, index) => (
+              <article className="contest-entry-card" key={contest.id}>
+                <div className="contest-card-top">
+                  <span className="contest-card-icon" aria-hidden="true">{index % 3 === 1 ? "♡" : index % 3 === 2 ? "✧" : "✦"}</span>
+                  <span className="contest-open-pill">Open for entries</span>
+                </div>
+                <span className="eyebrow">WRITING CHALLENGE</span>
+                <h3>{contest.title}</h3>
+                <p>{contest.theme || "Bring your own voice to this community prompt."}</p>
+                <div className="contest-card-foot">
+                  <span><small>SUBMISSION</small><strong>{contest.deadline || "Open entry"}</strong></span>
+                  <Link className="btn btn-primary" to="/write">Write yours <span aria-hidden="true">→</span></Link>
+                </div>
+                {adminMode && canManage ? <button className="contest-delete" type="button" disabled={deleting === contest.id} onClick={() => removeContest(contest.id)}>{deleting === contest.id ? "Removing…" : "Remove challenge"}</button> : null}
+              </article>
+            ))}
+          </div>
+        ) : null}
+        {!loading && !contests.length ? (
+          <div className="contest-empty card-panel">
+            <span aria-hidden="true">✧</span>
+            <h3>A new prompt is on its way.</h3>
+            <p className="meta">There are no open writing challenges at the moment. Your next story can still start today.</p>
+            <Link className="btn btn-primary" to="/write">Write your own story</Link>
+          </div>
+        ) : null}
       </section>
-      <section className="contest-encouragement"><span className="eyebrow">NO WRONG WAY TO BEGIN</span><p>Start with a character. Start with one line. Start with the feeling you can't quite shake.</p><Link to="/manage-stories">Open your writing desk <span aria-hidden="true">→</span></Link></section>
+
+      <section className="contest-encouragement">
+        <div>
+          <span className="eyebrow">NO WRONG WAY TO BEGIN</span>
+          <p>Start with a character. Start with one line. Start with the feeling you can't quite shake.</p>
+        </div>
+        <Link to="/manage-stories">Open your writing desk <span aria-hidden="true">→</span></Link>
+      </section>
     </main>
   );
 }

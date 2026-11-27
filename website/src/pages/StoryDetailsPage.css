@@ -277,6 +277,7 @@
 }
 .main .story-setup-field-grid .form-label {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-content: start;
   gap: 7px;
   color: var(--site-ink);
@@ -284,6 +285,7 @@
   font-weight: 650;
 }
 .main .story-setup-field-grid .form-label > span { color: var(--site-brand-light); }
+.main .story-setup-field-grid .form-label > select { grid-column: 1 / -1; }
 
 .main .story-setup-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .main .story-setup-fieldset legend { padding: 0; color: var(--site-ink); font-size: .82rem; font-weight: 650; }

@@ -234,6 +234,14 @@ export function updateMyPreferences(payload) {
   return request("/api/me/preferences", { method: "PUT", body: JSON.stringify(payload) });
 }
 
+export function deactivateMyAccount(password) {
+  return request("/api/me/deactivate", { method: "POST", body: JSON.stringify({ password }) });
+}
+
+export function deleteMyAccount(password) {
+  return request("/api/me/delete", { method: "POST", body: JSON.stringify({ password }) });
+}
+
 export function getNotifications() {
   return request("/api/notifications");
 }
@@ -456,6 +464,10 @@ export function getGenreStoryCounts() {
 
 export function getPublicGenreCovers() {
   return request("/api/public/genre-covers", { cache: "no-store" });
+}
+
+export function getLibraryHero() {
+  return request("/api/library-hero", { cache: "no-store" });
 }
 
 export function getGenreBooks(genre) {

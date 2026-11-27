@@ -725,10 +725,11 @@ export default function StoryEditorPage({ user }) {
         const storyTitleValue = String(story?.title || storyTitle || "").trim();
         const summary = String(story?.description || "").trim();
         const genre = String(story?.genre || story?.primary_genre || "").trim();
-        if (!storyTitleValue || !summary || !genre) {
+        const language = String(story?.language || "").trim();
+        if (!storyTitleValue || !summary || !genre || !language) {
           const returnPath = encodeURIComponent(`/write/${storyId}`);
           requestEditorNavigation(`/write/new?story=${storyId}&returnTo=${returnPath}`);
-          showToast("Complete the story title, summary, and genre before publishing.", "warning");
+          showToast("Complete the story title, summary, genre, and language before publishing.", "warning");
           return;
         }
       }
@@ -983,8 +984,9 @@ export default function StoryEditorPage({ user }) {
   async function changeStoryStatus(status) {
     const summary = String(story?.description || story?.summary || "").trim();
     const genre = String(story?.genre || story?.primary_genre || "").trim();
-    if (!summary || !genre) {
-      const message = "Complete the story summary and genre in Story details before changing its status.";
+    const language = String(story?.language || "").trim();
+    if (!summary || !genre || !language) {
+      const message = "Complete the story summary, genre, and language in Story details before changing its status.";
       setMsg(message);
       showToast(message, "warning");
       return;

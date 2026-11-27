@@ -208,7 +208,6 @@ export default function StoryDetailsPage({ user }) {
     summary.trim(),
     genre.trim(),
     language.trim(),
-    (coverFile || coverPath.trim()) ? "cover" : "",
   ];
   const readinessDone = readinessItems.filter(Boolean).length;
   const readinessPercent = Math.round((readinessDone / readinessItems.length) * 100);
@@ -277,15 +276,21 @@ export default function StoryDetailsPage({ user }) {
     try {
       let uploadedCover = coverPath;
       const authorName = user?.display_name || user?.username || user?.name || "Author";
-      const coverToUpload = coverFile || (!uploadedCover ? await createDefaultCoverFile(title, authorName) : null);
-      if (coverToUpload) {
-        const optimizedCover = await optimizeCoverFile(coverToUpload);
-        const upload = await uploadWriteImage(optimizedCover);
-        uploadedCover = upload?.path || upload?.url || upload?.cover_path || upload?.filename || "";
-        if (!uploadedCover) throw new Error("The cover upload did not return an image path.");
-        if (!uploadedCover.startsWith("/") && !uploadedCover.startsWith("http")) uploadedCover = `/uploads/${uploadedCover}`;
+      // A cover is never required to save or publish: try the uploaded file,
+      // then the generated one, and keep going without a cover if both fail.
+      try {
+        const coverToUpload = coverFile || (!uploadedCover ? await createDefaultCoverFile(title, authorName) : null);
+        if (coverToUpload) {
+          const optimizedCover = await optimizeCoverFile(coverToUpload);
+          const upload = await uploadWriteImage(optimizedCover);
+          uploadedCover = upload?.path || upload?.url || upload?.cover_path || upload?.filename || "";
+          if (uploadedCover && !uploadedCover.startsWith("/") && !uploadedCover.startsWith("http")) uploadedCover = `/uploads/${uploadedCover}`;
+        }
+      } catch (coverError) {
+        console.warn("Story cover could not be prepared:", coverError);
+        uploadedCover = coverPath || "";
+        showToast("We could not prepare a cover, so this story will use the default cover.", "warning");
       }
-      if (!uploadedCover) throw new Error("A story cover could not be prepared. Please choose an image or retry.");
       const currentStoryId = savedStoryId || editingStoryId;
       const payload = {
         title: title.trim() || "Untitled Story",
@@ -385,8 +390,8 @@ export default function StoryDetailsPage({ user }) {
       <form id="story-setup-form" className="story-setup-form" onSubmit={submit}>
         <aside className="story-setup-cover-card" aria-label="Story cover">
           <div className="story-setup-section-heading">
-            <h2>Cover image <span>*</span></h2>
-            <small>A cover is required. We can create one for you.</small>
+            <h2>Cover image</h2>
+            <small>Optional — skip it and we will generate a Wingsaga cover from your title.</small>
           </div>
           <div
             className={`story-setup-cover${coverDragActive ? " is-dragging" : ""}`}
@@ -477,8 +482,8 @@ export default function StoryDetailsPage({ user }) {
                   <option value="">Select genre…</option>{genres.map((item) => <option key={item}>{item}</option>)}
                 </select>
               </label>
-              <label className="form-label" htmlFor="story-language">Language <span>*</span>
-                <select id="story-language" required value={language} onChange={(event) => setLanguage(normalizeStoryLanguage(event.target.value))}>
+              <label className="form-label" htmlFor="story-language">Language
+                <select id="story-language" value={language} onChange={(event) => setLanguage(normalizeStoryLanguage(event.target.value))}>
                   <option value="">Select language…</option>
                   <option value="English">English</option><option value="Sinhala">Sinhala</option><option value="Tamil">Tamil</option>
                 </select>

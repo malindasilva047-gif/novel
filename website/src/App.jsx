@@ -49,6 +49,13 @@ export default function App() {
   const [profileSetupRequired, setProfileSetupRequired] = useState(false);
   const cursorAuraRef = useRef(null);
   const path = location.pathname;
+
+  // Every page change starts at the top of the document (nav links, cards, browser back).
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    const frame = window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [path]);
   const readingFocus = /^\/stories\/\d+\/chapters\/\d+$/.test(path);
   const writingFocus = /^\/(?:write|edit)\/\d+$/.test(path) || /^\/write\/stories\/\d+$/.test(path);
   const focusWorkspace = readingFocus || writingFocus;
@@ -62,7 +69,7 @@ export default function App() {
   const currentStoryId = path.match(/^\/stories\/(\d+)/)?.[1];
   const storyReviewsFocus = /^\/stories\/\d+\/reviews$/.test(path);
   const storyReviewForm = /^\/stories\/\d+\/review$/.test(path);
-  const recommendationsExcluded = path === "/" || path === "/discover" || path === "/login" || path === "/profile" || path === "/library" || path === "/community" || path === "/notifications" || path.startsWith("/write") || path.startsWith("/manage-stories") || path.startsWith("/account") || path.startsWith("/authors/") || path.startsWith("/tags/") || path.startsWith("/genres/") || path === "/subscription" || /^\/stories\/\d+$/.test(path) || storyReviewsFocus;
+  const recommendationsExcluded = path === "/" || path === "/discover" || path === "/login" || path === "/profile" || path === "/library" || path === "/community" || path === "/notifications" || path === "/contests" || path.startsWith("/write") || path.startsWith("/manage-stories") || path.startsWith("/account") || path.startsWith("/authors/") || path.startsWith("/tags/") || path.startsWith("/genres/") || path === "/subscription" || /^\/stories\/\d+$/.test(path) || storyReviewsFocus;
 
   useEffect(() => {
     const aura = cursorAuraRef.current;
@@ -271,7 +278,8 @@ export default function App() {
           </>
         )}
       </main>
-      {!bootLoading && !recommendationsExcluded ? <YouMayAlsoLike excludeId={currentStoryId} title={readingFocus || storyReviewForm ? "Browse stories" : "Recommended for your next read"} compact={readingFocus} /> : null}
+      {/* The reader keeps the page focused on the chapter, so no browse shelf there. */}
+      {!bootLoading && !recommendationsExcluded && !readingFocus ? <YouMayAlsoLike excludeId={currentStoryId} title={storyReviewForm ? "Browse stories" : "Recommended for your next read"} /> : null}
       {!bootLoading && minimalHome && !guestLanding ? <HomePageCTA /> : null}
       {!bootLoading && !focusWorkspace && !authPage && <Footer user={user} />}
     </div>

@@ -46,6 +46,16 @@ export default function GuestLandingPage() {
       setHeight(`${h}px`);
     }
 
+    // The guest page is its own document, so it has to be told which theme the
+    // app shell is using — otherwise only the app header switches to dark.
+    function applyThemeToDoc(doc) {
+      if (!doc?.documentElement) return;
+      const theme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+      doc.documentElement.dataset.theme = theme;
+      const meta = doc.querySelector('meta[name="theme-color"]');
+      if (meta) meta.content = theme === "dark" ? "#192A23" : "#FFFFFF";
+    }
+
     function resizeFromDoc() {
       try {
         const doc = iframe.contentDocument || iframe.contentWindow?.document;
@@ -62,7 +72,22 @@ export default function GuestLandingPage() {
           htmlEl.style.marginBottom = "0";
           htmlEl.style.paddingBottom = "0";
         }
+        applyThemeToDoc(doc);
         applyHeight(measureContentHeight(doc));
+      } catch {
+        /* ignore */
+      }
+    }
+
+    function onThemeMessage(e) {
+      if (e?.origin !== window.location.origin || e.data?.type !== "novelhub:theme") return;
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (!doc?.documentElement) return;
+        doc.documentElement.dataset.theme = e.data.theme === "dark" ? "dark" : "light";
+        const meta = doc.querySelector('meta[name="theme-color"]');
+        if (meta) meta.content = e.data.theme === "dark" ? "#192A23" : "#FFFFFF";
+        resizeFromDoc();
       } catch {
         /* ignore */
       }
@@ -103,11 +128,13 @@ export default function GuestLandingPage() {
     iframe.addEventListener("load", onLoad);
     window.addEventListener("resize", resizeFromDoc);
     window.addEventListener("message", onMessage);
+    window.addEventListener("message", onThemeMessage);
 
     return () => {
       iframe.removeEventListener("load", onLoad);
       window.removeEventListener("resize", resizeFromDoc);
       window.removeEventListener("message", onMessage);
+      window.removeEventListener("message", onThemeMessage);
       (iframe._glTimers || []).forEach((id) => window.clearTimeout(id));
       try {
         iframe._glRo?.disconnect();
@@ -122,7 +149,7 @@ export default function GuestLandingPage() {
       ref={iframeRef}
       className="guest-landing-frame"
       title="Wingsaga — Stories worth staying up for"
-      src="/guest-landing.html?v=20261123-gap1"
+      src="/guest-landing.html?v=20261127-theme1"
       scrolling="no"
       style={{ height }}
     />

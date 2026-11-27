@@ -57,6 +57,9 @@ import {
   createHomeHeroImage,
   updateHomeHeroImage,
   deleteHomeHeroImage,
+  getLibraryHero,
+  updateLibraryHero,
+  deleteLibraryHero,
 } from "./api";
 import { AuthorsPage, UsersPage, ReviewsPage } from "./moderation_pages";
 
@@ -65,6 +68,7 @@ const NAV = [
   { id: "novels", label: "Novels", icon: "☰" },
   { id: "home-sliders", label: "Home Sliders", icon: "▤" },
   { id: "home-hero-images", label: "Hero Backgrounds", icon: "▧" },
+  { id: "library-hero", label: "Library Hero", icon: "▥" },
   { id: "authors", label: "Authors", icon: "✎" },
   { id: "users", label: "Users", icon: "☺" },
   { id: "reports", label: "Reports", icon: "▤" },
@@ -746,6 +750,7 @@ export default function App() {
             <HomeSlidersPage books={books} onRefresh={loadAll} />
           )}
           {page === "home-hero-images" && <HomeHeroImagesPage />}
+          {page === "library-hero" && <LibraryHeroPage />}
 
 {page === "authors" && <AuthorsPage authors={authors} search={search} />}
           {page === "reviews" && <ReviewsPage />}
@@ -2615,6 +2620,161 @@ function HomeHeroImagesPage() {
           </form>
         </section>
       </div>
+    </div>
+  );
+}
+
+function LibraryHeroPage() {
+  const [form, setForm] = useState({ title: "", image_path: "" });
+  const [saved, setSaved] = useState({ title: "", image_path: "" });
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const result = await getLibraryHero();
+      const next = { title: result?.title || "", image_path: result?.image_path || "" };
+      setSaved(next);
+      setForm(next);
+    } catch (e) {
+      setError(e?.message || String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const pickImage = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setError("");
+    setUploading(true);
+    try {
+      const result = await uploadImage(file);
+      const path = result?.path || result?.url || "";
+      if (!path) throw new Error("The uploaded image did not return a path.");
+      setForm((current) => ({ ...current, image_path: path }));
+    } catch (e) {
+      setError(e?.message || String(e));
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
+  };
+
+  const save = async (event) => {
+    event.preventDefault();
+    if (!form.image_path.trim()) {
+      setError("Choose a background image first.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const result = await updateLibraryHero({
+        title: form.title.trim(),
+        image_path: form.image_path.trim(),
+      });
+      const next = { title: result?.title || form.title.trim(), image_path: result?.image_path || form.image_path.trim() };
+      setSaved(next);
+      setForm(next);
+    } catch (e) {
+      setError(e?.message || String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!window.confirm("Remove the library hero background?")) return;
+    setBusy(true);
+    setError("");
+    try {
+      await deleteLibraryHero();
+      setSaved({ title: "", image_path: "" });
+      setForm({ title: "", image_path: "" });
+    } catch (e) {
+      setError(e?.message || String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const preview = coverUrl(form.image_path);
+
+  return (
+    <div className="page-section home-hero-images-page">
+      <header className="home-sliders-heading">
+        <div>
+          <span className="home-sliders-eyebrow">LIBRARY PAGE CONTENT</span>
+          <h2>Library hero background</h2>
+          <p>One static background image for the Library page hero. It does not rotate or animate.</p>
+        </div>
+        <button type="button" className="btn" onClick={load} disabled={loading || busy}>
+          {loading ? "Refreshing…" : "Refresh"}
+        </button>
+      </header>
+
+      {error ? <div className="home-sliders-error" role="alert">{error}</div> : null}
+      {loading ? <p className="home-sliders-empty">Loading the library hero…</p> : null}
+
+      {!loading ? (
+        <div className="home-hero-images-layout">
+          <section className="home-hero-images-list" aria-label="Current library hero background">
+            <div className="home-hero-images-list-heading">
+              <h3>Current background</h3>
+              <p>This image sits behind the Library page hero heading.</p>
+            </div>
+            {saved.image_path ? (
+              <article className="home-hero-image-card">
+                <img src={coverUrl(saved.image_path)} alt={saved.title || "Library hero background"} loading="lazy" />
+                <div className="home-hero-image-card-copy">
+                  <strong>{saved.title || "Library hero"}</strong>
+                  <span>Active on the Library page</span>
+                </div>
+                <div className="home-hero-image-card-actions">
+                  <button type="button" className="btn btn-sm btn-danger" onClick={remove} disabled={busy}>Remove</button>
+                </div>
+              </article>
+            ) : (
+              <p className="home-sliders-empty">No library background yet. Upload one to get started.</p>
+            )}
+          </section>
+
+          <section className="home-hero-image-editor" aria-labelledby="library-hero-editor-title">
+            <div>
+              <span className="home-sliders-eyebrow">BACKGROUND SETTINGS</span>
+              <h3 id="library-hero-editor-title">{saved.image_path ? "Replace the background" : "Add a background"}</h3>
+              <p>Use a wide image. The hero applies a soft light overlay so the heading stays readable.</p>
+            </div>
+            <form onSubmit={save}>
+              <label>
+                Background image
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={pickImage} disabled={uploading || busy} />
+              </label>
+              <label>
+                Or image path / URL
+                <input required value={form.image_path} onChange={(event) => setForm({ ...form, image_path: event.target.value })} placeholder="/api/media/…" disabled={busy} />
+              </label>
+              {preview ? <img className="home-hero-image-editor-preview" src={preview} alt="Library hero preview" /> : null}
+              <label>
+                Image label (optional)
+                <input maxLength={160} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Evening reading room" />
+              </label>
+              <div className="home-hero-image-editor-actions">
+                <button type="submit" className="btn btn-primary" disabled={busy || uploading || !form.image_path.trim()}>
+                  {uploading ? "Uploading…" : busy ? "Saving…" : "Save background"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

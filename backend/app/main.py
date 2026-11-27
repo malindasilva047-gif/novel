@@ -365,6 +365,11 @@ class HomeHeroImageUpdateRequest(BaseModel):
     is_active: bool | None = None
 
 
+class LibraryHeroUpdateRequest(BaseModel):
+    title: str | None = None
+    image_path: str | None = None
+
+
 class AdminWriteScreenUpdateRequest(BaseModel):
     manage_tabs: str
     story_tabs: str
@@ -10961,6 +10966,108 @@ def admin_delete_home_hero_image(
     return {"ok": True}
 
 
+# --- Library hero backdrop (single admin-managed image, no carousel) ---
+_LIBRARY_HERO_TABLE_READY = False
+
+
+def _ensure_library_hero_table() -> None:
+    global _LIBRARY_HERO_TABLE_READY
+    if _LIBRARY_HERO_TABLE_READY:
+        return
+    if _live_use_sqlite():
+        execute_write(
+            """
+            CREATE TABLE IF NOT EXISTS library_hero (
+                id INTEGER PRIMARY KEY,
+                title TEXT NOT NULL DEFAULT '',
+                image_path TEXT NOT NULL DEFAULT '',
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+            """,
+            (),
+        )
+    else:
+        execute_write(
+            """
+            CREATE TABLE IF NOT EXISTS library_hero (
+                id INT PRIMARY KEY,
+                title VARCHAR(160) NOT NULL DEFAULT '',
+                image_path VARCHAR(2048) NOT NULL DEFAULT '',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+            """,
+            (),
+        )
+    _LIBRARY_HERO_TABLE_READY = True
+
+
+def _validated_library_hero_image_path(image_path: str) -> str:
+    path = (image_path or "").strip()
+    if not path or len(path) > 2048:
+        raise HTTPException(status_code=400, detail="A valid library hero image path is required")
+    if not path.startswith("/") and not path.lower().startswith(("https://", "http://")):
+        raise HTTPException(status_code=400, detail="Library hero image path must be a site path or HTTP(S) URL")
+    return path
+
+
+def _library_hero_row() -> dict[str, Any]:
+    _ensure_library_hero_table()
+    rows = fetch_all("SELECT title, image_path FROM library_hero WHERE id=1") or []
+    row = rows[0] if rows else {}
+    return {
+        "title": str(row.get("title") or ""),
+        "image_path": str(row.get("image_path") or ""),
+    }
+
+
+@app.get("/api/library-hero")
+def public_library_hero(response: Response):
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    return _library_hero_row()
+
+
+@app.get("/api/admin/library-hero")
+def admin_library_hero(_: dict[str, Any] = Depends(require_admin)):
+    return _library_hero_row()
+
+
+@app.put("/api/admin/library-hero")
+def admin_update_library_hero(
+    payload: LibraryHeroUpdateRequest,
+    _: dict[str, Any] = Depends(require_admin),
+):
+    current = _library_hero_row()
+    title = current["title"] if payload.title is None else payload.title.strip()
+    if len(title) > 160:
+        raise HTTPException(status_code=400, detail="Library hero title must be 160 characters or fewer")
+    image_path = current["image_path"]
+    if payload.image_path is not None:
+        image_path = _validated_library_hero_image_path(payload.image_path) if payload.image_path.strip() else ""
+    if not image_path:
+        raise HTTPException(status_code=400, detail="A valid library hero image path is required")
+    existing = fetch_all("SELECT id FROM library_hero WHERE id=1") or []
+    if existing:
+        execute_write(
+            "UPDATE library_hero SET title=%s, image_path=%s WHERE id=1",
+            (title, image_path),
+        )
+    else:
+        execute_write(
+            "INSERT INTO library_hero (id, title, image_path) VALUES (1, %s, %s)",
+            (title, image_path),
+        )
+    bump_content_version()
+    return {"ok": True, "title": title, "image_path": image_path}
+
+
+@app.delete("/api/admin/library-hero")
+def admin_delete_library_hero(_: dict[str, Any] = Depends(require_admin)):
+    _ensure_library_hero_table()
+    execute_write("UPDATE library_hero SET title='', image_path='' WHERE id=1", ())
+    bump_content_version()
+    return {"ok": True}
+
+
 
 
 @app.get("/api/home-sections")
@@ -12204,7 +12311,13 @@ def list_books_by_genre(genre_name: str, sort: str | None = None):
     try:
         rows = fetch_all(
             f"""
-            SELECT b.* FROM books b
+            SELECT b.*,
+                   (SELECT COUNT(*) FROM chapters c
+                      WHERE c.story_id = b.id
+                        AND LOWER(COALESCE(c.submission_status, 'draft')) IN
+                            ('published', 'submitted', 'ongoing', 'completed')) AS published_chapter_count,
+                   (SELECT COUNT(*) FROM chapters c WHERE c.story_id = b.id) AS chapter_count
+            FROM books b
             WHERE LOWER(TRIM(COALESCE(b.status_text, ''))) IN
                   ('ongoing', 'completed', 'complete', 'finished', 'published',
                    'publish', 'live', 'public', 'submitted')

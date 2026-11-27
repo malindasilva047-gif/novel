@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { commentWallPost, deleteWallPost, getBootstrap, getLibrary, getMe, getMyReviews, getMyStories, getReadingLists, getToken, getUserActivity, getUserWall, likeWallPost, postUserWall, resolveAssetUrl, updateMe, uploadProfileImage } from "../api";
 import { isGuestUser } from "../utils/guest";
@@ -137,6 +137,47 @@ function parseBirthday(value) {
   );
   if (age < 16) return { iso: "", error: "Wingsaga accounts require users to be at least 16 years old." };
   return { iso: `${yearText}-${monthText}-${dayText}`, error: "" };
+}
+
+function ProfileBio({ text, fallback }) {
+  const bodyRef = useRef(null);
+  const [expanded, setExpanded] = useState(false);
+  const [overflowing, setOverflowing] = useState(false);
+
+  useLayoutEffect(() => {
+    const node = bodyRef.current;
+    if (!node || expanded) return;
+    const clampedHeight = node.clientHeight;
+    const previousWebkitClamp = node.style.webkitLineClamp;
+    const previousClamp = node.style.lineClamp;
+    node.style.webkitLineClamp = "unset";
+    node.style.lineClamp = "unset";
+    const fullHeight = node.scrollHeight;
+    node.style.webkitLineClamp = previousWebkitClamp;
+    node.style.lineClamp = previousClamp;
+    setOverflowing(fullHeight > clampedHeight + 1);
+  }, [text, expanded]);
+
+  const content = String(text || "").trim();
+
+  return (
+    <div className="profile-bio">
+      <p ref={bodyRef} className={`profile-bio-text${expanded ? " is-expanded" : ""}`}>
+        {content || fallback}
+      </p>
+      {overflowing || expanded ? (
+        <button
+          type="button"
+          className="profile-bio-toggle"
+          onClick={() => setExpanded((value) => !value)}
+          aria-expanded={expanded}
+        >
+          {expanded ? "See less" : "See more"}
+          <span aria-hidden="true">{expanded ? "↑" : "↓"}</span>
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 function SocialIcon({ platform }) {
@@ -627,7 +668,7 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
                 <h1>{name}</h1>
                 {username ? <p className="profile-handle">@{username}</p> : null}
                 {me?.email ? <p className="profile-email">{me.email}</p> : null}
-                <p className="profile-bio-text">{me?.bio?.trim() || "Your story is still being written. Add a little about yourself to your profile."}</p>
+                <ProfileBio text={me?.bio} fallback="Your story is still being written. Add a little about yourself to your profile." />
                 <div className="profile-identity-meta">
                   {me?.country ? <span><span aria-hidden="true">⌖</span>{me.country}</span> : null}
                   {publishedStoryCount ? <span><span aria-hidden="true">▣</span>{publishedStoryCount} published {publishedStoryCount === 1 ? "story" : "stories"}</span> : null}
@@ -916,25 +957,6 @@ export default function ProfilePage({ user, setupRequired = false, onProfileComp
                   </div>
                 ))}
               </dl>
-              <div className="profile-about-social-block">
-                <h3 className="profile-about-social-title">Social media</h3>
-                {socialLinks.length ? (
-                  <nav className="profile-social-links" aria-label="Social profiles">
-                    {socialLinks.map((link) => {
-                      const host = new URL(link.href).hostname.replace(/^www\./, "");
-                      return (
-                        <a href={link.href} key={link.label} target="_blank" rel="noopener noreferrer">
-                          <span className="profile-social-icon-wrap"><SocialIcon platform={link.label} /></span>
-                          <span className="profile-social-copy"><strong>{link.label}</strong><small>{host}</small></span>
-                          <span className="profile-social-external" aria-hidden="true">↗</span>
-                        </a>
-                      );
-                    })}
-                  </nav>
-                ) : (
-                  <p className="profile-social-empty">Social links added to your profile will appear here.</p>
-                )}
-              </div>
             </section>
           </div>
         ) : !setupRequired && tab === "Stories" ? (

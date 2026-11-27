@@ -6,6 +6,9 @@ import "./styles.css";
 import "./site-design.css";
 import "./professional-theme.css";
 
+// Never let the browser restore a previous scroll position on page loads.
+if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
+
 const router = createBrowserRouter(
   [{ path: "*", element: <App /> }],
   { future: { v7_relativeSplatPath: true } },

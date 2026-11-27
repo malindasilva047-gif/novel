@@ -457,6 +457,22 @@ export function deleteHomeHeroImage(id) {
   return request(`/api/admin/home-hero-images/${id}`, { method: "DELETE" });
 }
 
+// --- Library hero backdrop (single static image, no carousel) ---
+export function getLibraryHero() {
+  return request("/api/admin/library-hero");
+}
+
+export function updateLibraryHero(payload) {
+  return request("/api/admin/library-hero", {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteLibraryHero() {
+  return request("/api/admin/library-hero", { method: "DELETE" });
+}
+
 export function createHomeSection(payload) {
   return request("/api/admin/home-sections", {
     method: "POST",

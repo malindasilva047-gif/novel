@@ -8057,10 +8057,10 @@ body { font-family: var(--font); }
   color-scheme: light;
 }
 :root:not([data-theme="dark"]) .main :not(.story-reviews-page):not(.story-reviews-page *) :is(input, textarea)::placeholder { color: var(--site-muted) !important; opacity: 1; }
-:root:not([data-theme="dark"]) .main :not(.story-reviews-page):not(.story-reviews-page *) :is(h1, h2, h3, h4, h5, .book-title, .page-title, .chapter-title) {
+:root:not([data-theme="dark"]) .main :not(.story-reviews-page):not(.story-reviews-page *):not(.contest-hero *):not(.genre-explorer-hero *) :is(h1, h2, h3, h4, h5, .book-title, .page-title, .chapter-title) {
   color: var(--site-ink) !important;
 }
-:root:not([data-theme="dark"]) .main :not(.story-reviews-page):not(.story-reviews-page *) :is(p, small, .meta, .book-author, .book-card-stats, .muted, .subtitle) {
+:root:not([data-theme="dark"]) .main :not(.story-reviews-page):not(.story-reviews-page *):not(.contest-hero *):not(.genre-explorer-hero *) :is(p, small, .meta, .book-author, .book-card-stats, .muted, .subtitle) {
   color: var(--site-muted) !important;
 }
 :root:not([data-theme="dark"]) .main :not(.story-reviews-page):not(.story-reviews-page *) :is(.btn-primary, .btn.btn-primary, .search-icon-btn, .filter-button, .active-filter) {
@@ -8264,7 +8264,7 @@ body { font-family: var(--font); }
   [class*="-tabs"], [class*="-filter"], [class*="-toolbar"],
   [class*="-empty"], [class*="-composer"], [class*="-form"],
   [class*="-modal"], [class*="-dialog"]
-):not([class*="cover"]):not([class*="overlay"]):not([class*="carousel"]):not(.book-card--inkitt):not(.book-card--inkitt *):not(.profile-page *):not(.writer-dashboard *):not(.story-reviews-page *):not(.tag-hub-story-card):not(.tag-hub-featured-card) {
+):not([class*="cover"]):not([class*="overlay"]):not([class*="carousel"]):not(.book-card--inkitt):not(.book-card--inkitt *):not(.profile-page *):not(.writer-dashboard *):not(.story-reviews-page *):not(.tag-hub-story-card):not(.tag-hub-featured-card):not(.genre-explorer-page *):not(.library-experience *) {
   border-color: var(--site-line) !important;
   background: var(--site-card) !important;
   color: var(--site-ink) !important;

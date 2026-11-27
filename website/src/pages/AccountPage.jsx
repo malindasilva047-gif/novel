@@ -1,7 +1,10 @@
-import { createSupportRequest, getChatMessages, getMyPreferences, getMyReadingStats, getMySupportRequests, sendChatMessage, updateMyPreferences } from "../api";
+import { createSupportRequest, deactivateMyAccount, deleteMyAccount, getChatMessages, getMyPreferences, getMyReadingStats, getMySupportRequests, sendChatMessage, updateMyPreferences } from "../api";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
+import { showToast } from "../components/ToastViewport";
 import { isGuestUser } from "../utils/guest";
+import "./AccountPage.css";
 
 /** Same FAQ content as Flutter HelpCenterScreen */
 const FAQ = {
@@ -20,7 +23,7 @@ const FAQ = {
     },
     {
       q: "Can I delete my account?",
-      a: "Use Contact us and request account deletion. An admin will process the request.",
+      a: "Open Account → Profile management. You can deactivate your account temporarily or schedule permanent deletion with a 30-day cancellation period. You will be asked for your password to confirm.",
     },
   ],
   Reading: [
@@ -510,6 +513,123 @@ export function AccountLanguage() {
   );
 }
 
+const ACCOUNT_ACTIONS = {
+  deactivate: {
+    title: "Deactivate your account?",
+    body: "Enter your password to confirm. Your profile and stories are preserved, and you will be signed out. Sign in again any time to reactivate your account.",
+    confirmLabel: "Deactivate",
+    success: "Your account is deactivated. Sign in again to reactivate it.",
+    run: deactivateMyAccount,
+  },
+  delete: {
+    title: "Schedule account deletion?",
+    body: "Enter your password to confirm. Your account and authored stories are scheduled for permanent deletion and you will be signed out. Sign in within 30 days to cancel; after that, your account data is permanently removed.",
+    confirmLabel: "Delete account",
+    success: "Account deletion is scheduled. Sign in within 30 days to cancel it.",
+    run: deleteMyAccount,
+  },
+};
+
+function ProfileManagement({ onLogout }) {
+  const [action, setAction] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const config = action ? ACCOUNT_ACTIONS[action] : null;
+
+  function open(nextAction) {
+    setAction(nextAction);
+    setPassword("");
+    setError("");
+  }
+
+  function close() {
+    if (busy) return;
+    setAction("");
+    setPassword("");
+    setError("");
+  }
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!config || busy) return;
+    const value = password.trim();
+    if (!value) {
+      setError("Enter your password to continue.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await config.run(value);
+      setAction("");
+      setPassword("");
+      showToast(config.success);
+      onLogout?.();
+    } catch (err) {
+      setError(err?.message || "Could not update your account. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="account-danger card-panel" aria-labelledby="account-danger-title">
+      <div className="account-danger-copy">
+        <span className="eyebrow">PROFILE MANAGEMENT</span>
+        <h2 id="account-danger-title">Deactivate or delete your account</h2>
+        <p className="meta">
+          Deactivating hides your account until you sign in again. Deleting schedules permanent removal with a
+          30-day window to change your mind. Your profile and stories are never touched by support.
+        </p>
+      </div>
+      <div className="account-danger-actions">
+        <button type="button" className="btn btn-ghost" onClick={() => open("deactivate")}>
+          Deactivate account
+        </button>
+        <button type="button" className="btn btn-danger" onClick={() => open("delete")}>
+          Delete account
+        </button>
+      </div>
+
+      {config ? createPortal(
+        <div className="account-action-overlay" role="presentation" onClick={close}>
+          <form
+            className="account-action-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="account-action-title"
+            onClick={(event) => event.stopPropagation()}
+            onSubmit={submit}
+          >
+            <h3 id="account-action-title">{config.title}</h3>
+            <p>{config.body}</p>
+            <label>
+              <span>Password</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                autoComplete="current-password"
+                autoFocus
+                disabled={busy}
+              />
+            </label>
+            {error ? <p className="account-action-error" role="alert">{error}</p> : null}
+            <div className="account-action-buttons">
+              <button type="button" className="btn btn-ghost" onClick={close} disabled={busy}>Cancel</button>
+              <button type="submit" className="btn btn-danger" disabled={busy}>
+                {busy ? "Please wait…" : config.confirmLabel}
+              </button>
+            </div>
+          </form>
+        </div>,
+        document.body,
+      ) : null}
+    </section>
+  );
+}
+
 /** @deprecated name kept for App imports */
 export function AccountSimple({ title, body }) {
   return (
@@ -562,6 +682,8 @@ export default function AccountPage({ user, onLogout }) {
           </section>
         ))}
       </div>
+
+      {!guest ? <ProfileManagement onLogout={onLogout} /> : null}
 
       {!guest ? (
         <section className="more-signout card-panel">

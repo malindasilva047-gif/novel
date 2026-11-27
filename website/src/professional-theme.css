@@ -1557,6 +1557,39 @@ html[data-theme="light"] .main {
   color: var(--site-ink) !important;
   text-align: center;
 }
+.book-cover-fallback {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 80% 10%, color-mix(in srgb, var(--site-brand) 46%, transparent), transparent 52%), linear-gradient(155deg, #1D4A3A, #0F1F19) !important;
+  color: #F2FBF6 !important;
+  text-align: center;
+}
+.book-cover-fallback strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #F2FBF6;
+  font-family: var(--serif);
+  font-size: clamp(.66rem, 1vw, .86rem);
+  line-height: 1.25;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.book-cover-fallback small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: rgba(242, 251, 246, .72);
+  font-size: .6rem;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.book-cover-fallback-letter { color: #F2FBF6; font: 800 clamp(1.6rem, 3vw, 2.4rem)/1 var(--serif); }
 .book-cover-fallback-mark { display: grid; width: 28px; height: 28px; flex: 0 0 auto; place-items: center; border: 1px solid color-mix(in srgb, var(--site-brand) 45%, transparent); border-radius: 50%; color: var(--site-brand); font-family: var(--serif); font-size: .78rem; font-weight: 800; }
 .book-cover--fallback strong { display: -webkit-box; overflow: hidden; color: var(--site-ink); font-family: var(--serif); font-size: clamp(.62rem, 1vw, .82rem); line-height: 1.3; -webkit-box-orient: vertical; -webkit-line-clamp: 4; }
 .book-cover--fallback small { display: -webkit-box; overflow: hidden; color: var(--site-muted); font-size: .6rem; line-height: 1.3; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
@@ -8700,13 +8733,14 @@ body:has(.library-page) .site-footer--novelhub {
   .main .profile-page .profile-story-card { transition: none; }
 }
 
-.main .story-setup-field-grid #story-language {
+/* Genre, language and audience share one look so the row lines up. */
+.main .story-setup-field-grid :is(#story-genre, #story-language, #story-audience) {
   min-height: 48px;
-  padding-inline: 13px 36px;
+  padding: 10px 13px;
   border-radius: 12px;
   font-weight: 650;
 }
-.main .story-setup-field-grid #story-language:focus-visible {
+.main .story-setup-field-grid :is(#story-genre, #story-language, #story-audience):focus-visible {
   border-color: var(--site-brand) !important;
   outline: 3px solid color-mix(in srgb, var(--site-brand) 28%, transparent);
   outline-offset: 2px;
@@ -14424,6 +14458,15 @@ body:has(.library-page) .site-footer--novelhub {
 }
 .site-header--pro .header-profile-link { overflow: hidden; }
 .site-header--pro .header-more-toggle { width: 38px; }
+.site-header--pro .header-theme-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
 .site-header--pro .header-actions > .header-write-menu { flex: 0 0 auto; }
 @media (max-width: 1180px) and (min-width: 1121px) {
   .site-header--pro .header-bar { gap: 8px; padding-inline: 14px !important; }
@@ -21585,4 +21628,2417 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   :root .main .library-page .library-cinematic-hero--banner .library-cinematic-covers--centered {
     width: min(100%, 340px) !important;
   }
+}
+
+/* ==========================================================================
+   Dark theme corrections
+   Several light-only route layers are declared after the original dark rules,
+   so they painted white surfaces over dark mode. These overrides sit last in
+   the cascade and only use the shared theme tokens.
+   ========================================================================== */
+
+/* Header: search, Write action and authenticated menus. */
+:root[data-theme="dark"] .site-header.site-header--pro .header-write-link {
+  background: var(--site-surface) !important;
+  border-color: var(--site-line) !important;
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .site-header.site-header--pro .header-write-link:hover {
+  background: var(--site-raised) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .site-header.site-header--authenticated .header-search,
+:root[data-theme="dark"] .site-header.site-header--authenticated .nav-search {
+  border-color: var(--site-line) !important;
+  background: var(--site-field) !important;
+}
+:root[data-theme="dark"] .site-header.site-header--authenticated .header-search input,
+:root[data-theme="dark"] .site-header.site-header--authenticated .header-search select,
+:root[data-theme="dark"] .site-header.site-header--authenticated .nav-search input {
+  border-color: transparent !important;
+  background: transparent !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .site-header.site-header--authenticated .header-search input::placeholder,
+:root[data-theme="dark"] .site-header.site-header--authenticated .nav-search input::placeholder {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .site-header.site-header--authenticated :is(.header-more-toggle, .theme-toggle, .header-icon-link, .header-profile-link) {
+  border-color: var(--site-line) !important;
+  background: var(--site-surface) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .site-header.site-header--authenticated :is(.nav-dropdown-panel, .header-more-menu, .header-notification-menu, .search-history-menu) {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .site-header.site-header--authenticated :is(.nav-dropdown-panel, .header-more-menu, .search-history-menu) :is(a, button) {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .site-header.site-header--authenticated :is(.nav-dropdown-panel, .header-more-menu, .search-history-menu) :is(a, button):hover {
+  background: var(--site-raised) !important;
+  color: var(--site-brand-light) !important;
+}
+
+/* Library dashboard: reuse the shared tokens for its local palette. */
+:root[data-theme="dark"] .main:has(.library-experience) {
+  background: var(--site-bg) !important;
+}
+:root[data-theme="dark"] .main .library-experience {
+  --library-bg: var(--site-bg);
+  --library-panel: var(--site-card);
+  --library-panel-raised: var(--site-raised);
+  --library-line: var(--site-line);
+  --library-text: var(--site-ink);
+  --library-muted: var(--site-muted);
+  --library-green: var(--site-brand-light);
+  --library-violet: #B49AFF;
+  --library-amber: #F3C77A;
+  --library-rose: #F29AAB;
+  background: var(--site-bg) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .library-experience::before {
+  background:
+    radial-gradient(ellipse at 86% 6%, color-mix(in srgb, var(--site-brand) 22%, transparent), transparent 32%),
+    radial-gradient(ellipse at 8% 36%, color-mix(in srgb, var(--site-surface) 60%, transparent), transparent 30%),
+    var(--site-bg) !important;
+}
+:root[data-theme="dark"] .main .library-experience :is(h1, h2, h3, strong) {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .library-experience :is(p, small, .meta) {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .main .library-experience :is(.library-kicker, .library-card-eyebrow, .eyebrow) {
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-kicker i {
+  background: var(--site-brand-light);
+}
+:root[data-theme="dark"] .main .library-page .library-cinematic-hero--banner,
+:root[data-theme="dark"] .main .library-experience > .library-cinematic-hero,
+:root[data-theme="dark"] .main .library-experience > .library-cinematic-hero.library-cinematic-hero--banner {
+  border-color: var(--site-line) !important;
+  background:
+    radial-gradient(circle at 72% 48%, color-mix(in srgb, var(--site-brand) 24%, transparent), transparent 34%),
+    linear-gradient(115deg, var(--site-bg) 0%, var(--site-surface) 48%, var(--site-bg) 100%) !important;
+  background-color: var(--site-bg) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .main .library-page .library-cinematic-hero--banner::after,
+:root[data-theme="dark"] .main .library-experience > .library-cinematic-hero.library-cinematic-hero--banner::after {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--site-bg) 96%, transparent) 0%, color-mix(in srgb, var(--site-bg) 90%, transparent) 38%, color-mix(in srgb, var(--site-bg) 62%, transparent) 62%, color-mix(in srgb, var(--site-bg) 40%, transparent) 100%),
+    linear-gradient(180deg, color-mix(in srgb, var(--site-bg) 40%, transparent) 0%, transparent 40%) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-cinematic-hero.library-cinematic-hero--banner .library-cinematic-copy h1,
+:root[data-theme="dark"] .main .library-page .library-cinematic-hero--banner .library-cinematic-copy h1 {
+  color: var(--site-ink) !important;
+  -webkit-text-fill-color: var(--site-ink) !important;
+  text-shadow: none !important;
+}
+:root[data-theme="dark"] .main .profile-page .profile-section-heading > a.btn {
+  color: #fff !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-cinematic-copy .library-hero-byline,
+:root[data-theme="dark"] .main .library-experience .library-cinematic-copy > p:not(.library-hero-byline) {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-hero-facts > span {
+  border-color: var(--site-line);
+  background: color-mix(in srgb, var(--site-card) 88%, transparent);
+  color: var(--site-brand-light);
+}
+:root[data-theme="dark"] .main .library-experience .library-cinematic-actions .library-featured-button {
+  border: 1px solid var(--site-brand);
+  background: var(--site-brand);
+  color: #fff;
+}
+:root[data-theme="dark"] .main .library-experience .library-cinematic-actions .library-featured-button:hover {
+  background: var(--site-brand-strong);
+}
+:root[data-theme="dark"] .main .library-experience .library-cinematic-actions .library-cinematic-secondary {
+  border: 1px solid var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-cinematic-actions .library-cinematic-secondary:hover {
+  background: var(--site-raised) !important;
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .main .library-page .library-cinematic-hero--banner .library-hero-arrow {
+  border-color: var(--site-line) !important;
+  background: color-mix(in srgb, var(--site-card) 92%, transparent) !important;
+  color: var(--site-ink) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .28);
+}
+:root[data-theme="dark"] .main .library-page .library-cinematic-hero--banner .library-hero-arrow:hover {
+  border-color: var(--site-brand) !important;
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .main .library-page .library-cinematic-hero--banner .library-hero-dot {
+  background: var(--site-line);
+}
+:root[data-theme="dark"] .main .library-page .library-cinematic-hero--banner .library-hero-dot.is-active {
+  background: var(--site-brand-light);
+}
+:root[data-theme="dark"] .main .library-experience .library-cinematic-covers::before,
+:root[data-theme="dark"] .main .library-experience .library-cinematic-covers::after {
+  opacity: .35;
+}
+:root[data-theme="dark"] .main .library-experience .library-section-heading {
+  border-color: var(--site-line) !important;
+}
+:root[data-theme="dark"] .main .library-experience :is(.library-section-heading h2, .continue-reading-heading h2) {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-saved-actions {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-saved-heading .eyebrow {
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .main .library-experience > .library-saved-library,
+:root[data-theme="dark"] .main .library-experience .library-saved-library {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  box-shadow: var(--site-shadow) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-tabs {
+  border-color: var(--site-line) !important;
+  background: var(--site-surface) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-tabs .profile-tab {
+  background: transparent !important;
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-tabs .profile-tab:hover {
+  background: var(--site-raised) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-tabs .profile-tab.active,
+:root[data-theme="dark"] .main .library-experience .library-tabs .profile-tab.active:hover,
+:root[data-theme="dark"] .main .library-page--full.library-experience .library-saved-library > .library-tabs .profile-tab.active {
+  background: var(--site-raised) !important;
+  color: var(--site-brand-light) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .3) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-tabs .tab-count {
+  background: color-mix(in srgb, var(--site-brand) 24%, var(--site-raised));
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-create-list-button {
+  border-color: var(--site-line) !important;
+  background: var(--site-surface) !important;
+  color: var(--site-ink) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-create-list-button:hover {
+  border-color: var(--site-brand) !important;
+  background: var(--site-raised) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-create-list-button svg,
+:root[data-theme="dark"] .main .library-experience .library-tabs .library-tab-icon {
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-carousel-next {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .28) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-carousel-next:hover:not(:disabled) {
+  background: var(--site-raised) !important;
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .main .library-experience .continue-reading-grid > .continue-reading-card,
+:root[data-theme="dark"] .main .library-page--full.library-experience .library-saved-library .continue-reading-grid > .continue-reading-card {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .main .library-experience .continue-reading-grid > .continue-reading-card:hover {
+  border-color: var(--site-brand) !important;
+  background: var(--site-raised) !important;
+}
+:root[data-theme="dark"] .main .library-experience :is(.continue-reading-chapter, .continue-reading-title:hover, .continue-reading-progress button) {
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .main .library-experience .continue-reading-meter {
+  background: var(--site-line) !important;
+}
+:root[data-theme="dark"] .main .library-experience .continue-reading-meter > span {
+  background: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .main .library-experience :is(.library-story-card, .rl-user-card, .library-empty, .library-guest-prompt) {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-empty :is(h2, h3, p, .eyebrow) {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-empty .eyebrow,
+:root[data-theme="dark"] .main .library-experience .library-empty-mark {
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-card-menu-items {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  box-shadow: var(--site-shadow) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-card-menu-items :is(button, a) {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-card-menu-items :is(button, a):hover {
+  background: var(--site-raised) !important;
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-panel-hint {
+  background: var(--site-card) !important;
+}
+:root[data-theme="dark"] .site-header--authenticated.site-header--pro:has(~ .main .library-experience) {
+  background: color-mix(in srgb, var(--site-nav) 96%, transparent) !important;
+}
+:root[data-theme="dark"] .site-header--authenticated.site-header--pro:has(~ .main .library-experience) :is(.nav-links a, .nav-dropdown-btn) {
+  color: var(--site-muted) !important;
+}
+
+/* Signed-in discover feed shell. */
+:root[data-theme="dark"] body:has(.home-page:not(.home-page--guest)),
+:root[data-theme="dark"] .main:has(.home-page:not(.home-page--guest)) {
+  background: var(--site-bg);
+}
+:root[data-theme="dark"] .home-page:not(.home-page--guest) {
+  --discover-ink: var(--site-ink);
+  --discover-muted: var(--site-muted);
+  --discover-line: var(--site-line);
+  background: var(--site-bg) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .home-page:not(.home-page--guest) :is(.trending-section, .shelf, .rl-section, .home-story-feed > section) {
+  border-color: var(--site-line) !important;
+  background: var(--site-bg) !important;
+}
+
+/* Manage stories. */
+:root[data-theme="dark"] .manage-page-inkitt .manage-overview > div {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .manage-page-inkitt .manage-overview span {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .manage-page-inkitt .manage-overview strong {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .manage-page-inkitt .manage-toolbar,
+:root[data-theme="dark"] .manage-page-inkitt .manage-filters {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+}
+:root[data-theme="dark"] .manage-page-inkitt .manage-filters label {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .manage-page-inkitt .manage-filters :is(input, select) {
+  border-color: var(--site-line) !important;
+  background: var(--site-field) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .manage-page-inkitt .manage-story-card {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+}
+:root[data-theme="dark"] .manage-page-inkitt :is(.manage-story-meta h3, .manage-story-meta p) {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .manage-page-inkitt :is(.manage-story-author, .manage-story-stats, .manage-story-details) {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .manage-page-inkitt .manage-story-actions .btn {
+  border-color: var(--site-line) !important;
+  background: var(--site-surface) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .manage-page-inkitt .manage-story-actions .btn:hover {
+  background: var(--site-raised) !important;
+  color: var(--site-brand-light) !important;
+}
+
+/* Chapter editor (mock/fallback layout). */
+:root[data-theme="dark"] .editor-chapter-mock {
+  background: var(--site-bg) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-app-top {
+  border-color: var(--site-line) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .writer-workspace-bar,
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-status-row,
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-toolbar {
+  border-color: var(--site-line) !important;
+  background: color-mix(in srgb, var(--site-nav) 96%, transparent) !important;
+  color: var(--site-ink) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock :is(.writer-workspace-context span, .editor-mock-word-info strong) {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock :is(.writer-workspace-context strong, .editor-mock-word-info, .editor-mock-autosave) {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock :is(.writer-workspace-back, .editor-mock-icon, .editor-mock-schedule) {
+  border-color: var(--site-line) !important;
+  background: transparent !important;
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock :is(.writer-workspace-back, .editor-mock-icon):hover,
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-schedule:hover {
+  background: var(--site-raised) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-goal-input {
+  border-color: var(--site-line) !important;
+  background: var(--site-field) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-goal {
+  background: var(--site-line) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-goal i {
+  background: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-format-tools {
+  border-color: var(--site-line) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-format-tools button {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-format-tools button:hover,
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-format-tools button:focus-visible {
+  border-color: var(--site-brand) !important;
+  background: var(--site-raised) !important;
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-save {
+  border-color: var(--site-line) !important;
+  background: var(--site-surface) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-save:hover {
+  background: var(--site-raised) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-publish {
+  background: var(--site-brand) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-publish:hover {
+  background: var(--site-brand-strong) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-menu {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-menu .menu-item {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-grid {
+  background: transparent !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-center {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .chapter-title-row {
+  border-color: var(--site-line) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .chapter-title-input {
+  background: transparent !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .chapter-title-input::placeholder {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .chapter-title-input:focus {
+  background: var(--site-raised) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-textarea {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .chapter-content,
+:root[data-theme="dark"] .editor-chapter-mock .editor-right .chapter-list-hint {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-right {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-parts-heading {
+  border-color: var(--site-line) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock :is(.chapters-heading, .editor-parts-heading strong) {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .chapter-list-count {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .chapter-panel-toggle {
+  border-color: var(--site-line) !important;
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .chapter-panel-toggle:hover {
+  background: var(--site-raised) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .chapter-panel-new {
+  background: var(--site-brand) !important;
+  color: #fff !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .chapter-panel-new:hover {
+  background: var(--site-brand-strong) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-chapter-list li {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-chapter-list li:hover {
+  border-color: var(--site-brand) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-chapter-list li.selected {
+  border-color: var(--site-brand) !important;
+  background: color-mix(in srgb, var(--site-brand) 18%, var(--site-card)) !important;
+  box-shadow: inset 3px 0 0 var(--site-brand-light);
+}
+:root[data-theme="dark"] .editor-chapter-mock .ch-select strong {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-chapter-list .ch-select .meta {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .chapter-order-button {
+  border-color: var(--site-line) !important;
+  background: var(--site-surface) !important;
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .chapter-order-button:hover:not(:disabled) {
+  border-color: var(--site-brand) !important;
+  background: var(--site-raised) !important;
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-chapter-list .ch-status.ok {
+  border-color: color-mix(in srgb, var(--site-brand) 55%, transparent) !important;
+  background: color-mix(in srgb, var(--site-brand) 18%, transparent) !important;
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-chapter-list .ch-status.warn {
+  border-color: var(--site-line) !important;
+  background: var(--site-surface) !important;
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .editor-mock-status-badge {
+  border-color: var(--site-line) !important;
+  background: var(--site-surface) !important;
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .editor-mock-status-badge.draft {
+  border-color: color-mix(in srgb, #F4CC2F 45%, transparent) !important;
+  background: color-mix(in srgb, #F4CC2F 16%, transparent) !important;
+  color: #F4CC2F !important;
+}
+:root[data-theme="dark"] .editor-mock-status-badge.published {
+  border-color: color-mix(in srgb, var(--site-brand-light) 45%, transparent) !important;
+  background: color-mix(in srgb, var(--site-brand) 18%, transparent) !important;
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .editor-mock-status-badge.scheduled {
+  border-color: color-mix(in srgb, #F29AAB 45%, transparent) !important;
+  background: color-mix(in srgb, #F29AAB 16%, transparent) !important;
+  color: #F29AAB !important;
+}
+
+/* Profile cover control. */
+:root[data-theme="dark"] .main .profile-page .profile-cover-camera {
+  border-color: var(--site-line) !important;
+  background: color-mix(in srgb, var(--site-card) 96%, transparent) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .profile-page .profile-cover-camera:hover:not(:disabled),
+:root[data-theme="dark"] .main .profile-page .profile-cover-camera:focus-visible {
+  border-color: var(--site-brand) !important;
+  background: var(--site-raised) !important;
+  color: var(--site-brand-light) !important;
+}
+
+/* Story detail: related stories panel and quick facts follow the theme. */
+:root[data-theme="dark"] .main .story-detail-quick-facts {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .story-detail-quick-facts :is(h2, dt, dd, .story-detail-eyebrow, button) {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .story-detail-quick-facts :is(dt, .story-detail-eyebrow) {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .main .story-detail-quick-facts dl > div {
+  border-color: var(--site-line) !important;
+}
+:root[data-theme="dark"] .main .story-detail-show-more {
+  border-color: var(--site-line);
+  background: var(--site-surface);
+  color: var(--site-brand-light);
+}
+:root[data-theme="dark"] .main .story-detail-recommendations,
+:root[data-theme="dark"] .main .story-detail-recommendations > .story-detail-card-heading,
+:root[data-theme="dark"] .main .story-detail-recommendations > .story-detail-card-heading > *,
+:root[data-theme="dark"] .main .story-detail-recommendations > .story-detail-recommendation-heading,
+:root[data-theme="dark"] .main .story-detail-recommendations > .story-detail-recommendation-heading > * {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .main .story-detail-recommendations .story-detail-eyebrow,
+:root[data-theme="dark"] .main .story-detail-recommendations .story-detail-card-heading > a,
+:root[data-theme="dark"] .main .story-detail-recommendations > .story-detail-recommendation-heading > a {
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .main .story-detail-recommendations :is(.story-detail-card-heading h2, .story-detail-recommendation-heading h2, .story-detail-recommendation-heading span) {
+  color: var(--site-ink) !important;
+  -webkit-text-fill-color: var(--site-ink) !important;
+}
+
+/* Library card overflow buttons. */
+:root[data-theme="dark"] .main .library-page .library-completed-grid .library-card-menu--top-right > summary,
+:root[data-theme="dark"] .main .library-page .library-completed-grid .library-card-menu--top-right > summary:hover {
+  border-color: var(--site-line) !important;
+  background: color-mix(in srgb, var(--site-card) 94%, transparent) !important;
+  color: var(--site-ink) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .28) !important;
+}
+:root[data-theme="dark"] .main .library-page .library-completed-grid .library-card-menu--top-right > .library-card-menu-items {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  box-shadow: var(--site-shadow) !important;
+}
+
+/* ==========================================================================
+   Profile: breathing room under the cover and multi-line bio preview.
+   ========================================================================== */
+.main .profile-page .profile-layout {
+  margin-top: clamp(16px, 2vw, 24px) !important;
+}
+
+.main .profile-page .profile-bio {
+  max-width: 68ch;
+  margin-top: 12px;
+}
+
+.main .profile-page .profile-bio .profile-bio-text {
+  display: -webkit-box;
+  max-width: none;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  white-space: pre-line;
+}
+
+.main .profile-page .profile-bio .profile-bio-text.is-expanded {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+}
+
+.main .profile-page .profile-bio-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--site-brand-light);
+  cursor: pointer;
+  font: 700 .76rem/1.4 Inter, "DM Sans", sans-serif;
+}
+
+.main .profile-page .profile-bio-toggle:hover,
+.main .profile-page .profile-bio-toggle:focus-visible {
+  color: var(--site-brand-strong);
+  text-decoration: underline;
+}
+
+.main .profile-page .profile-about-bio p {
+  white-space: pre-line;
+}
+
+@media (max-width: 640px) {
+  .main .profile-page .profile-layout {
+    margin-top: 14px !important;
+  }
+}
+
+/* Home: a little less height in the Top Genres rail cards. */
+.main .arrow-carousel .arrow-carousel-track.home-top-genres-track > .arrow-carousel-item .home-top-genre {
+  min-height: 84px;
+  padding: 10px;
+  gap: 3px;
+}
+
+/* ==========================================================================
+   Chapter reader paragraph icons — mirrors the Flutter app:
+   comment bubble is muted when nobody commented, grey when other readers
+   commented, brand green when the signed-in reader commented on that
+   paragraph; the heart fills red for a liked paragraph.
+   ========================================================================== */
+.inkitt-reader .para-actions {
+  gap: 4px;
+}
+
+.inkitt-reader .para-bubble,
+.inkitt-reader .para-heart {
+  min-width: 28px;
+  min-height: 26px;
+  padding: 3px 5px;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: color-mix(in srgb, var(--site-muted) 70%, transparent) !important;
+  box-shadow: none !important;
+}
+
+.inkitt-reader .para-bubble svg,
+.inkitt-reader .para-bubble-icon,
+.inkitt-reader .para-heart svg,
+.inkitt-reader .para-heart-icon {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.inkitt-reader .para-actions button > span {
+  font-size: .66rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+/* Other readers commented. */
+.inkitt-reader .para-bubble.has-comments:not(.is-self-commented) {
+  background: var(--site-surface) !important;
+  color: #9CA3AF !important;
+}
+
+/* The signed-in reader commented here. */
+.inkitt-reader .para-bubble.is-self-commented {
+  background: color-mix(in srgb, var(--site-brand) 16%, var(--site-surface)) !important;
+  color: var(--site-brand) !important;
+}
+
+.inkitt-reader .para-bubble.has-comments:hover,
+.inkitt-reader .para-bubble.is-self-commented:hover {
+  background: var(--site-raised) !important;
+}
+
+.inkitt-reader .para-bubble svg path,
+.inkitt-reader .para-bubble-icon path {
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
+/* Paragraph like. */
+.inkitt-reader .para-heart:hover {
+  background: var(--site-raised) !important;
+  color: var(--site-ink) !important;
+}
+
+.inkitt-reader .para-heart.is-liked,
+.inkitt-reader .para-heart.is-liked:hover {
+  background: transparent !important;
+  color: #FF5252 !important;
+}
+
+.inkitt-reader .para-heart.is-liked svg path,
+.inkitt-reader .para-heart.is-liked .para-heart-icon path {
+  fill: #FF5252 !important;
+  stroke: #FF5252 !important;
+}
+
+:root[data-theme="dark"] .inkitt-reader .para-bubble.has-comments:not(.is-self-commented) {
+  background: var(--site-raised) !important;
+  color: #9CA3AF !important;
+}
+
+:root[data-theme="dark"] .inkitt-reader .para-bubble.is-self-commented {
+  background: color-mix(in srgb, var(--site-brand) 26%, var(--site-raised)) !important;
+  color: var(--site-brand-light) !important;
+}
+
+.reader-main--warm .reader-paragraphs .para-bubble,
+.reader-main--warm .reader-paragraphs .para-heart {
+  color: #7A6F5C !important;
+}
+
+/* ==========================================================================
+   Dark theme: library dialogs, filters and guest prompt.
+   ========================================================================== */
+:root[data-theme="dark"] .main .library-experience .library-list-mode {
+  border-color: var(--site-line) !important;
+  background: var(--site-surface) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-list-mode button {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-list-mode button.active {
+  background: var(--site-raised) !important;
+  color: var(--site-brand-light) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-list-option {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-list-option.is-selected {
+  border-color: var(--site-brand) !important;
+  background: color-mix(in srgb, var(--site-brand) 16%, var(--site-card)) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-list-option small,
+:root[data-theme="dark"] .main .library-experience .library-list-create-fields label > span {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-list-create-fields label {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-list-create-fields input,
+:root[data-theme="dark"] .main .library-experience .library-list-create-fields textarea {
+  border-color: var(--site-line) !important;
+  background: var(--site-field) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-list-modal,
+:root[data-theme="dark"] .main .library-experience .library-add-modal {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-dialog-error {
+  color: #F19A91 !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-collection-error {
+  border-color: color-mix(in srgb, #F19A91 35%, var(--site-line)) !important;
+  background: color-mix(in srgb, #F19A91 12%, var(--site-card)) !important;
+  color: #F19A91 !important;
+}
+:root[data-theme="dark"] .main .library-guest-prompt {
+  border-color: var(--site-line) !important;
+  background:
+    radial-gradient(ellipse at 2% 100%, color-mix(in srgb, var(--site-brand) 16%, transparent), transparent 40%),
+    var(--site-card) !important;
+}
+:root[data-theme="dark"] .main .library-guest-prompt-icon {
+  border-color: var(--site-line) !important;
+  background: var(--site-surface) !important;
+  color: var(--site-brand-light) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .main .library-guest-prompt h3 {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .library-guest-prompt p {
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-continue-card .library-card-menu summary {
+  border-color: var(--site-line) !important;
+  background: color-mix(in srgb, var(--site-card) 92%, transparent) !important;
+  color: var(--site-ink) !important;
+}
+
+/* ==========================================================================
+   Dark theme: profile surfaces and controls.
+   ========================================================================== */
+:root[data-theme="dark"] .main .profile-page .profile-heading.card-panel {
+  background: var(--site-card) !important;
+}
+:root[data-theme="dark"] .main .profile-page :is(.profile-about, .profile-empty, .profile-wall-compose, .profile-review-card, .profile-feed-card, .profile-reading-list, .profile-achievement, .profile-current-reading-card) {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .main .profile-page :is(.profile-about-edit, .profile-bio-toggle) {
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .main .profile-page .profile-bio-toggle:hover,
+:root[data-theme="dark"] .main .profile-page .profile-bio-toggle:focus-visible {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .profile-page .profile-edit-form :is(input, select, textarea) {
+  border-color: var(--site-line) !important;
+  background: var(--site-field) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .profile-page .profile-metric-chips > span,
+:root[data-theme="dark"] .main .profile-page .profile-identity-social-link {
+  border-color: var(--site-line) !important;
+  background: var(--site-surface) !important;
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .main .profile-page .profile-reading-progress-track,
+:root[data-theme="dark"] .main .profile-page .profile-level-track,
+:root[data-theme="dark"] .main .profile-page .profile-achievement-track {
+  background: var(--site-line) !important;
+}
+:root[data-theme="dark"] .main .profile-page .profile-reading-progress-track > span,
+:root[data-theme="dark"] .main .profile-page .profile-level-track > span,
+:root[data-theme="dark"] .main .profile-page .profile-achievement-track > span {
+  background: var(--site-brand-light) !important;
+}
+
+/* Higher-specificity pass for the reader paragraph icons (site-design sets
+   turtle-specific !important colours that would otherwise win). */
+.main .inkitt-reader .reader-paragraphs .para-actions .para-bubble,
+.main .inkitt-reader .reader-paragraphs .para-actions .para-heart {
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: color-mix(in srgb, var(--site-muted) 70%, transparent) !important;
+  box-shadow: none !important;
+}
+
+.main .inkitt-reader .reader-paragraphs .para-actions .para-bubble.has-comments:not(.is-self-commented) {
+  background: var(--site-surface) !important;
+  color: #9CA3AF !important;
+}
+
+.main .inkitt-reader .reader-paragraphs .para-actions .para-bubble.is-self-commented {
+  background: color-mix(in srgb, var(--site-brand) 16%, var(--site-surface)) !important;
+  color: var(--site-brand) !important;
+}
+
+.main .inkitt-reader .reader-paragraphs .para-actions .para-bubble.has-comments:hover,
+.main .inkitt-reader .reader-paragraphs .para-actions .para-bubble.is-self-commented:hover {
+  background: var(--site-raised) !important;
+}
+
+.main .inkitt-reader .reader-paragraphs .para-actions .para-bubble svg path,
+.main .inkitt-reader .reader-paragraphs .para-actions .para-bubble-icon path {
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
+.main .inkitt-reader .reader-paragraphs .para-actions .para-heart:hover {
+  background: var(--site-raised) !important;
+  color: var(--site-ink) !important;
+}
+
+.main .inkitt-reader .reader-paragraphs .para-actions .para-heart.is-liked,
+.main .inkitt-reader .reader-paragraphs .para-actions .para-heart.is-liked:hover {
+  background: transparent !important;
+  color: #FF5252 !important;
+}
+
+.main .inkitt-reader .reader-paragraphs .para-actions .para-heart.is-liked svg path,
+.main .inkitt-reader .reader-paragraphs .para-actions .para-heart.is-liked .para-heart-icon path {
+  fill: #FF5252 !important;
+  stroke: #FF5252 !important;
+}
+
+:root[data-theme="dark"] .main .inkitt-reader .reader-paragraphs .para-actions .para-bubble.has-comments:not(.is-self-commented) {
+  background: var(--site-raised) !important;
+  color: #9CA3AF !important;
+}
+
+:root[data-theme="dark"] .main .inkitt-reader .reader-paragraphs .para-actions .para-bubble.is-self-commented {
+  background: color-mix(in srgb, var(--site-brand) 26%, var(--site-raised)) !important;
+  color: var(--site-brand-light) !important;
+}
+
+.reader-main--warm .reader-paragraphs .para-actions .para-bubble,
+.reader-main--warm .reader-paragraphs .para-actions .para-heart { color: #7A6F5C !important; }
+
+/* ==========================================================================
+   Final polish: native controls, remaining dark-mode gaps, small screens.
+   ========================================================================== */
+:root[data-theme="dark"] { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] ::selection { background: color-mix(in srgb, var(--site-brand) 45%, transparent); color: #fff; }
+.main { min-width: 0; }
+.main img, .main video { max-width: 100%; }
+
+/* Dark mode: signed-in discovery feed surfaces that used to stay light. */
+:root[data-theme="dark"] .home-page .home-feed-toolbar {
+  background: var(--site-bg) !important;
+}
+:root[data-theme="dark"] .home-page .home-feed-filter-menu {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+  box-shadow: var(--site-shadow-hover);
+}
+:root[data-theme="dark"] .home-page :is(.trending-cell, .shelf-item) :is(.book-tag-chip, .book-status-chip) {
+  border-color: var(--site-line) !important;
+  background: var(--site-surface) !important;
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .home-page :is(.trending-cell, .shelf-item) .book-rating-badge {
+  border: 1px solid var(--site-line);
+  background: rgba(12, 24, 18, .88) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .home-page :is(.trending-carousel-controls button, .shelf-arrow, .home-feed-more button) {
+  border: 1px solid var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+  box-shadow: none;
+}
+:root[data-theme="dark"] .home-page :is(.trending-carousel-controls button, .shelf-arrow):hover {
+  border-color: var(--site-brand-light) !important;
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .home-page .rl-section {
+  border-color: var(--site-line) !important;
+  background: var(--site-bg) !important;
+}
+
+/* Dark mode: small chrome and helper surfaces shared across routes. */
+:root[data-theme="dark"] .main :is(.book-tag-chip, .book-status-chip) {
+  border-color: var(--site-line) !important;
+  background: var(--site-surface) !important;
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .main :is(.genre-sidebar, .genre-sidebar-link) {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main :is(.create-list-form, .reading-list-card, .share-dialog, .dialog-card) {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main :is(.empty-state, .genre-state, .contest-empty, .library-empty) {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .main .error-banner {
+  border-color: color-mix(in srgb, #d9534f 45%, var(--site-line)) !important;
+  background: color-mix(in srgb, #d9534f 16%, var(--site-card)) !important;
+  color: #FFB6AE !important;
+}
+
+/* Keep long words and dense toolbars inside the viewport on phones. */
+@media (max-width: 620px) {
+  .main :is(h1, h2, h3) { overflow-wrap: anywhere; }
+  .main :is(.page-shell, .container.page, .full-bleed-inner) { min-width: 0; }
+  .main :is(.btn, .btn-primary, .btn-ghost) { max-width: 100%; }
+  .main :is(.contest-hero-feature, .genre-hero-art-frame, .profile-heading, .story-hero) { max-width: 100%; }
+  .main :is(.profile-actions-bar, .library-heading-actions, .manage-page-heading, .story-setup-top-actions) {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 400px) {
+  .main :is(.story-setup-top-actions, .contest-card-foot) { gap: 8px; }
+  .main :is(.theme-toggle, .header-theme-toggle) svg { width: 16px; height: 16px; }
+}
+
+/* ==========================================================================
+   Contrast pass: chapter reader, story editor, author dashboards.
+   ========================================================================== */
+
+/* Legacy reader rules forced near-white paragraph text in every theme, which
+   left light-mode chapters unreadable on the light card. Follow the theme. */
+.main .inkitt-reader .reader-paragraphs,
+.main .inkitt-reader .reader-paragraphs .para-text {
+  color: var(--site-ink) !important;
+}
+.main .inkitt-reader .reader-main--warm .reader-paragraphs,
+.main .inkitt-reader .reader-main--warm .reader-paragraphs .para-text {
+  color: #312819 !important;
+}
+.main .inkitt-reader .reader-paragraphs .para-text a,
+.main .inkitt-reader .reader-paragraphs .para-text u {
+  color: var(--site-brand-strong) !important;
+}
+:root[data-theme="dark"] .main .inkitt-reader .reader-paragraphs .para-text a,
+:root[data-theme="dark"] .main .inkitt-reader .reader-paragraphs .para-text u {
+  color: var(--site-brand-light) !important;
+}
+
+/* Reader chrome: brand-coloured micro-labels need the lighter green on the
+   dark card surface to stay above AA contrast. */
+:root[data-theme="dark"] .inkitt-reader :is(
+  .reader-chapters-details > summary small,
+  .reader-chapters-current i,
+  .reader-chapter-index,
+  .reader-chapter-list li.is-current a,
+  .chapter-divider,
+  .reader-list-panel-kicker,
+  .reader-list-panel-option-icon,
+  .reader-list-panel-close:hover,
+  .reader-author-kicker
+) {
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .inkitt-reader .reader-chapter-list li.is-current a {
+  background: color-mix(in srgb, var(--site-brand) 22%, var(--site-card)) !important;
+}
+:root[data-theme="dark"] .inkitt-reader .reader-chapters-details {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+}
+:root[data-theme="dark"] .inkitt-reader .reader-list-panel-option {
+  background: color-mix(in srgb, var(--site-brand) 8%, var(--site-card)) !important;
+}
+:root[data-theme="dark"] .inkitt-reader .reader-list-panel-option:hover {
+  background: color-mix(in srgb, var(--site-brand) 16%, var(--site-card)) !important;
+}
+
+/* Idle paragraph actions were almost invisible on dark; keep them quiet but
+   readable, without changing the active (commented/liked) states. */
+:root[data-theme="dark"] .main .inkitt-reader .reader-paragraphs .para-actions .para-bubble:not(.has-comments):not(.is-self-commented),
+:root[data-theme="dark"] .main .inkitt-reader .reader-paragraphs .para-actions .para-heart:not(.is-liked) {
+  color: color-mix(in srgb, var(--site-muted) 90%, #ffffff) !important;
+}
+
+/* Chapter comments / inline discussion surfaces. */
+:root[data-theme="dark"] .main .inkitt-reader :is(.chapter-discussion-thread, .chapter-discussion-entry) {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .inkitt-reader .chapter-discussion-entry .eyebrow {
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .main .inkitt-reader .comment-thread--inline .comment-card {
+  border-color: var(--site-line) !important;
+  background: color-mix(in srgb, var(--site-brand) 8%, var(--site-card)) !important;
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .main .inkitt-reader .comment-empty-inline {
+  color: var(--site-muted) !important;
+}
+
+/* Story detail primary actions use the lighter dark brand, where white text
+   drops below comfortable contrast; use the deeper green instead. */
+:root[data-theme="dark"] .main .inkitt-reader .reader-actions .story-action-primary,
+:root[data-theme="dark"] .main .story-inkitt .story-action-primary,
+:root[data-theme="dark"] .main .story-inkitt .btn-follow-sm,
+:root[data-theme="dark"] .main .story-inkitt .story-action-btn.liked {
+  border-color: #0F6B52 !important;
+  background: #0F6B52 !important;
+  color: #FFFFFF !important;
+}
+
+/* Story editor: strengthen status/readability text that inherited muted card
+   colours in dark mode. */
+:root[data-theme="dark"] .editor-chapter-mock .writer-workspace-context strong,
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-autosave,
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-word-info {
+  color: #B4BCB7 !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .chapter-list-hint,
+:root[data-theme="dark"] .editor-chapter-mock .chapter-list-count,
+:root[data-theme="dark"] .editor-chapter-mock .editor-draft-meta > span {
+  color: #A3ABA5 !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-mock-goal-input {
+  color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .editor-chapter-mock .editor-chapter-list li.selected .ch-status,
+:root[data-theme="dark"] .editor-chapter-mock .editor-chapter-list .ch-status.ok {
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .editor-inkitt .writer-cover-hint,
+:root[data-theme="dark"] .editor-inkitt .writer-cover-placeholder small,
+:root[data-theme="dark"] .editor-inkitt .editor-msg {
+  color: #A9B1AB !important;
+}
+
+/* Writer dashboard + author analytics: dark hero gradient keeps white text
+   readable, and small green labels use the brighter token. */
+:root[data-theme="dark"] .main .writer-dashboard-hero {
+  background: linear-gradient(135deg, #0F5C49, #14745C) !important;
+}
+:root[data-theme="dark"] .main .writer-action-icon,
+:root[data-theme="dark"] .main .writer-analytics-eyebrow,
+:root[data-theme="dark"] .main .writer-analytics-story-fallback {
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .main .writer-analytics-state.error {
+  color: #F19A91 !important;
+}
+:root[data-theme="dark"] .main .writer-analytics-comparison article small.positive {
+  color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .main .writer-analytics-comparison article small.negative {
+  color: #F19A91 !important;
+}
+:root[data-theme="dark"] .main .writer-analytics-story.selected {
+  border-color: var(--site-brand-light) !important;
+  background: color-mix(in srgb, var(--site-brand) 12%, var(--site-card)) !important;
+}
+:root[data-theme="dark"] .main .writer-analytics-tabs button.active {
+  background: #0F6B52;
+  color: #FFFFFF;
+}
+:root[data-theme="dark"] .main .author-public-location > span,
+:root[data-theme="dark"] .main .profile-page .profile-story-manage-link,
+:root[data-theme="dark"] .main .profile-page .profile-identity-meta a {
+  color: var(--site-brand-light) !important;
+}
+
+/* ==========================================================================
+   Responsive navigation drawer
+   The fixed drawer was sized against the sticky header instead of the viewport,
+   so opening the menu only revealed a short clipped strip. The header's
+   backdrop-filter creates a containing block for position: fixed children, so
+   it is disabled while the drawer is available.
+   ========================================================================== */
+@media (max-width: 1120px) {
+  .site-header.site-header--pro,
+  .site-header.site-header--pro.is-scrolled,
+  .site-header--pro .header-bar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .site-header.site-header--pro::before {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .site-header.site-header--pro .menu-toggle {
+    display: grid !important;
+    place-items: center;
+    position: relative;
+    z-index: 360 !important;
+  }
+
+  .site-header.site-header--pro #primary-navigation,
+  .site-header.site-header--pro .nav-links { z-index: 355 !important; }
+
+  .site-header.site-header--pro .nav-links {
+    position: fixed !important;
+    top: var(--header-h, 62px) !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 0 !important;
+    z-index: 350 !important;
+    display: flex !important;
+    width: min(400px, 90vw) !important;
+    max-width: 90vw !important;
+    height: calc(100dvh - var(--header-h, 62px)) !important;
+    max-height: calc(100dvh - var(--header-h, 62px)) !important;
+    min-height: 0 !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 6px;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding: 18px 16px calc(26px + env(safe-area-inset-bottom)) !important;
+    border: 1px solid var(--site-line) !important;
+    border-top: 0 !important;
+    border-radius: 0 0 20px 0 !important;
+    background: var(--site-card) !important;
+    box-shadow: 0 26px 60px rgba(8, 20, 14, .28) !important;
+    color: var(--site-ink) !important;
+    transform: translateX(-104%) !important;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: transform .26s cubic-bezier(.2,.8,.2,1), opacity .2s ease, visibility .26s !important;
+  }
+
+  .site-header.site-header--pro .nav-links.open,
+  .site-header.site-header--pro #primary-navigation.open {
+    transform: translateX(0) !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  .site-header.site-header--pro .nav-links > a {
+    width: 100% !important;
+    min-height: 50px !important;
+    justify-content: flex-start !important;
+    padding: 12px 14px !important;
+    border-radius: 12px !important;
+    color: var(--site-ink) !important;
+    font-size: .95rem !important;
+  }
+  .site-header.site-header--pro .nav-links > a:hover,
+  .site-header.site-header--pro .nav-links > a.active {
+    background: color-mix(in srgb, var(--site-brand) 12%, transparent) !important;
+    color: var(--site-brand) !important;
+  }
+  .site-header.site-header--pro .nav-links > a::after { display: none !important; }
+  .site-header.site-header--pro .mobile-nav-heading { display: grid !important; gap: 6px; }
+  .site-header.site-header--pro .nav-genres-dropdown,
+  .site-header.site-header--pro .nav-genres-dropdown .nav-dropdown-btn { width: 100%; }
+  .site-header.site-header--pro .nav-genres-panel { max-height: 46vh; overflow-y: auto; }
+  .site-header.site-header--pro .nav-search.mobile-only,
+  .site-header.site-header--pro .nav-auth.mobile-only { display: flex !important; }
+  /* Keep the dimmer under the header stacking context so it never blurs the drawer. */
+  .nav-backdrop.is-open { z-index: 100 !important; background: rgba(8, 18, 14, .38) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+}
+
+@media (max-width: 760px) {
+  /* Phones: the drawer opens under the header instead of covering it, so the
+     logo, close control and menu surface stay visible at all times. */
+  .site-header.site-header--pro .nav-links,
+  .site-header.site-header--pro #primary-navigation {
+    top: 64px !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: 0 !important;
+    inset: 64px 0 auto 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    height: calc(100dvh - 64px) !important;
+    max-height: calc(100dvh - 64px) !important;
+    padding: 18px 20px calc(28px + env(safe-area-inset-bottom)) !important;
+    border: 1px solid var(--site-line) !important;
+    border-top: 0 !important;
+    border-radius: 0 0 20px 20px !important;
+    background: var(--site-nav) !important;
+    box-shadow: 0 24px 54px rgba(6, 18, 12, .32) !important;
+  }
+  .site-header.site-header--pro .nav-links.open { transform: none !important; }
+  .site-header.site-header--pro .nav-links .mobile-nav-heading { padding-top: 4px; }
+}
+
+:root[data-theme="dark"] .site-header.site-header--pro .nav-links { background: var(--site-nav) !important; }
+
+/* Drawer internals: use theme tokens instead of light-only reference colors. */
+@media (max-width: 1120px) {
+  .site-header.site-header--pro .nav-links {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  :root .site-header--pro .nav-links .mobile-nav-heading {
+    gap: 5px;
+    padding: 14px 14px 16px !important;
+    border: 1px solid var(--site-line) !important;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--site-brand) 9%, transparent) !important;
+  }
+  :root .site-header--pro .nav-links .mobile-nav-kicker {
+    color: var(--site-brand) !important;
+    -webkit-text-fill-color: var(--site-brand) !important;
+  }
+  :root .site-header--pro .nav-links .mobile-nav-heading strong {
+    color: var(--site-ink) !important;
+    -webkit-text-fill-color: var(--site-ink) !important;
+    font-size: 1.02rem !important;
+    line-height: 1.3;
+  }
+  :root .site-header--pro .nav-links .mobile-nav-heading small {
+    color: var(--site-muted) !important;
+    -webkit-text-fill-color: var(--site-muted) !important;
+    font-size: .76rem;
+  }
+  :root .site-header--pro .nav-links .nav-genres-dropdown .nav-dropdown-btn {
+    color: var(--site-muted) !important;
+    -webkit-text-fill-color: var(--site-muted) !important;
+  }
+  :root .site-header--pro .nav-links .nav-genres-dropdown .nav-dropdown-btn:hover,
+  :root .site-header--pro .nav-links .nav-genres-dropdown.open .nav-dropdown-btn {
+    color: var(--site-brand) !important;
+    -webkit-text-fill-color: var(--site-brand) !important;
+  }
+  :root .site-header--pro .nav-links .nav-search,
+  :root .site-header--pro .nav-links .nav-search input,
+  :root .site-header--pro .nav-links .nav-search select {
+    border-color: var(--site-line) !important;
+    background: var(--site-surface) !important;
+    color: var(--site-ink) !important;
+    -webkit-text-fill-color: var(--site-ink) !important;
+  }
+  :root .site-header--pro .nav-links .nav-search input::placeholder { color: var(--site-muted) !important; opacity: .8; }
+  :root .site-header--pro .nav-links .nav-auth .btn-ghost {
+    border-color: var(--site-line) !important;
+    background: transparent !important;
+    color: var(--site-ink) !important;
+    -webkit-text-fill-color: var(--site-ink) !important;
+  }
+  :root .site-header--pro .nav-links .nav-auth .btn-primary {
+    background: var(--site-brand) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+  }
+}
+
+/* ==========================================================================
+   Library page polish — dark mode contrast, tab states and responsive cards
+   ========================================================================== */
+
+/* Headings in the library must not inherit a light-theme text fill color. */
+:root .main .library-experience :is(h1, h2, h3, h4, strong),
+:root .main .library-experience .library-saved-heading h2,
+:root .main .library-experience .library-section-heading h2,
+:root .main .library-experience .continue-reading-heading h2 {
+  -webkit-text-fill-color: currentColor !important;
+}
+:root .main .library-experience .library-saved-heading h2 { color: var(--library-text) !important; }
+
+/* Tabs: one clear active pill in both themes, no leftover orange underline. */
+:root .main .library-experience.library-page--full .library-tabs {
+  border: 1px solid var(--library-line) !important;
+  background: color-mix(in srgb, var(--library-panel) 88%, var(--site-brand)) !important;
+  box-shadow: none !important;
+}
+:root .main .library-experience.library-page--full .library-tabs .profile-tab {
+  border: 1px solid transparent !important;
+  border-bottom-color: transparent !important;
+  background: transparent !important;
+  color: var(--library-muted) !important;
+  box-shadow: none !important;
+}
+:root .main .library-experience.library-page--full .library-tabs .profile-tab::after { display: none !important; }
+:root .main .library-experience.library-page--full .library-tabs .profile-tab:hover {
+  background: color-mix(in srgb, var(--site-brand) 10%, transparent) !important;
+  color: var(--site-brand) !important;
+}
+:root .main .library-page--full.library-experience .library-saved-library > .library-tabs .profile-tab.active,
+:root .main .library-page--full.library-experience .library-saved-library > .library-tabs .profile-tab.active:hover,
+:root .main .library-experience.library-page--full .library-tabs .profile-tab.active,
+:root .main .library-experience.library-page--full .library-tabs .profile-tab.active:hover {
+  border: 1px solid transparent !important;
+  background-image: linear-gradient(135deg, var(--library-green), color-mix(in srgb, var(--library-green) 62%, #103F2C)) !important;
+  background-color: var(--library-green) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--library-green) 26%, transparent) !important;
+}
+:root .main .library-page--full.library-experience .library-saved-library > .library-tabs .profile-tab.active .tab-count,
+:root .main .library-experience.library-page--full .library-tabs .profile-tab.active .tab-count {
+  border-color: rgba(255, 255, 255, .3) !important;
+  background: rgba(255, 255, 255, .18) !important;
+  color: #fff !important;
+}
+
+/* Continue-reading actions and card menu follow the brand. */
+.main .library-experience .continue-reading-progress button {
+  min-height: 32px;
+  padding: 6px 13px !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: var(--library-green) !important;
+  color: #052418 !important;
+  font-size: .72rem;
+  font-weight: 750;
+  box-shadow: 0 5px 14px color-mix(in srgb, var(--library-green) 26%, transparent);
+}
+.main .library-experience .continue-reading-progress button:hover {
+  background: color-mix(in srgb, var(--library-green) 82%, #ffffff) !important;
+}
+.main .library-experience .library-card-menu > summary,
+.main .library-experience .library-card-menu--top-right > summary {
+  border-color: var(--library-line) !important;
+  background: color-mix(in srgb, var(--library-panel) 92%, transparent) !important;
+  color: var(--library-text) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .18) !important;
+}
+.main .library-experience .library-card-menu-orb i { background: currentColor !important; }
+.main .library-experience .library-card-menu-items {
+  border-color: var(--library-line) !important;
+  background: var(--library-panel) !important;
+}
+.main .library-experience .library-card-menu-items :is(a, button) { color: var(--library-text) !important; }
+.main .library-experience .library-card-menu-items :is(a, button):hover {
+  background: color-mix(in srgb, var(--site-brand) 14%, transparent) !important;
+  color: var(--library-green) !important;
+}
+.main .library-experience .library-card-menu-items .is-danger { color: var(--library-rose) !important; }
+
+/* Completed shelf: consistent card sizing inside the library. */
+:root .main .library-experience.library-page--full .library-completed-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)) !important;
+  gap: 16px !important;
+  align-items: start !important;
+}
+:root .main .library-experience.library-page--full .library-completed-slot {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0;
+  height: auto !important;
+}
+:root .main .library-experience.library-page--full .library-completed-slot > .book-card {
+  display: flex !important;
+  width: 100% !important;
+  height: auto !important;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--library-line) !important;
+  border-radius: 14px !important;
+  background: var(--library-panel) !important;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .12) !important;
+}
+:root .main .library-experience.library-page--full .library-completed-slot > .book-card :is(.book-cover-wrap, .book-cover, .book-cover-fallback, picture) {
+  width: 100% !important;
+  max-width: 100% !important;
+  aspect-ratio: 2 / 3;
+  height: auto !important;
+  object-fit: cover;
+}
+:root .main .library-experience.library-page--full .library-completed-slot > .book-card .book-meta {
+  display: grid !important;
+  gap: 3px;
+  padding: 10px 11px 12px !important;
+  background: transparent !important;
+}
+:root .main .library-experience.library-page--full .library-completed-slot > .book-card .book-title {
+  overflow: hidden;
+  color: var(--library-text) !important;
+  font-size: .82rem;
+  line-height: 1.3;
+  -webkit-text-fill-color: var(--library-text) !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:root .main .library-experience.library-page--full .library-completed-slot > .book-card .book-author {
+  overflow: hidden;
+  color: var(--library-muted) !important;
+  font-size: .7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dark theme: the library keeps its warm layout but on dark surfaces. */
+:root[data-theme="dark"] .main .library-experience {
+  --library-bg: #0D1914;
+  --library-panel: #121F1A;
+  --library-panel-raised: #17261F;
+  --library-line: rgba(190, 235, 212, .13);
+  --library-text: #EFF7F2;
+  --library-muted: #9DB2A6;
+  --library-green: #5FD3A5;
+  --library-violet: #B9A6F5;
+  --library-amber: #E7C07F;
+  --library-rose: #F0A0AE;
+  background: var(--library-bg) !important;
+}
+:root[data-theme="dark"] .main .library-experience::before {
+  background:
+    radial-gradient(ellipse at 84% 4%, rgba(95, 211, 165, .12), transparent 34%),
+    radial-gradient(ellipse at 6% 32%, rgba(116, 92, 190, .12), transparent 30%),
+    var(--library-bg) !important;
+}
+:root[data-theme="dark"] .main .library-experience :is(p, small, .meta, .library-saved-actions > span) {
+  color: var(--library-muted) !important;
+  -webkit-text-fill-color: var(--library-muted) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-saved-heading h2,
+:root[data-theme="dark"] .main .library-experience :is(.library-section-heading, .continue-reading-heading, .library-shelf-heading) h2 {
+  color: var(--library-text) !important;
+  -webkit-text-fill-color: var(--library-text) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-create-list-button {
+  border-color: var(--library-line) !important;
+  background: var(--library-panel) !important;
+  color: var(--library-text) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-create-list-button:hover {
+  border-color: var(--library-green) !important;
+  color: var(--library-green) !important;
+}
+:root[data-theme="dark"] .main .library-experience .continue-reading-card,
+:root[data-theme="dark"] .main .library-experience .library-empty,
+:root[data-theme="dark"] .main .library-experience .rl-user-card,
+:root[data-theme="dark"] .main .library-experience .library-story-card {
+  border-color: var(--library-line) !important;
+  background: var(--library-panel) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-empty h2 { color: var(--library-text) !important; }
+:root[data-theme="dark"] .main .library-experience .continue-reading-title { color: var(--library-text) !important; }
+:root[data-theme="dark"] .main .library-experience .continue-reading-author { color: var(--library-muted) !important; }
+:root[data-theme="dark"] .main .library-experience .continue-reading-meter { background: rgba(255, 255, 255, .12) !important; }
+:root[data-theme="dark"] .main .library-experience .library-card-menu-items :is(a, button):hover {
+  background: rgba(95, 211, 165, .12) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-tabs {
+  border-color: var(--library-line) !important;
+  background: var(--library-panel) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-hero-arrow {
+  border-color: rgba(255, 255, 255, .2) !important;
+  background: rgba(255, 255, 255, .1) !important;
+  color: #fff !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-hero-dot { background: rgba(255, 255, 255, .28) !important; }
+:root[data-theme="dark"] .main .library-experience .library-hero-dot.is-active { background: var(--library-green) !important; }
+
+/* Dark hero wash on small screens (the light version painted white over it). */
+@media (max-width: 900px) {
+  :root[data-theme="dark"] .main .library-page .library-cinematic-hero--banner::after,
+  :root[data-theme="dark"] .main .library-experience > .library-cinematic-hero.library-cinematic-hero--banner::after {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--site-bg) 92%, transparent) 0%, color-mix(in srgb, var(--site-bg) 82%, transparent) 46%, color-mix(in srgb, var(--site-bg) 66%, transparent) 100%) !important;
+  }
+}
+
+/* ==========================================================================
+   Responsive story cards
+   ========================================================================== */
+@media (max-width: 760px) {
+  /* Hero copy and controls must not collide on phones. */
+  :root .main .library-experience .library-cinematic-copy {
+    width: 100%;
+    max-width: 100%;
+    overflow: visible;
+  }
+  :root .main .library-experience .library-cinematic-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 9px;
+    margin-top: 16px;
+  }
+  :root .main .library-experience .library-cinematic-actions .library-featured-button,
+  :root .main .library-experience .library-cinematic-actions .library-cinematic-secondary {
+    width: auto !important;
+    min-width: 0;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: visible;
+  }
+  :root .main .library-experience .library-hero-slider-controls {
+    position: static !important;
+    margin-top: 14px;
+    justify-content: flex-start;
+  }
+  :root .main .library-experience .library-cinematic-hero--banner .library-cinematic-showcase,
+  :root .main .library-experience .library-cinematic-covers--centered {
+    min-height: 220px !important;
+  }
+  :root .main .library-experience .library-cinematic-cover {
+    width: 74px !important;
+    flex-basis: 74px !important;
+  }
+
+  /* Continue reading becomes a readable stacked list instead of a tiny carousel. */
+  :root .main .library-experience .library-carousel-shell { display: block; }
+  :root .main .library-experience .library-carousel-arrow { display: none !important; }
+  :root .main .library-experience .continue-reading-grid {
+    display: grid !important;
+    grid-auto-flow: row !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-auto-columns: auto !important;
+    gap: 12px;
+    overflow: visible !important;
+    padding-bottom: 0;
+  }
+  :root .main .library-experience.library-page--full .library-tabs {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    gap: 4px !important;
+    padding: 5px !important;
+  }
+  :root .main .library-experience.library-page--full .library-tabs .profile-tab {
+    min-width: 0;
+    min-height: 42px;
+    padding: 7px 4px !important;
+    font-size: .66rem !important;
+    gap: 3px;
+    line-height: 1.12;
+    white-space: normal;
+    text-align: center;
+  }
+  :root .main .library-experience.library-page--full .library-tabs .profile-tab .tab-count {
+    min-width: 19px;
+    height: 19px;
+    padding: 0 4px;
+    font-size: .62rem;
+  }
+  :root .main .library-experience.library-page--full .library-tabs .library-tab-icon { display: none; }
+  :root .main .library-experience .continue-reading-card {
+    width: 100%;
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+  :root .main .library-experience .library-completed-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+}
+
+/* ==========================================================================
+   Library: final dark-mode contrast pass
+   Older light-only rules above paint white slabs, dark headings and white
+   chips. Restate every surface and control with the library palette so the
+   page reads cleanly in dark mode.
+   ========================================================================== */
+:root[data-theme="dark"] .main .library-experience {
+  --library-bg: #0D1914;
+  --library-panel: #12211B;
+  --library-panel-raised: #182A22;
+  --library-line: rgba(190, 235, 212, .15);
+  --library-text: #EFF7F2;
+  --library-muted: #A2B8AC;
+  --library-green: #63DCAC;
+  background: var(--library-bg) !important;
+  color: var(--library-text) !important;
+}
+:root[data-theme="dark"] .main .library-experience::before {
+  background: var(--library-bg) !important;
+}
+:root[data-theme="dark"] .main .library-experience > .library-saved-library,
+:root[data-theme="dark"] .main .library-experience > .library-discovery-section,
+:root[data-theme="dark"] .main .library-experience > .library-discovery-loading {
+  background: transparent !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-saved-heading h2,
+:root[data-theme="dark"] .main .library-experience .continue-reading-heading h2,
+:root[data-theme="dark"] .main .library-experience .library-shelf-heading h2,
+:root[data-theme="dark"] .main .library-experience :is(.library-section-heading, .library-saved-heading, .continue-reading-heading, .library-shelf-heading) h2 {
+  color: var(--library-text) !important;
+  -webkit-text-fill-color: var(--library-text) !important;
+}
+:root[data-theme="dark"] .main .library-experience :is(.library-saved-heading, .library-section-heading, .continue-reading-heading, .library-shelf-heading) {
+  border-color: var(--library-line) !important;
+}
+:root[data-theme="dark"] .main .library-experience :is(.eyebrow, .library-kicker, .library-saved-heading .eyebrow) {
+  color: var(--library-green) !important;
+  -webkit-text-fill-color: var(--library-green) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-saved-actions > span { color: var(--library-muted) !important; }
+
+/* Tabs */
+:root[data-theme="dark"] .main .library-experience .library-tabs {
+  border-color: var(--library-line) !important;
+  background: var(--library-panel) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-tabs .profile-tab,
+:root[data-theme="dark"] .main .library-experience.library-page--full .library-tabs .profile-tab {
+  background: transparent !important;
+  color: var(--library-muted) !important;
+  -webkit-text-fill-color: var(--library-muted) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-tabs .profile-tab:hover { color: var(--library-text) !important; -webkit-text-fill-color: var(--library-text) !important; }
+:root[data-theme="dark"] .main .library-experience .library-tabs .profile-tab.active,
+:root[data-theme="dark"] .main .library-experience.library-page--full .library-tabs .profile-tab.active,
+:root[data-theme="dark"] .main .library-page--full.library-experience .library-saved-library > .library-tabs .profile-tab.active:hover {
+  background: var(--library-panel-raised) !important;
+  color: var(--library-green) !important;
+  -webkit-text-fill-color: var(--library-green) !important;
+  border-color: color-mix(in srgb, var(--library-green) 46%, transparent) !important;
+  box-shadow: inset 0 -2px var(--library-green) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-tabs .tab-count {
+  border-color: color-mix(in srgb, var(--library-green) 32%, transparent) !important;
+  background: rgba(99, 220, 172, .14) !important;
+  color: var(--library-green) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-tab-icon { color: var(--library-green) !important; }
+
+/* Controls */
+:root[data-theme="dark"] .main .library-experience .library-create-list-button {
+  border: 1px solid var(--library-line) !important;
+  background: var(--library-panel-raised) !important;
+  color: var(--library-text) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-create-list-button svg { color: var(--library-green) !important; }
+:root[data-theme="dark"] .main .library-experience .library-create-list-button:hover {
+  border-color: var(--library-green) !important;
+  color: var(--library-green) !important;
+}
+:root[data-theme="dark"] .main .library-experience :is(.library-carousel-arrow, .library-carousel-next) {
+  border: 1px solid var(--library-line) !important;
+  background: var(--library-panel-raised) !important;
+  color: var(--library-text) !important;
+}
+:root[data-theme="dark"] .main .library-experience :is(.library-carousel-arrow, .library-carousel-next):hover:not(:disabled) {
+  border-color: var(--library-green) !important;
+  color: var(--library-green) !important;
+}
+
+/* Continue reading cards */
+:root[data-theme="dark"] .main .library-experience .continue-reading-card,
+:root[data-theme="dark"] .main .library-experience .continue-reading-grid > .continue-reading-card:hover {
+  border-color: var(--library-line) !important;
+  background: var(--library-panel) !important;
+}
+:root[data-theme="dark"] .main .library-experience .continue-reading-chapter { color: var(--library-green) !important; }
+:root[data-theme="dark"] .main .library-experience .continue-reading-title { color: var(--library-text) !important; }
+:root[data-theme="dark"] .main .library-experience .continue-reading-author,
+:root[data-theme="dark"] .main .library-experience .continue-reading-progress > div { color: var(--library-muted) !important; }
+:root[data-theme="dark"] .main .library-experience .continue-reading-progress button {
+  background: var(--library-green) !important;
+  color: #06130E !important;
+  -webkit-text-fill-color: #06130E !important;
+}
+:root[data-theme="dark"] .main .library-experience .continue-reading-progress button:hover:not(:disabled) {
+  background: #8BEDC5 !important;
+  color: #04100A !important;
+  -webkit-text-fill-color: #04100A !important;
+}
+
+/* Card menus */
+:root[data-theme="dark"] .main .library-experience .library-card-menu-items,
+:root[data-theme="dark"] .main .library-page .library-completed-grid .library-card-menu--top-right .library-card-menu-items,
+:root[data-theme="dark"] .main .library-page .library-completed-as-profile .library-card-menu--top-right .library-card-menu-items {
+  border-color: var(--library-line) !important;
+  background: var(--library-panel-raised) !important;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, .45) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-card-menu-items :is(button, a) {
+  color: var(--library-text) !important;
+  -webkit-text-fill-color: var(--library-text) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-card-menu-items :is(button, a):hover {
+  background: rgba(99, 220, 172, .14) !important;
+  color: var(--library-green) !important;
+  -webkit-text-fill-color: var(--library-green) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-card-menu-items :is(button, a).is-danger { color: #FF9E92 !important; -webkit-text-fill-color: #FF9E92 !important; }
+:root[data-theme="dark"] .main .library-experience .library-card-menu > summary,
+:root[data-theme="dark"] .main .library-page .library-completed-grid .library-card-menu--top-right > summary {
+  border-color: rgba(255, 255, 255, .16) !important;
+  background: rgba(9, 20, 15, .82) !important;
+  color: var(--library-text) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .38) !important;
+}
+:root[data-theme="dark"] .main .library-page .library-completed-grid .library-card-menu--top-right > summary:hover {
+  background: rgba(24, 42, 34, .96) !important;
+}
+:root[data-theme="dark"] .main .library-page .library-completed-grid .library-card-menu-orb i,
+:root[data-theme="dark"] .main .library-page .library-completed-grid .library-card-menu--top-right > summary:hover .library-card-menu-orb i {
+  background: #EFF7F2 !important;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .35) !important;
+}
+
+/* Completed shelf chips + fallback covers */
+:root[data-theme="dark"] .main .library-page .library-completed-grid .book-tag-chip,
+:root[data-theme="dark"] .main .library-page .library-completed-grid .book-status-chip {
+  border: 1px solid var(--library-line) !important;
+  background: var(--library-panel-raised) !important;
+  color: var(--library-text) !important;
+  -webkit-text-fill-color: var(--library-text) !important;
+}
+:root[data-theme="dark"] .main .library-page .library-completed-grid .book-status-chip--completed {
+  border-color: color-mix(in srgb, var(--library-green) 40%, transparent) !important;
+  background: rgba(99, 220, 172, .14) !important;
+  color: var(--library-green) !important;
+  -webkit-text-fill-color: var(--library-green) !important;
+}
+:root[data-theme="dark"] .main .library-page .library-completed-grid .book-card-stats { color: var(--library-muted) !important; }
+:root[data-theme="dark"] .main .library-page .library-completed-grid .book-rating-badge {
+  border: 1px solid var(--library-line) !important;
+  background: rgba(9, 20, 15, .86) !important;
+  color: var(--library-text) !important;
+}
+:root[data-theme="dark"] .main .library-page .library-completed-slot .book-cover-fallback {
+  background: radial-gradient(ellipse at 80% 8%, rgba(99, 220, 172, .3), transparent 54%), linear-gradient(155deg, #1B3A2D, #0E1C16) !important;
+}
+
+/* Empty states, lists and dialogs */
+:root[data-theme="dark"] .main .library-experience :is(.library-empty, .rl-user-card, .library-guest-prompt, .library-list-modal, .library-add-modal) {
+  border-color: var(--library-line) !important;
+  background: var(--library-panel) !important;
+  color: var(--library-text) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-empty-illustration {
+  border-color: var(--library-line) !important;
+  background: rgba(99, 220, 172, .12) !important;
+  color: var(--library-green) !important;
+}
+:root[data-theme="dark"] .main .library-experience :is(.library-empty-mark, .library-guest-prompt-icon) {
+  border-color: var(--library-line) !important;
+  background: rgba(99, 220, 172, .12) !important;
+  color: var(--library-green) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-notice {
+  border-color: color-mix(in srgb, var(--library-green) 34%, transparent) !important;
+  background: rgba(99, 220, 172, .12) !important;
+  color: var(--library-green) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-remove { color: #FF9E92 !important; }
+:root[data-theme="dark"] .main .library-experience .library-loading { color: var(--library-muted) !important; }
+:root[data-theme="dark"] .main .library-experience .rl-story-count { color: var(--library-muted) !important; }
+
+/* Reading list dialog controls */
+:root[data-theme="dark"] .main .library-experience .library-list-mode {
+  border-color: var(--library-line) !important;
+  background: var(--library-panel-raised) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-list-mode button { color: var(--library-muted) !important; }
+:root[data-theme="dark"] .main .library-experience .library-list-mode button.active {
+  background: var(--library-green) !important;
+  color: #06130E !important;
+  box-shadow: none !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-list-option {
+  border-color: var(--library-line) !important;
+  background: var(--library-panel-raised) !important;
+  color: var(--library-text) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-list-option.is-selected {
+  border-color: var(--library-green) !important;
+  background: rgba(99, 220, 172, .12) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-list-create-fields label { color: var(--library-muted) !important; }
+:root[data-theme="dark"] .main .library-experience .library-list-create-fields label > span { color: var(--library-muted) !important; }
+:root[data-theme="dark"] .main .library-experience .library-list-create-fields :is(input, textarea) {
+  border-color: var(--library-line) !important;
+  background: var(--library-panel-raised) !important;
+  color: var(--library-text) !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-dialog-error { color: #FF9E92 !important; }
+
+/* Hero buttons keep their own contrast in dark mode. */
+:root[data-theme="dark"] .main .library-experience .library-cinematic-actions .library-featured-button {
+  border: 1px solid transparent !important;
+  background: var(--library-green) !important;
+  color: #06130E !important;
+  -webkit-text-fill-color: #06130E !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-cinematic-actions .library-featured-button:hover { background: #8BEDC5 !important; }
+:root[data-theme="dark"] .main .library-experience .library-cinematic-actions .library-cinematic-secondary {
+  border: 1px solid rgba(255, 255, 255, .34) !important;
+  background: rgba(9, 20, 15, .42) !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+:root[data-theme="dark"] .main .library-experience .library-cinematic-actions .library-cinematic-secondary:hover { background: rgba(255, 255, 255, .16) !important; }
+
+/* Light mode: keep the continue-reading action readable on its pale pill. */
+:root:not([data-theme="dark"]) .main .library-experience .continue-reading-progress button {
+  background: #E7F1EC !important;
+  color: #0F4C38 !important;
+  -webkit-text-fill-color: #0F4C38 !important;
+}
+:root:not([data-theme="dark"]) .main .library-experience .continue-reading-progress button:hover:not(:disabled) {
+  background: #145A43 !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* ==========================================================================
+   Header popovers (Write menu + notifications) in dark mode.
+   Older light-only rules pinned these panels to a white surface and #374151
+   text; the notification list therefore looked empty on a dark drawer.
+   ========================================================================== */
+:root[data-theme="dark"] .site-header--pro .header-write-dropdown,
+:root[data-theme="dark"] .site-header--pro .header-notification-menu {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .5) !important;
+}
+:root[data-theme="dark"] .site-header--pro .header-write-dropdown a,
+:root[data-theme="dark"] .site-header--pro .header-notification-menu :is(a, button, strong, h3, p, span) {
+  color: var(--site-ink) !important;
+  -webkit-text-fill-color: var(--site-ink) !important;
+}
+:root[data-theme="dark"] .site-header--pro .header-notification-menu .header-notification-item small,
+:root[data-theme="dark"] .site-header--pro .header-notification-menu .header-notification-empty,
+:root[data-theme="dark"] .site-header--pro .header-notification-menu .header-notification-heading span {
+  color: var(--site-muted) !important;
+  -webkit-text-fill-color: var(--site-muted) !important;
+}
+:root[data-theme="dark"] .site-header--pro .header-notification-menu .header-notification-heading span,
+:root[data-theme="dark"] .site-header--pro .header-notification-menu .header-notification-group h3,
+:root[data-theme="dark"] .site-header--pro .header-notification-menu .header-notification-more {
+  color: var(--site-brand-light) !important;
+  -webkit-text-fill-color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .site-header--pro .header-write-dropdown a:hover,
+:root[data-theme="dark"] .site-header--pro .header-notification-menu :is(a, button):hover {
+  background: var(--site-surface) !important;
+  color: var(--site-brand-light) !important;
+  -webkit-text-fill-color: var(--site-brand-light) !important;
+}
+:root[data-theme="dark"] .site-header--pro .header-notification-menu :is(.header-notification-heading, .header-notification-item) {
+  border-color: var(--site-line) !important;
+}
+:root[data-theme="dark"] .site-header--pro .header-notification-menu .header-notification-dot {
+  background: var(--site-brand-light) !important;
+}
+/* ==========================================================================
+   Reader paragraph actions + chapter like, aligned with the Flutter app:
+   heart icons for likes, a bubble for comments, red when a paragraph is
+   liked, and a themed gradient pill for the chapter like.
+   ========================================================================== */
+.main .inkitt-reader .reader-paragraphs .para-actions {
+  gap: 8px;
+}
+
+.main .inkitt-reader .reader-paragraphs .para-actions .para-bubble,
+.main .inkitt-reader .reader-paragraphs .para-actions .para-heart {
+  display: inline-flex !important;
+  flex-direction: column !important;
+  min-width: 30px;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 1px !important;
+  padding: 4px 6px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: color-mix(in srgb, var(--site-muted) 80%, transparent) !important;
+}
+
+.main .inkitt-reader .reader-paragraphs .para-actions .para-bubble svg,
+.main .inkitt-reader .reader-paragraphs .para-actions .para-heart svg,
+.main .inkitt-reader .reader-paragraphs .para-actions .para-heart-icon {
+  width: 17px !important;
+  height: 17px !important;
+}
+
+.main .inkitt-reader .reader-paragraphs .para-actions .para-bubble > span,
+.main .inkitt-reader .reader-paragraphs .para-actions .para-heart > span {
+  color: inherit;
+  font-size: .62rem;
+  font-weight: 650;
+  line-height: 1;
+}
+
+/* Comment bubble: ash when only other readers commented, teal when it is you. */
+.main .inkitt-reader .reader-paragraphs .para-actions .para-bubble.has-comments:not(.is-self-commented) {
+  background: var(--site-surface) !important;
+  color: #9CA3AF !important;
+}
+
+.main .inkitt-reader .reader-paragraphs .para-actions .para-bubble.is-self-commented {
+  background: color-mix(in srgb, var(--site-brand) 16%, var(--site-surface)) !important;
+  color: var(--site-brand) !important;
+}
+
+.main .inkitt-reader .reader-paragraphs .para-actions .para-bubble:hover {
+  background: var(--site-raised) !important;
+  color: var(--site-brand) !important;
+}
+
+.main .inkitt-reader .reader-paragraphs .para-actions .para-bubble svg path,
+.main .inkitt-reader .reader-paragraphs .para-actions .para-bubble-icon path {
+  fill: none !important;
+  stroke: currentColor !important;
+}
+
+/* Paragraph like: red heart as soon as the reader likes it. */
+.main .inkitt-reader .reader-paragraphs .para-actions .para-heart:hover {
+  background: color-mix(in srgb, #FF4757 10%, var(--site-surface)) !important;
+  color: #FF4757 !important;
+}
+
+.main .inkitt-reader .reader-paragraphs .para-actions .para-heart.is-liked,
+.main .inkitt-reader .reader-paragraphs .para-actions .para-heart.is-liked:hover {
+  background: color-mix(in srgb, #FF4757 12%, transparent) !important;
+  color: #FF4757 !important;
+}
+
+.main .inkitt-reader .reader-paragraphs .para-actions .para-heart.is-liked svg path,
+.main .inkitt-reader .reader-paragraphs .para-actions .para-heart.is-liked .para-heart-icon path {
+  fill: #FF4757 !important;
+  stroke: #FF4757 !important;
+}
+
+:root[data-theme="dark"] .main .inkitt-reader .reader-paragraphs .para-actions .para-heart.is-liked,
+:root[data-theme="dark"] .main .inkitt-reader .reader-paragraphs .para-actions .para-heart.is-liked:hover {
+  background: color-mix(in srgb, #FF4757 18%, transparent) !important;
+  color: #FF6B77 !important;
+}
+
+:root[data-theme="dark"] .main .inkitt-reader .reader-paragraphs .para-actions .para-heart.is-liked svg path {
+  fill: #FF6B77 !important;
+  stroke: #FF6B77 !important;
+}
+
+/* Chapter like: a themed gradient pill that still reads as a like action. */
+.main .inkitt-reader .reader-like-button {
+  min-height: 36px;
+  gap: 7px;
+  padding: 7px 14px 7px 12px;
+  border: 1px solid color-mix(in srgb, var(--site-brand) 34%, var(--site-line)) !important;
+  background: color-mix(in srgb, var(--site-brand) 8%, var(--site-card)) !important;
+  color: var(--site-brand-strong) !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--site-brand) 12%, transparent);
+}
+
+.main .inkitt-reader .reader-like-button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+}
+
+.main .inkitt-reader .reader-like-button small {
+  padding-left: 7px;
+  border-left: 1px solid color-mix(in srgb, var(--site-brand) 26%, var(--site-line));
+  color: color-mix(in srgb, var(--site-brand-strong) 70%, var(--site-muted)) !important;
+}
+
+.main .inkitt-reader .reader-like-button:hover {
+  transform: translateY(-1px);
+  border-color: var(--site-brand) !important;
+  background: color-mix(in srgb, var(--site-brand) 14%, var(--site-card)) !important;
+  color: var(--site-brand-strong) !important;
+}
+
+.main .inkitt-reader .reader-like-button.is-liked,
+.main .inkitt-reader .reader-like-button.is-liked:hover {
+  border-color: transparent !important;
+  background: linear-gradient(120deg, var(--site-brand), var(--site-brand-strong)) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--site-brand) 32%, transparent);
+}
+
+.main .inkitt-reader .reader-like-button.is-liked svg {
+  fill: currentColor;
+}
+
+.main .inkitt-reader .reader-like-button.is-liked small {
+  border-left-color: rgba(255,255,255,.4);
+  color: rgba(255,255,255,.9) !important;
+}
+
+:root[data-theme="dark"] .main .inkitt-reader .reader-like-button {
+  border-color: color-mix(in srgb, var(--site-brand) 40%, var(--site-line)) !important;
+  background: color-mix(in srgb, var(--site-brand) 12%, var(--site-card)) !important;
+  color: var(--site-brand-light) !important;
+}
+
+:root[data-theme="dark"] .main .inkitt-reader .reader-like-button small {
+  color: var(--site-muted) !important;
+}
+
+:root[data-theme="dark"] .main .inkitt-reader .reader-like-button:hover {
+  border-color: var(--site-brand) !important;
+  color: var(--site-brand-light) !important;
+}
+
+:root[data-theme="dark"] .main .inkitt-reader .reader-like-button.is-liked,
+:root[data-theme="dark"] .main .inkitt-reader .reader-like-button.is-liked:hover {
+  background: linear-gradient(120deg, var(--site-brand), var(--site-brand-strong)) !important;
+  color: #FFFFFF !important;
+}
+
+.reader-main--warm .reader-like-button {
+  border-color: color-mix(in srgb, #7A6F5C 30%, #D8C9AA) !important;
+  background: #FBF7EE !important;
+  color: #5C5343 !important;
+}
+/* Completed shelf: force the exact profile Stories shelf card. */
+.main .library-experience .library-completed-grid.profile-story-grid--home-pack {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, 140px) !important;
+  justify-content: start !important;
+  align-items: start !important;
+  gap: 16px 14px !important;
+  padding: 8px 0 20px !important;
+  background: transparent !important;
+}
+
+.main .library-experience .library-completed-grid > .library-completed-slot {
+  display: block !important;
+  width: 140px !important;
+  min-width: 140px !important;
+  max-width: 140px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.main .library-experience .library-completed-grid .book-card,
+.main .library-experience .library-completed-grid .book-card--shelf,
+.main .library-experience .library-completed-grid .book-card--inkitt {
+  display: flex !important;
+  width: 100% !important;
+  flex-direction: column !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--site-ink) !important;
+}
+
+.main .library-experience .library-completed-grid .book-cover-wrap {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 2 / 3 !important;
+  overflow: hidden !important;
+  border-radius: 6px !important;
+  background: var(--site-surface) !important;
+  box-shadow: none !important;
+}
+
+.main .library-experience .library-completed-grid .book-cover-wrap img,
+.main .library-experience .library-completed-grid .book-cover,
+.main .library-experience .library-completed-grid .book-cover-fallback {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 6px !important;
+}
+
+.main .library-experience .library-completed-grid .book-meta {
+  display: grid !important;
+  grid-template-rows: 2.5em 1.25em 1.15em 1.2em !important;
+  gap: 2px !important;
+  padding: 7px 1px 0 !important;
+}
+
+.main .library-experience .library-completed-grid .book-title {
+  display: -webkit-box !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  color: var(--site-ink) !important;
+  font-size: .72rem !important;
+  font-weight: 750 !important;
+  line-height: 1.25 !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+}
+
+.main .library-experience .library-completed-grid .book-author {
+  overflow: hidden !important;
+  margin: 0 !important;
+  color: var(--site-muted) !important;
+  font-size: .62rem !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.main .library-experience .library-completed-grid .book-card-stats {
+  display: flex !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  color: var(--site-muted) !important;
+  font-size: .6rem !important;
+}
+
+.main .library-experience .library-completed-grid .book-card-stats span:last-child {
+  display: none !important;
+}
+
+.main .library-experience .library-completed-grid .book-card-badges {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  gap: 4px !important;
+  min-height: 18px !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+}
+
+.main .library-experience .library-completed-grid :is(.book-tag-chip, .book-status-chip) {
+  display: inline-flex !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  padding: 2px 5px !important;
+  border: 0 !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  color: var(--site-muted) !important;
+  font-size: .55rem !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 720px) {
+  .main .library-experience .library-completed-grid.profile-story-grid--home-pack {
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)) !important;
+    gap: 12px 10px !important;
+  }
+  .main .library-experience .library-completed-grid > .library-completed-slot {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+}
+/* Completed shelf: profile-sized shelf cards, not the library panel card. */
+:root .main .library-experience.library-page--full .library-completed-grid.profile-story-grid--home-pack {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, 168px) !important;
+  justify-content: start !important;
+  align-items: start !important;
+  gap: 24px 18px !important;
+  padding: 8px 0 36px !important;
+  background: transparent !important;
+}
+
+:root .main .library-experience.library-page--full .library-completed-grid > .library-completed-slot {
+  display: block !important;
+  width: 168px !important;
+  min-width: 168px !important;
+  max-width: 168px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+:root .main .library-experience.library-page--full .library-completed-slot > .book-card {
+  display: flex !important;
+  width: 100% !important;
+  flex-direction: column !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+:root .main .library-experience.library-page--full .library-completed-slot > .book-card :is(.book-cover-wrap, .book-cover, .book-cover-fallback, picture) {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 2 / 3 !important;
+  object-fit: cover !important;
+  border-radius: 6px !important;
+}
+
+:root .main .library-experience.library-page--full .library-completed-slot > .book-card .book-meta {
+  display: grid !important;
+  grid-template-rows: 2.5em 1.25em 1.15em 1.2em !important;
+  gap: 2px !important;
+  padding: 7px 1px 0 !important;
+  background: transparent !important;
+}
+
+:root .main .library-experience.library-page--full .library-completed-slot > .book-card .book-title {
+  display: -webkit-box !important;
+  overflow: hidden !important;
+  color: var(--site-ink) !important;
+  font-size: .72rem !important;
+  font-weight: 750 !important;
+  line-height: 1.25 !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+  -webkit-text-fill-color: var(--site-ink) !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 2 !important;
+}
+
+:root .main .library-experience.library-page--full .library-completed-slot > .book-card .book-author {
+  overflow: hidden !important;
+  color: var(--site-muted) !important;
+  font-size: .62rem !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 720px) {
+  :root .main .library-experience.library-page--full .library-completed-grid.profile-story-grid--home-pack {
+    grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)) !important;
+    gap: 20px 12px !important;
+    padding-bottom: 28px !important;
+  }
+  :root .main .library-experience.library-page--full .library-completed-grid > .library-completed-slot {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+}
+
+.main .inkitt-reader .reader-like-button.is-liked svg path,
+.main .inkitt-reader .reader-like-button.is-liked svg {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+/* Dark mode: the profile cover keeps the app palette instead of the pale
+   pastel placeholder used in light mode. */
+:root[data-theme="dark"] .main .profile-page .profile-cover {
+  background-color: var(--site-surface) !important;
+}
+:root[data-theme="dark"] .main .profile-page .profile-cover:not(.has-image) {
+  background-image:
+    radial-gradient(ellipse at 80% 16%, color-mix(in srgb, var(--site-brand) 26%, transparent), transparent 44%),
+    linear-gradient(118deg, color-mix(in srgb, var(--site-brand-strong) 24%, var(--site-bg)), var(--site-bg) 56%, color-mix(in srgb, var(--site-brand) 12%, var(--site-bg))) !important;
+}
+:root[data-theme="dark"] .main .profile-page .profile-cover::after {
+  background: linear-gradient(180deg, transparent 38%, color-mix(in srgb, var(--site-bg) 58%, transparent)) !important;
+}
+
+/* ------------------------------------------------------------------
+   DARK-MODE CONTRAST PASS
+   Brand text is darkened for light surfaces, which is too low-contrast
+   on dark cards. These overrides lift brand-coloured text and icon
+   buttons to the light brand tint (>= 4.5:1 on every dark surface).
+   ------------------------------------------------------------------ */
+:root[data-theme="dark"] .site-header .header-profile-link > span {
+  background: color-mix(in srgb, var(--site-brand) 52%, var(--site-bg)) !important;
+  color: #FFFFFF !important;
+}
+
+:root[data-theme="dark"] .arrow-carousel-control {
+  border-color: var(--site-line) !important;
+  background: var(--site-card) !important;
+  color: var(--site-ink) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .35) !important;
+}
+
+:root[data-theme="dark"] .arrow-carousel-control:hover:not(:disabled),
+:root[data-theme="dark"] .arrow-carousel-control:focus-visible {
+  border-color: var(--site-brand) !important;
+  background: var(--site-brand) !important;
+  color: #FFFFFF !important;
+}
+
+:root[data-theme="dark"] .main :is(.continue-reading-chapter, .continue-reading-progress button, .continue-reading-heading a) {
+  color: var(--site-brand-light) !important;
+  -webkit-text-fill-color: var(--site-brand-light) !important;
+}
+
+:root[data-theme="dark"] .site-header--pro :is(.nav-links > a.active, .nav-dropdown-btn.active, .nav-dropdown.active > .nav-dropdown-btn) {
+  color: var(--site-brand-light) !important;
+}
+
+:root[data-theme="dark"] .main .profile-page :is(.profile-handle, .eyebrow) {
+  color: var(--site-brand-light) !important;
+}
+
+:root[data-theme="dark"] .main :is(.manage-eyebrow, .manage-tabs button.active, .manage-tabs button.active span) {
+  color: var(--site-brand-light) !important;
+}
+
+:root[data-theme="dark"] .main .manage-page-inkitt .manage-page-heading p {
+  color: var(--site-muted) !important;
+}
+
+:root[data-theme="dark"] .ws-auth[data-theme="dark"] :is(.ws-auth__forgot, .ws-auth__switch button) {
+  color: color-mix(in srgb, var(--site-brand) 42%, #FFFFFF) !important;
+}
+
+:root[data-theme="dark"] .ws-auth[data-theme="dark"] .ws-auth__switch {
+  color: #A9B6AF !important;
+}
+
+/* Library shelf keeps its own highly-specific card colours; match the weight
+   so the dark tint applies there too. */
+:root[data-theme="dark"] .main .library-page.library-experience .library-continue-shelf .continue-reading-card .continue-reading-chapter,
+:root[data-theme="dark"] .main .library-page.library-experience .library-continue-shelf .continue-reading-card .continue-reading-progress button,
+:root[data-theme="dark"] .main .library-page.library-experience .library-continue-shelf .continue-reading-card .continue-reading-progress button:hover:not(:disabled) {
+  color: var(--site-brand-light) !important;
+  -webkit-text-fill-color: var(--site-brand-light) !important;
 }
